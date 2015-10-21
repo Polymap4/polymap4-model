@@ -44,4 +44,5 @@ public interface CollectionProperty<T>
      */
     public T createElement( ValueInitializer<T> initializer );
 
+    public <U extends T> U createElement( Class<U> clazz, ValueInitializer<U> initializer );
 }

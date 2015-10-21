@@ -78,6 +78,31 @@ public class CompositeCollectionPropertyImpl<T extends Composite>
         return (T)value;
     }
 
+    @Override
+    public <U extends T> U createElement( Class<U> clazz, ValueInitializer<U> initializer ) {
+        CompositeState state = (CompositeState)storeProp.createValue();
+        InstanceBuilder builder = new InstanceBuilder( entityContext );
+        Composite value = builder.newComposite( state, clazz );
+        
+        if (initializer != null) {
+            try {
+                value = initializer.initialize( (U)value );
+            }
+            catch (RuntimeException e) {
+                throw e;
+            }
+            catch (Exception e) {
+                throw new ModelRuntimeException( e );
+            }
+        }
+        // update cache
+        if (cache == null) {
+            cache = new ArrayList();
+        }
+        cache.add( (U)value );
+        
+        return (U)value;
+    }
 
     @Override
     public Iterator<T> iterator() {

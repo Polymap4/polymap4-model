@@ -60,6 +60,12 @@ public class LogConcern
         return ((Property)delegate).createValue( initializer );
     }
 
+    @Override
+    public Object createValue( Class clazz, ValueInitializer initializer ) {
+        log( "createValue" );
+        return ((Property)delegate).createValue( clazz, initializer );
+    }
+
     // collection *****************************************
     
     @Override

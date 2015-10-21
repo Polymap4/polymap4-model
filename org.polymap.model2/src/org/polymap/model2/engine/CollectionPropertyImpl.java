@@ -48,6 +48,11 @@ class CollectionPropertyImpl<T>
     }
 
     @Override
+    public <U extends T> U createElement( Class<U> clazz, ValueInitializer<U> initializer ) {
+        throw new RuntimeException( "not yet..." );
+    }
+
+    @Override
     public PropertyInfo info() {
         return storeProp.info();
     }

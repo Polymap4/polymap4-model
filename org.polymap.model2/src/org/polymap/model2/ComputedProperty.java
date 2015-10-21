@@ -42,6 +42,11 @@ public abstract class ComputedProperty<T>
     }
 
     @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        throw new UnsupportedOperationException( "Method needs to be overridden." );
+    }
+
+    @Override
     public void set( T value ) {
         throw new UnsupportedOperationException( "Method needs to be overridden." );
     }

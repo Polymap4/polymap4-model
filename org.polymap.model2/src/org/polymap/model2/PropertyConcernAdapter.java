@@ -40,6 +40,11 @@ public abstract class PropertyConcernAdapter<T>
     }
 
     @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        return delegate().createValue( clazz, initializer );
+    }
+
+    @Override
     public void set( T value ) {
         delegate().set( value );
     }

@@ -57,6 +57,8 @@ public interface Property<T>
      */
     public T createValue( ValueInitializer<T> initializer );
 
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer );
+
     /**
      * Modifies the value of this property.
      *

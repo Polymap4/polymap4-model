@@ -105,6 +105,32 @@ class CompositePropertyImpl<T extends Composite>
         return result;
     }
 
+    @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        T result = get();
+        if (result == null || !clazz.isAssignableFrom( result.getClass() )) {
+            synchronized (this) {
+                CompositeState state = storeProp.createValue();
+                assert state != null : "Store must not return null as newValue().";
+                InstanceBuilder builder = new InstanceBuilder( entityContext );
+                result = (T)builder.newComposite( state, clazz );
+
+                if (initializer != null) {
+                    try {
+                        result = initializer.initialize( (U) result );
+                    }
+                    catch (RuntimeException e) {
+                        throw e;
+                    }
+                    catch (Exception e) {
+                        throw new ModelRuntimeException( e );
+                    }
+                }
+                value = result;
+            }
+        }
+        return (U) result;
+    }
 
     @Override
     public PropertyInfo info() {

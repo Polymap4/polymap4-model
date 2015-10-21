@@ -80,6 +80,10 @@ final class ConstraintsPropertyInterceptor<T>
         return delegate().createValue( initializer );
     }
 
+    @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        return delegate().createValue( clazz, initializer );
+    }
 
     @Override
     public String toString() {

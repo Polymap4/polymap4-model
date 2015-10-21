@@ -52,6 +52,11 @@ public class PropertyChangeSupport
     }
 
     @Override
+    public Object createValue( Class clazz, ValueInitializer initializer ) {
+        return ((Property)delegate).createValue( clazz, initializer );
+    }
+
+    @Override
     public void set( Object value ) {
         ((Property)delegate).set( value );
         fireEvent( null, value );
