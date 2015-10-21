@@ -47,7 +47,24 @@ class PropertyImpl<T>
 
     @Override
     public T createValue( ValueInitializer<T> initializer ) {
-        T result = storeProp.createValue();
+        T result = (T) storeProp.createValue();
+        if (initializer != null) {
+            try {
+                result = initializer.initialize( result );
+            }
+            catch (RuntimeException e) {
+                throw e;
+            }
+            catch (Exception e) {
+                throw new ModelRuntimeException( e );
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        U result = (U) storeProp.createValue();
         if (initializer != null) {
             try {
                 result = initializer.initialize( result );

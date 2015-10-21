@@ -67,6 +67,11 @@ public class PessimisticLocking
         return ((Property)delegate).createValue( initializer );
     }
 
+    @Override
+    public Object createValue( Class clazz, ValueInitializer initializer ) {
+        checkWait( AccessType.WRITE );
+        return ((Property)delegate).createValue( clazz, initializer );
+    }
     
     @Override
     public void set( Object value ) {

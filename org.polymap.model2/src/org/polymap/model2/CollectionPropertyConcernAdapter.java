@@ -36,6 +36,10 @@ public abstract class CollectionPropertyConcernAdapter<T>
         return delegate().createElement( initializer );
     }
 
+    public <U extends T> U createElement( Class<U> clazz, ValueInitializer<U> initializer ) {
+        return delegate().createElement( clazz, initializer );
+    }
+
     @Override
     public int hashCode() {
         return delegate().hashCode();

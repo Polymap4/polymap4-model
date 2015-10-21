@@ -53,6 +53,10 @@ public class BidiManyAssociationConcern<T extends Entity>
         throw new RuntimeException( "not implemented." );
     }
 
+    @Override
+    public <U extends T> U createValue( Class<U> clazz, ValueInitializer<U> initializer ) {
+        throw new RuntimeException( "not implemented." );
+    }
     
     protected ManyAssociation delegate() {
         return (ManyAssociation)delegate;

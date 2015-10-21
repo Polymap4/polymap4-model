@@ -71,6 +71,14 @@ final class ConstraintsCollectionInterceptor<T>
         return coll().createElement( initializer );
     }
 
+    @Override
+    public <U extends T> U createElement( Class<U> clazz, ValueInitializer<U> initializer ) {
+        if (isImmutable) {
+            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
+        }
+        context.raiseStatus( EntityStatus.MODIFIED );
+        return coll().createElement( clazz, initializer );
+    }
 
     // Collection *****************************************
     
