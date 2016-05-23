@@ -39,8 +39,18 @@ public interface EntityRuntimeContext {
         CREATED( 1 ), 
         MODIFIED( 2 ),
         REMOVED( 3 ),
-        /** This status indicates that the Entity was evicted from its UnitOfWork. */
-        EVICTED( 4 );
+        /**
+         * This status indicates that the Entity was evicted from its UnitOfWork. Not
+         * currently used.
+         */
+        EVICTED( 4 ),
+        /**
+         * After {@link UnitOfWork} is closed all of its entities become detached. A
+         * detached entity must not be used anymore. Except for {@link Entity#id()}
+         * and {@link Entity#status()} all methods throw an
+         * {@link ModelRuntimeException}.
+         */
+        DETACHED( 5 );
         
         public int         status;
         
@@ -50,6 +60,8 @@ public interface EntityRuntimeContext {
         
     }
     
+    public Object id();
+
     public <E extends Entity> E getEntity();
     
     /**
@@ -73,6 +85,4 @@ public interface EntityRuntimeContext {
 
     public EntityRepository getRepository();
 
-    public void methodProlog( String methodName, Object[] args );
-    
 }

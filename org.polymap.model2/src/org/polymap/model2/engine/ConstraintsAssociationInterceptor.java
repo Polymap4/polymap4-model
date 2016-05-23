@@ -41,6 +41,7 @@ final class ConstraintsAssociationInterceptor<T extends Entity>
     
     @Override
     public T get() {
+        context.checkState();
         T value = delegate().get();
         // check Nullable
         if (value == null && !isNullable) {
@@ -52,7 +53,7 @@ final class ConstraintsAssociationInterceptor<T extends Entity>
     
     @Override
     public void set( T value ) {
-        context.checkEviction();
+        context.checkState();
         
         // XXX this should always fail outside a ValueInitializer
         if (isImmutable && delegate().get() != null) {

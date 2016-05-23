@@ -24,6 +24,8 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIF
 import java.util.Iterator;
 import java.io.IOException;
 
+import javax.cache.Cache;
+
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 
@@ -255,6 +257,10 @@ public class UnitOfWorkNested
 
     public void close() {
         if (isOpen()) {
+            // detach loaded Entities in order to avoid leaks and improper state access
+            for (Cache.Entry<Object,Entity> entry : loaded) {
+                InstanceBuilder.contextOf( entry.getValue() ).detach();
+            }
             commitLock.unlock( false );
             parent = null;
             repo = null;

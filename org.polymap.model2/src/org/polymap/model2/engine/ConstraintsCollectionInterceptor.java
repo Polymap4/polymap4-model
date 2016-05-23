@@ -64,6 +64,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public <U extends T> U createElement( ValueInitializer<U> initializer ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -76,6 +77,7 @@ final class ConstraintsCollectionInterceptor<T>
     
     @Override
     public boolean add( T e ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -90,6 +92,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public boolean addAll( Collection<? extends T> c ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -104,6 +107,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public boolean remove( Object o ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -118,6 +122,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public boolean removeAll( Collection<?> c ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -132,6 +137,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public boolean retainAll( Collection<?> c ) {
+        context.checkState();
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
@@ -146,6 +152,7 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public Iterator<T> iterator() {
+        context.checkState();
         if (!isImmutable) {
             return coll().iterator();
         }
@@ -158,6 +165,7 @@ final class ConstraintsCollectionInterceptor<T>
                 }
                 @Override
                 public T next() {
+                    context.checkState();
                     return it.next();
                 }
                 @Override
@@ -170,36 +178,43 @@ final class ConstraintsCollectionInterceptor<T>
 
     @Override
     public int size() {
+        context.checkState();
         return coll().size();
     }
 
     @Override
     public boolean isEmpty() {
+        context.checkState();
         return coll().isEmpty();
     }
 
     @Override
     public boolean contains( Object o ) {
+        context.checkState();
         return coll().contains( o );
     }
 
     @Override
     public Object[] toArray() {
+        context.checkState();
         return coll().toArray();
     }
 
     @Override
     public <V> V[] toArray( V[] a ) {
+        context.checkState();
         return coll().toArray( a );
     }
 
     @Override
     public boolean containsAll( Collection<?> c ) {
+        context.checkState();
         return coll().containsAll( c );
     }
 
     @Override
     public void clear() {
+        context.checkState();
         coll().clear();
     }
 

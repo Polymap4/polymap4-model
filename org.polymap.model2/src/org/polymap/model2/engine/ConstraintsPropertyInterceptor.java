@@ -40,6 +40,8 @@ final class ConstraintsPropertyInterceptor<T>
     
     @Override
     public T get() {
+        context.checkState();
+        
         T value = delegate().get();
         
         // check/init default value
@@ -60,7 +62,7 @@ final class ConstraintsPropertyInterceptor<T>
     
     @Override
     public void set( T value ) {
-        context.checkEviction();
+        context.checkState();
         
         // XXX this should always fail outside a ValueInitializer
         if (isImmutable && delegate().get() != null) {
@@ -77,6 +79,7 @@ final class ConstraintsPropertyInterceptor<T>
     
     @Override
     public <U extends T> U createValue( ValueInitializer<U> initializer ) {
+        context.checkState();
         return delegate().createValue( initializer );
     }
 

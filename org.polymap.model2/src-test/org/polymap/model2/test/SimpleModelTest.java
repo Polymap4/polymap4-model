@@ -252,4 +252,26 @@ public abstract class SimpleModelTest
         assertEquals( setCount+1, InvocationCountConcern.setCount.get() );        
     }
     
+    
+    public void testDetached() throws Exception {
+        UnitOfWork uow2 = repo.newUnitOfWork();
+        _testDetached( uow2.newUnitOfWork() );
+        _testDetached( uow2 );
+    }
+    
+    
+    public void _testDetached( UnitOfWork uow2 ) throws Exception {
+        Employee employee = uow2.createEntity( Employee.class, null );
+        employee.name.get();
+        
+        uow2.close();
+        try {
+            employee.name.get();
+            assertTrue( false );
+        }
+        catch (ModelRuntimeException e) {
+            // ok
+        }
+    }
+    
 }

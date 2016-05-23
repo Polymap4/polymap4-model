@@ -361,10 +361,10 @@ public final class TemplateInstanceBuilder {
         }
 
         @Override
-        public void methodProlog( String methodName, Object[] args ) {
+        public Object id() {
             throw new UnsupportedOperationException( "Method is not allowed for template Composite instance." );
         }
-        
+
     }
     
 }

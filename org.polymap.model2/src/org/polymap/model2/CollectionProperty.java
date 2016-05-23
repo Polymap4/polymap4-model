@@ -17,7 +17,6 @@ package org.polymap.model2;
 import java.util.Collection;
 import java.util.Date;
 
-import org.polymap.model2.runtime.TypedValueInitializer;
 import org.polymap.model2.runtime.ValueInitializer;
 
 /**

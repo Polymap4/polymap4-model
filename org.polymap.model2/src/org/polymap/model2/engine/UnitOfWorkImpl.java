@@ -30,6 +30,7 @@ import java.util.stream.StreamSupport;
 
 import java.io.IOException;
 
+import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.AccessedExpiryPolicy;
@@ -429,16 +430,10 @@ public class UnitOfWorkImpl
 
     public void close() {
         if (isOpen()) {
-//            // detach loaded Entities in order to avoid leaks
-//            // https://github.com/Polymap4/polymap4-model/issues/10
-//            for (Cache.Entry<Object,Entity> entry : loaded) {
-//                try {
-//                    InstanceBuilder.contextField.set( entry.getValue(), null );
-//                }
-//                catch (Exception e) {
-//                    throw new RuntimeException( e );
-//                }
-//            }
+            // detach loaded Entities in order to avoid leaks and improper state access
+            for (Cache.Entry<Object,Entity> entry : loaded) {
+                InstanceBuilder.contextOf( entry.getValue() ).detach();
+            }            
             commitLock.unlock( false );
             storeUow.close();
             repo = null;
