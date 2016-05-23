@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright 2012, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2016, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -17,6 +17,7 @@ package org.polymap.model2;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRuntimeContext;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
 /**
  * A Composite is the base abstraction for defining a domain model. A Composite can
@@ -55,15 +56,15 @@ public abstract class Composite {
     }
     
     /**
-     * 
+     * Static type and model information about this Composite.
      */
     public CompositeInfo info() {
-        assert context != null : "Entity is detached after UnitOfWork has been closed.";
         return context.getRepository().infoOf( getClass() );
     }
 
     public String toString() {
-        return getClass().getSimpleName() + "[state=" + state() + "]" ;
+        return getClass().getSimpleName() + 
+                (context.getStatus() != EntityStatus.DETACHED ? "[detached!]" : "[state=" + state() + "]") ;
     }
     
     /**

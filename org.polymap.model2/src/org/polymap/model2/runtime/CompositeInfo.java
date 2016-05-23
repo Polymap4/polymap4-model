@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2012-2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2016, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -21,7 +21,7 @@ import org.polymap.model2.Composite;
 import org.polymap.model2.NameInStore;
 
 /**
- * Provides runtime information of a {@link Composite} type.
+ * Provides type and model information of a {@link Composite} type.
  * 
  * @see PropertyInfo
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>

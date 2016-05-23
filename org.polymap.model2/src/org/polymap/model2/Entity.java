@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright 2012, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2016, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -22,7 +22,16 @@ import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
 /**
  * An Entity is a directly instantiable {@link Composite} with an {@link #id()
- * identifier}.
+ * identifier} and {@link #status()}.
+ * <p/>
+ * The <b>lifecycle</b> of an Entity is:
+ * <ol>
+ * <li>{@link EntityStatus#CREATED} - after instance has been created within an UnitOfWork; <i>or</i></li>
+ * <li>{@link EntityStatus#LOADED} - after instance has been loaded into an UnitOfWork</li>
+ * <li>{@link EntityStatus#MODIFIED}/{@link EntityStatus#REMOVED} - if instance was modified within its UnitOfWork</li>
+ * <li>back to 2. after UnitOfWork has been committed
+ * <li>{@link EntityStatus#DETACHED} - after {@link UnitOfWork} has been closed</li>
+ * </ol>
  * 
  * @see Composite
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
@@ -31,7 +40,7 @@ public abstract class Entity
         extends Composite {
     
     public Object id() {
-        return context.getState().id();
+        return context.id();
     }
     
     public EntityStatus status() {
@@ -40,7 +49,8 @@ public abstract class Entity
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[id=" + id() + ",status=" + status() + ",state=" + state() + "]" ;
+        return getClass().getSimpleName() + "[id=" + id() + ",status=" + status() 
+                + (status() != EntityStatus.DETACHED ? ",state=" + state() : "") + "]" ;
     }
 
     /**
@@ -67,8 +77,4 @@ public abstract class Entity
         return Optional.ofNullable( result );
     }
 
-    protected void methodProlog( String methodName, Object... args ) {
-        context.methodProlog( methodName, args );
-    }
-    
 }
