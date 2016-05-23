@@ -226,6 +226,8 @@ public class EntityRepositoryImpl
         private EntityStatus            status;
         
         private UnitOfWork              uow;
+        
+        private Object                  id;
 
         
         EntityRuntimeContextImpl( CompositeState state, EntityStatus status, UnitOfWork uow ) {
@@ -238,7 +240,15 @@ public class EntityRepositoryImpl
             this.uow = uow;
         }
 
-
+        public void detach() {
+            id();  // make sure that #id is initialized
+            status = EntityStatus.DETACHED;
+            
+            //entity = null;
+            state = null;
+            uow = null;
+        }
+        
         /**
          * For some {@link Cache} implementations used by {@link UnitOfWorkImpl} it
          * is possible that cache entries are evicted while there are still
@@ -246,46 +256,55 @@ public class EntityRepositoryImpl
          * recognized, hence lost updates. This check makes sure that an Exception is
          * thrown at least.
          */
-        protected void checkEviction() {
-            if (status == EntityStatus.EVICTED) {
-                // XXX I realy don't know what to do here
-                throw new IllegalStateException( "Entity is evicted: " + state );
+        protected void checkState() {
+            assert status != EntityStatus.EVICTED;
+            if (status == EntityStatus.DETACHED || uow == null) {
+                throw new ModelRuntimeException( "Entity is detached after UnitOfWork has been closed: " + entity );
             }
         }
         
         @Override
+        public Object id() {
+            if (id == null) {
+                id = state.id();
+            }
+            return id;
+        }
+
+
+        @Override
         public UnitOfWork getUnitOfWork() {
-            checkEviction();
+            checkState();
             return uow;
         }
 
         @Override
         public StoreUnitOfWork getStoreUnitOfWork() {
-            checkEviction();
+            checkState();
             // XXX :( ???
             return ((UnitOfWorkImpl)uow).storeUow;
         }
 
         @Override
         public EntityRepository getRepository() {
-            checkEviction();
+            checkState();
             return EntityRepositoryImpl.this;
         }
         
         @Override
         public CompositeState getState() {
-            checkEviction();
+            checkState();
             return state;
         }
 
         @Override
         public EntityStatus getStatus() {
-            checkEviction();
             return status;
         }
 
         @Override
         public void raiseStatus( EntityStatus newStatus ) {
+            checkState();
             assert newStatus.status >= status.status;
             // keep created if modified after creation
             if (status != EntityStatus.CREATED) {
@@ -296,7 +315,7 @@ public class EntityRepositoryImpl
 
         @Override
         public void resetStatus( EntityStatus newStatus ) {
-            checkEviction();
+            checkState();
             this.status = newStatus;
         }
 
@@ -314,12 +333,6 @@ public class EntityRepositoryImpl
             else {
                 throw new RuntimeException( "Retrieving mixin parts is not yet implemented." );
             }
-        }
-
-        @Override
-        public void methodProlog( String methodName, Object[] args ) {
-            // XXX Auto-generated method stub
-            throw new RuntimeException( "not yet implemented." );
         }
 
     }
