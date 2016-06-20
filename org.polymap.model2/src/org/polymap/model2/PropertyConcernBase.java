@@ -37,7 +37,7 @@ public abstract class PropertyConcernBase<T>
     /**
      * The delegate of this concern. Cast this to {@link Property} or {@link CollectionProperty}.
      */
-    protected PropertyBase              delegate;
+    protected PropertyBase<T>           delegate;
 
     
     @Override
