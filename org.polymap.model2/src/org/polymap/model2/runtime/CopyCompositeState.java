@@ -28,7 +28,7 @@ import org.polymap.model2.Property;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 public class CopyCompositeState<C extends Composite>
-        extends CompositeStateVisitor {
+        extends CompositeStateVisitor<RuntimeException> {
 
     private static Log log = LogFactory.getLog( CopyCompositeState.class );
     

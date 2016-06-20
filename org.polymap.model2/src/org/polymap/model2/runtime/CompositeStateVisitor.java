@@ -44,7 +44,7 @@ import org.polymap.model2.PropertyBase;
  * 
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
-public abstract class CompositeStateVisitor {
+public abstract class CompositeStateVisitor<E extends Exception> {
 
     private static Log log = LogFactory.getLog( CompositeStateVisitor.class );
     
@@ -53,8 +53,8 @@ public abstract class CompositeStateVisitor {
     /**
      * Override this in order to visit simple {@link Property}s. 
      */
-    protected void visitProperty( Property prop ) { }
-    
+    protected void visitProperty( Property prop ) throws E {
+    }
     
     /**
      * Override this in order to visit {@link Property}s with a {@link Composite}
@@ -63,14 +63,16 @@ public abstract class CompositeStateVisitor {
      * @return False specifies that the members of the composite will not be visited.
      *         (default: true)
      */
-    protected boolean visitCompositeProperty( Property prop ) { return true; }
+    protected boolean visitCompositeProperty( Property prop ) throws E {
+        return true; 
+    }
 
     /**
      * Override this in order to visit {@link CollectionProperty}s with simple
      * values.
      */
-    protected void visitCollectionProperty( CollectionProperty prop ) { }
-
+    protected void visitCollectionProperty( CollectionProperty prop ) throws E {
+    }
     
     /**
      * Override this in order to visit {@link CollectionProperty}s with
@@ -79,12 +81,15 @@ public abstract class CompositeStateVisitor {
      * @return False specifies that the members of the collection will not be
      *         visited. (default: true)
      */
-    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) { return true; }
-
+    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) throws E { 
+        return true; 
+    }
+    
     /**
      * Override this in order to visit {@link Association}s. 
      */
-    protected void visitAssociation( Association prop ) { }
+    protected void visitAssociation( Association prop ) throws E {
+    }
     
 
     /**
@@ -92,7 +97,7 @@ public abstract class CompositeStateVisitor {
      *
      * @param composite The {@link Composite} to visit.
      */
-    public final void process( Composite composite ) {
+    public void process( Composite composite ) throws E {
         this.target = composite;
         
         // composite
@@ -112,7 +117,7 @@ public abstract class CompositeStateVisitor {
     /**
      * Recursivly process properties of the given Composite.
      */
-    protected final void processComposite( Composite composite ) {
+    protected final void processComposite( Composite composite ) throws E {
         Collection<PropertyInfo> props = composite.info().getProperties();
         for (PropertyInfo propInfo : props) {
             PropertyBase prop = propInfo.get( composite );
