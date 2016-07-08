@@ -14,19 +14,22 @@
  */
 package org.polymap.model2.store.recordstore;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
-
 import org.polymap.model2.Composite;
+import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreCollectionProperty;
 import org.polymap.model2.store.StoreProperty;
 import org.polymap.recordstore.IRecordState;
+import org.polymap.recordstore.lucene.LuceneRecordState;
 
 /**
  * 
@@ -207,12 +210,37 @@ class RecordCompositeState
             }
             return new RecordCompositeState( state, fieldname );
         }
-
+        
         @Override
         public void set( Object value ) {
-            throw new UnsupportedOperationException( "Setting composite property is not yet supported." );
+            CompositeState compState = get();
+            if(value instanceof Object []) {
+                Object[] array = (Object[]) value;
+                if(array.length == 2) {
+                    Object obj1 = array[0];
+                    Object obj2 = array[1];
+                    if(obj1 instanceof CompositeInfo && obj2 instanceof LuceneRecordState) {
+                        CompositeInfo info = (CompositeInfo) obj1;
+                        LuceneRecordState newState = (LuceneRecordState) obj2;
+                        List<String> keys = new ArrayList<String>();
+                        Iterator<Entry<String,Object>> newIter = newState.iterator();
+                        while(newIter.hasNext()) {
+                            Entry<String,Object> newNext = newIter.next();
+                            if(newNext.getKey().startsWith( fieldname.get() + "/" )) {
+                                keys.add( newNext.getKey() );
+                            }
+                        }
+                        for(String key : keys) {
+                            if(!key.endsWith( "/_id_" )) {
+                                PropertyInfo propInfo = info.getProperty( key.substring( key.lastIndexOf( "/" )+1) );
+                                StoreProperty prop = compState.loadProperty( propInfo );
+                                prop.set( newState.get( key ) );
+                            }
+                        }
+                    }
+                }
+            }
         }
-
     }
     
 

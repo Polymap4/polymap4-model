@@ -81,9 +81,10 @@ class CompositePropertyImpl<T extends Composite>
     @Override
     public void set( T value ) {
         this.value = value;
-        storeProp.set( value.state() );
+        Object[] array = new Object[] { entityContext.getRepository().infoOf( value.getClass() ), value.state() };
+        storeProp.set( array );
     }
-
+    
     
     @Override
     public <U extends T> U createValue( ValueInitializer<U> initializer ) {
