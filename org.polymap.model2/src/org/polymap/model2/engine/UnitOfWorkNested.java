@@ -210,6 +210,8 @@ public class UnitOfWorkNested
                 CompositeState parentState = repo.contextOf( parentEntity ).getState();
                 CompositeState clonedState = repo.contextOf( entity ).getState();
                 storeUow().reincorparateEntityState( parentState, clonedState );
+                
+                new ResetCachesVisitor().process( parentEntity );
             }
         }
         lifecycle( State.AFTER_PREPARE );

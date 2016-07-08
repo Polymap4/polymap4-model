@@ -35,8 +35,9 @@ import org.polymap.model2.store.StoreCollectionProperty;
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
-public class CompositeCollectionPropertyImpl<T extends Composite>
-        extends CollectionPropertyImpl<T> {
+class CompositeCollectionPropertyImpl<T extends Composite>
+        extends CollectionPropertyImpl<T>
+        implements CachingProperty {
 
     private static Log log = LogFactory.getLog( CompositeCollectionPropertyImpl.class );
 
@@ -103,6 +104,14 @@ public class CompositeCollectionPropertyImpl<T extends Composite>
         return cache;
     }
 
+    
+    @Override
+    public void clearCache() {
+        // XXX client code may reference the old instrances; so this produces
+        // new Composite instances while another instance for the same state may already exists!
+        cache = null;
+    }
+    
     
     @Override
     public Iterator<T> iterator() {

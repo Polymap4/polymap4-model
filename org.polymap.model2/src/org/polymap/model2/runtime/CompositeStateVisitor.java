@@ -22,6 +22,7 @@ import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
+import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Mixins;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
@@ -93,6 +94,13 @@ public abstract class CompositeStateVisitor<E extends Exception> {
     
 
     /**
+     * Override this in order to visit {@link ManyAssociation}s. 
+     */
+    protected void visitManyAssociation( ManyAssociation prop ) throws E {
+    }
+    
+
+    /**
      * 
      *
      * @param composite The {@link Composite} to visit.
@@ -125,7 +133,7 @@ public abstract class CompositeStateVisitor<E extends Exception> {
             if (prop instanceof Property) {
                 if (Composite.class.isAssignableFrom( propInfo.getType() )) {
                     if (visitCompositeProperty( (Property)prop )) {
-                        Composite value = (Composite)((Property)prop).get();
+                        Composite value = (Composite)((Property)prop).opt().orElse( null );
                         if (value != null) {
                             processComposite( value );
                         }
@@ -151,6 +159,10 @@ public abstract class CompositeStateVisitor<E extends Exception> {
             // Association
             else if (prop instanceof Association) {
                 visitAssociation( (Association)prop );
+            }
+            // ManyAssociation
+            else if (prop instanceof ManyAssociation) {
+                visitManyAssociation( (ManyAssociation)prop );
             }
             else {
                 throw new RuntimeException( "Unhandled Property type:" + prop );

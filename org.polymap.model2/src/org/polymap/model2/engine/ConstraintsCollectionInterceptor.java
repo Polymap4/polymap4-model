@@ -39,6 +39,10 @@ final class ConstraintsCollectionInterceptor<T>
         return (CollectionProperty<T>)delegate;
     }
 
+    public CollectionProperty<T> delegate() {
+        return (CollectionProperty<T>)delegate;
+    }
+
     @Override
     public boolean equals( Object o ) {
         if (o instanceof CollectionProperty) {

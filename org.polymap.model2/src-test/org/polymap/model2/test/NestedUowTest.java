@@ -189,4 +189,51 @@ public abstract class NestedUowTest
         assertEquals( 1, Iterables.size( rs2 ) );        
     }
     
+    
+    public void testCaching() {
+        Employee employee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+            proto.name.set( "chief" );
+            return proto;
+        });
+        Company company = uow.createEntity( Company.class, null, (Company proto) -> {
+            proto.employees.add( employee );
+            proto.chief.set( employee );
+            proto.moreAddresses.createElement( a -> {
+                a.street.set( "süd" ); return a;                
+            });
+            proto.address.createValue( a -> {
+                a.street.set( "similden" ); return a;
+            });
+            return proto; 
+        });
+        uow.commit();
+        
+        // check nested init state
+        UnitOfWork nested = uow.newUnitOfWork();
+        Company nestedCompany = nested.entity( company );
+        assertEquals( 1, nestedCompany.employees.size() );
+        assertEquals( 1, nestedCompany.moreAddresses.size() );
+        assertEquals( "süd", nestedCompany.moreAddresses.stream().findAny().get().street.get() );
+        assertEquals( "similden", nestedCompany.address.get().street.get() );
+
+        // modify nested
+        nestedCompany.employees.add( nested.createEntity( Employee.class, null, (Employee proto) -> {
+            return proto;
+        }));
+        assertEquals( 2, nestedCompany.employees.size() );
+        nestedCompany.address.get().street.set( "modified" );
+        nestedCompany.moreAddresses.createElement( a -> {
+            a.street.set( "modified" ); return a;                
+        });
+        
+        assertEquals( 1, company.employees.size() );
+        nested.commit();
+
+        assertEquals( 2, company.employees.size() );
+        assertEquals( 2, company.moreAddresses.size() );
+        assertEquals( "süd", company.moreAddresses.stream().findAny().get().street.get() );
+        assertEquals( "modified", Iterables.get( company.moreAddresses, 1 ).street.get() );
+        assertEquals( "modified", company.address.get().street.get() );
+    }
+    
 }

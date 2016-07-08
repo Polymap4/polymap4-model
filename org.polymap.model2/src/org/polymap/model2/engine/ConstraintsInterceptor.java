@@ -58,6 +58,11 @@ abstract class ConstraintsInterceptor<T>
     }
 
     
+    public PropertyBase<T> delegate() {
+        return delegate;
+    }
+
+
     protected String fullPropName() {
         return context.getEntity().info().getName() + "." + info().getName();
     }

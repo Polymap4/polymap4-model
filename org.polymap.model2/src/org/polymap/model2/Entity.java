@@ -49,8 +49,11 @@ public abstract class Entity
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[id=" + id() + ",status=" + status() 
-                + (status() != EntityStatus.DETACHED ? ",state=" + state() : "") + "]" ;
+        return getClass().getSimpleName() 
+                + "[id=" + id() 
+                + ",status=" + status() 
+                + (status() != EntityStatus.DETACHED ? ",state=" + state() : "") 
+                + "]" ;
     }
 
     /**

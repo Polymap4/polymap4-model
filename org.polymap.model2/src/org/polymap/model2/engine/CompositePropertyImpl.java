@@ -29,7 +29,7 @@ import org.polymap.model2.store.StoreProperty;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 class CompositePropertyImpl<T extends Composite>
-        implements Property<T> {
+        implements Property<T>, CachingProperty {
 
     public static final Object              NULL_VALUE = new Object();
     
@@ -53,6 +53,14 @@ class CompositePropertyImpl<T extends Composite>
     }
 
     
+    @Override
+    public void clearCache() {
+        // XXX client code may reference the old instrance; so this produces
+        // a new Composite instance while another instance for the same state may already exists!
+        value = null;
+    }
+
+
     @Override
     public T get() {
         // no synchronization, concurrent init is ok

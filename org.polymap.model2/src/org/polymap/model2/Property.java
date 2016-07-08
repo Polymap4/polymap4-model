@@ -15,7 +15,11 @@
 package org.polymap.model2;
 
 import java.util.Date;
+import java.util.Optional;
+
+import org.polymap.model2.runtime.ImmutableException;
 import org.polymap.model2.runtime.ModelRuntimeException;
+import org.polymap.model2.runtime.NotNullableException;
 import org.polymap.model2.runtime.ValueInitializer;
 
 /**
@@ -35,8 +39,28 @@ public interface Property<T>
 
     /**
      * Returnes the value of this property.
+     * 
+     * @see #opt()
+     * @throws NotNullableException If value is null but Property was not annotated
+     *         as {@link Nullable}
      */
-    public T get();
+    public T get();    
+    
+    /**
+     * Returns {@link Optional#empty()} if the value is <code>null</code>. In
+     * contrast to {@link #get()} this does not throw a {@link NotNullableException}
+     * if the value is <code>null</code> and the Property is not {@link Nullable}.
+     */
+    public default Optional<T> opt() {
+        // somewhat clumsy implementation; get() throws NotNullableException was
+        // there before opt() was introduced
+        try {
+            return Optional.ofNullable( get() );
+        }
+        catch (NotNullableException e) {
+            return Optional.empty();
+        }
+    }
     
     /**
      * Creates a new value for this property. Any current value is overwritten.
@@ -62,6 +86,9 @@ public interface Property<T>
      * Modifies the value of this property.
      *
      * @param value
+     * @throws NotNullableException If value is <code>null</code> but Property is not
+     *         {@link Nullable}.
+     * @throws ImmutableException If Property is {@link Immutable}.
      */
     public void set( T value );
 

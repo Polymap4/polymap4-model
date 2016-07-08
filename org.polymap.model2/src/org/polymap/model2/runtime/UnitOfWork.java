@@ -197,10 +197,10 @@ public interface UnitOfWork
     
     /**
      * Creates a new, nested {@link UnitOfWork}. The nested UnitOfWork reflects the
-     * Entity states of the parent UnitOfWork. Committing the nested UnitOfWork
-     * writes down the modifications to the parent without changing the underlying
-     * store. Until commit the parent UnitOfWork does not see any modification done
-     * in the nested instance.
+     * Entity states of the parent UnitOfWork (except for uncommited modifications).
+     * Committing the nested UnitOfWork writes down the modifications to the parent
+     * without changing the underlying store. Until commit the parent UnitOfWork does
+     * not see any modification done in the nested instance.
      * <p/>
      * There is <b>no check for concurrent modifications</b> between the nested
      * instances! The programmer has to make sure that the parent UnitOfWork is not

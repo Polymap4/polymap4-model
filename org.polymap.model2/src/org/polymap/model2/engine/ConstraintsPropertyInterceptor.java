@@ -16,7 +16,8 @@ package org.polymap.model2.engine;
 
 import org.polymap.model2.Property;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
-import org.polymap.model2.runtime.ModelRuntimeException;
+import org.polymap.model2.runtime.ImmutableException;
+import org.polymap.model2.runtime.NotNullableException;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
@@ -33,7 +34,7 @@ final class ConstraintsPropertyInterceptor<T>
     }
 
     
-    protected Property<T> delegate() {
+    public Property<T> delegate() {
         return (Property<T>)delegate;
     }
     
@@ -54,7 +55,7 @@ final class ConstraintsPropertyInterceptor<T>
         }
         // check Nullable
         if (value == null && !isNullable) {
-            throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
+            throw new NotNullableException( "Property is not @Nullable: " + fullPropName() );
         }
         return value;
     }
@@ -66,10 +67,10 @@ final class ConstraintsPropertyInterceptor<T>
         
         // XXX this should always fail outside a ValueInitializer
         if (isImmutable && delegate().get() != null) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
+            throw new ImmutableException( "Property is @Immutable: " + fullPropName() );
         }
         if (!isNullable && value == null) {
-            throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
+            throw new NotNullableException( "Property is not @Nullable: " + fullPropName() );
         }
         delegate().set( value );
         

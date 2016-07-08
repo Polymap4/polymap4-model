@@ -118,7 +118,7 @@ public abstract class SimpleQueryTest
         });
         az = uow.createEntity( Employee.class, null, new ValueInitializer<Employee>() {
             public Employee initialize( Employee proto ) throws Exception {
-                proto.firstname.set( "AZ" );
+                proto.firstname.set( "AZ (Andreas)" );
                 proto.name.set( "Zimmermann" );
                 return proto;
             }
@@ -165,12 +165,16 @@ public abstract class SimpleQueryTest
         assertEquals( 2, rs.size() );
         assertEquals( 2, Iterables.size( rs ) );
 
-        // String property
         Employee wanted = Expressions.template( Employee.class, repo );
+        
+        // String property
         rs = uow.query( Employee.class ).where( eq( wanted.firstname, "Ulli" ) ).execute();
         assertEquals( 1, rs.size() );
         assertEquals( 1, Iterables.size( rs ) );
 
+        rs = uow.query( Employee.class ).where( eq( wanted.firstname, "AZ (Andreas)" ) ).execute();
+        assertEquals( 1, rs.size() );
+        
         // id
         rs = uow.query( Employee.class ).where( Expressions.id( ulli ) ).execute();
         assertEquals( 1, rs.size() );

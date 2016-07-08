@@ -34,7 +34,7 @@ final class ConstraintsAssociationInterceptor<T extends Entity>
     }
 
     
-    protected Association<T> delegate() {
+    public Association<T> delegate() {
         return (Association<T>)delegate;
     }
 
