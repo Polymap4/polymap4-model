@@ -86,6 +86,7 @@ public class OptimisticLockingTest
             assertTrue( "No exception :(", false );
         }
         catch (ConcurrentEntityModificationException e) {
+            uow2.rollback();
             // ok
         }
     }

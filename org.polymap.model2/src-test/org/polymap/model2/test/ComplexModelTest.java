@@ -16,6 +16,7 @@ package org.polymap.model2.test;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 
 import junit.framework.TestCase;
 
@@ -26,8 +27,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.polymap.model2.runtime.EntityRepository;
+import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
+import org.polymap.model2.test.Employee.Rating;
 
 /**
  * Test for complex models: associations, Composite properties, collections
@@ -427,4 +430,128 @@ public abstract class ComplexModelTest
         });
     }
     
+    
+    public void testRollbackCreated() throws Exception {
+        Employee employee2 = uow.createEntity( Employee.class, null );
+        uow.prepare();
+        uow.rollback();
+
+        assertTrue( employee2.id() == employee2.id() );
+        try {
+            employee2.name.get();
+            assertTrue( "Entity should be detached.", false );
+        }
+        catch (ModelRuntimeException e) {
+            // ok
+        }
+    }
+
+    
+    public void testRollbackRemoved() throws Exception {
+        Employee employee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+            proto.name.set( "employee" );
+            return proto;
+        });
+        uow.commit();
+        
+        uow.removeEntity( employee );
+        uow.prepare();
+        uow.rollback();
+
+        assertEquals( "employee", employee.name.get() );
+        
+        // check status
+        Employee e2 = uow.entity( employee );
+        assertEquals( "employee", e2.name.get() );
+    }
+
+    
+    public void testRollbackModified() throws Exception {
+        Employee employee = uow.createEntity( Employee.class, null );
+        Company company = uow.createEntity( Company.class, null );
+        uow.commit();
+        
+        // modify
+        employee.name.set( "modified" );
+        employee.birthday.set( new Date() );
+        employee.company.set( company );
+        employee.rating.set( Rating.topNotch );
+        
+        company.chief.set( employee );
+        company.employees.add( employee );
+        company.address.createValue( (Address proto) -> {
+            proto.street.set( "Industriestr" );
+            return proto;
+        });
+        company.moreAddresses.createElement( (Address proto) -> {
+            proto.street.set( "Industriestr" );
+            return proto;
+        });
+        
+        uow.rollback();
+
+        // check
+        assertNull( employee.name.get() );
+        assertNull( employee.rating.get() );
+        assertNull( employee.birthday.get() );
+        assertNull( employee.company.get() );
+
+        assertNull( company.chief.get() );
+        assertNull( company.address.get() );
+        assertTrue( company.moreAddresses.isEmpty() );
+        assertTrue( company.employees.isEmpty() );
+    }
+
+
+    public void testRollbackModified2() throws Exception {
+        Employee employee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+            proto.name.set( "modified" );
+            proto.birthday.set( new Date() );
+            proto.rating.set( Rating.topNotch );
+            proto.jap.set( 1 );
+            return proto;
+        });
+        Company company = uow.createEntity( Company.class, null, (Company proto) -> {
+            proto.chief.set( employee );
+            proto.employees.add( employee );
+            proto.address.createValue( (Address a) -> {
+                a.street.set( "Industriestr" );
+                return a;
+            });
+            proto.moreAddresses.createElement( (Address a) -> {
+                a.street.set( "Industriestr" );
+                return a;
+            });
+            return proto;
+        });
+        employee.company.set( company );
+        uow.commit();
+
+        // modify
+        employee.name.set( null );
+        employee.birthday.set( null );
+        employee.company.set( null );
+        employee.rating.set( null );
+//        employee.jap.set( null );
+        
+        company.chief.set( null );
+        company.employees.clear();
+//        company.address.set( null );
+//        company.moreAddresses.clear();
+        
+        uow.prepare();
+        uow.rollback();
+
+        // check
+        assertEquals( "modified", employee.name.get() );
+        assertEquals( Rating.topNotch, employee.rating.get() );
+        assertNotNull( employee.birthday.get() );
+        assertNotNull( employee.company.get() );
+
+        assertNotNull( company.chief.get() );
+//        assertNull( company.address.get() );
+//        assertEquals( 1, company.moreAddresses.size() );
+        assertEquals( 1, company.employees.size() );
+    }
+
 }

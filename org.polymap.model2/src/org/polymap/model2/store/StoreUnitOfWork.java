@@ -57,12 +57,12 @@ public interface StoreUnitOfWork {
      */
     public StoreResultSet executeQuery( Query query );
     
-    public void prepareCommit( Iterable<Entity> loaded ) throws Exception;
+    public void prepareCommit( Iterable<Entity> modified ) throws Exception;
     
     public void commit();
     
-    public void close();
+    public void rollback( Iterable<Entity> modified );
 
-    public void rollback();
+    public void close();
 
 }

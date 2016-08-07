@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright 2012, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2016, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -24,12 +24,15 @@ import java.util.Set;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.ConcurrentEntityModificationException;
-import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
+import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.store.CloneCompositeStateSupport;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.CompositeStateReference;
@@ -38,10 +41,10 @@ import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.recordstore.IRecordState;
 import org.polymap.recordstore.IRecordStore;
+import org.polymap.recordstore.IRecordStore.Updater;
 import org.polymap.recordstore.RecordQuery;
 import org.polymap.recordstore.ResultSet;
 import org.polymap.recordstore.SimpleQuery;
-import org.polymap.recordstore.IRecordStore.Updater;
 import org.polymap.recordstore.lucene.LuceneRecordStore;
 
 /**
@@ -52,6 +55,10 @@ import org.polymap.recordstore.lucene.LuceneRecordStore;
 public class RecordStoreUnitOfWork
         implements StoreUnitOfWork, CloneCompositeStateSupport {
 
+    private static Log log = LogFactory.getLog( RecordStoreUnitOfWork.class );
+
+    private StoreRuntimeContext         context;
+    
     private final IRecordStore          store;
 
     private Updater                     tx;
@@ -60,6 +67,7 @@ public class RecordStoreUnitOfWork
     
     
     public RecordStoreUnitOfWork( StoreRuntimeContext context, RecordStoreAdapter rsa ) {
+        this.context = context;
         this.store = rsa.store;
     }
 
@@ -101,8 +109,8 @@ public class RecordStoreUnitOfWork
     public void reincorparateEntityState( CompositeState state, CompositeState clonedState ) {
         // just replacing the IRecordState is not possible out-of-the-box as it was newly created (wrong id) ??
         
-        Set<String> keys = new HashSet( 128 );
         // cloned -> state
+        Set<String> keys = new HashSet( 128 );
         for (Map.Entry<String,Object> entry : ((RecordCompositeState)clonedState).state) {
             ((RecordCompositeState)state).state.put( entry.getKey(), entry.getValue() );
             keys.add( entry.getKey() );
@@ -188,14 +196,14 @@ public class RecordStoreUnitOfWork
 
 
     @Override
-    public void prepareCommit( Iterable<Entity> loaded )
+    public void prepareCommit( Iterable<Entity> modified )
             throws IOException, ConcurrentEntityModificationException {
         assert tx == null;
         prepareFailed = false;
-        tx = store.prepareUpdate();
+        this.tx = store.prepareUpdate();
         
         try {
-            for (Entity entity : loaded) {
+            for (Entity entity : modified) {
                 IRecordState state = (IRecordState)entity.state();
 
                 if (entity.status() == EntityStatus.CREATED
@@ -238,7 +246,17 @@ public class RecordStoreUnitOfWork
 
 
     @Override
-    public void rollback() {
+    public void rollback( Iterable<Entity> modified ) {
+        for (Entity entity : modified) {
+            if (entity.status() == EntityStatus.REMOVED 
+                    || entity.status() == EntityStatus.MODIFIED) {
+                RecordCompositeState state = (RecordCompositeState)context.contextOfEntity( entity ).getState();
+                RecordCompositeState newState = (RecordCompositeState)loadEntityState( state.id(), entity.getClass() );
+                state.state = newState.state;
+                log.info( "ROLLED BACK: " + state.id() );
+            }
+        }
+
         if (tx != null) {
             tx.discard();
             tx = null;

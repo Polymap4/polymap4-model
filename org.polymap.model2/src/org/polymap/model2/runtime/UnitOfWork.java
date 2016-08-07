@@ -152,6 +152,10 @@ public interface UnitOfWork
     
     /**
      * Discards any uncommitted modifications but does not close this UnitOfWork.
+     * This method can be called before or after {@link #prepare()}. The states of
+     * all modified entities are reloaded from backend store. Newly created entities
+     * are in {@link EntityStatus#DETACHED} state afterwards.
+     * <p/>
      * This may flush internal caches.
      * 
      * @throws ModelRuntimeException
@@ -196,19 +200,26 @@ public interface UnitOfWork
 
     
     /**
-     * Creates a new, nested {@link UnitOfWork}. The nested UnitOfWork reflects the
-     * Entity states of the parent UnitOfWork (except for uncommited modifications).
-     * Committing the nested UnitOfWork writes down the modifications to the parent
-     * without changing the underlying store. Until commit the parent UnitOfWork does
-     * not see any modification done in the nested instance.
+     * Creates a new, <b>nested</b> {@link UnitOfWork}. The nested UnitOfWork
+     * reflects the Entity states of the parent UnitOfWork. Committing the nested
+     * UnitOfWork writes down the modifications to the parent without changing the
+     * underlying store. Until prepare/commit the parent UnitOfWork does not see any
+     * modification done in the nested instance.
+     * <p/>
+     * {@link #rollback()} resets the states of the entities of the nested UnitOfWork
+     * to the state of the parent. Care must be taken after {@link #prepare()} has
+     * been called (and it maybe failed). After {@link #prepare()} the parent
+     * contains (some) modifications. So the parent <b>MUST</b> be
+     * {@link #rollback()}ed <b>before</b> the nested UnitOfWork can be rolled back.
      * <p/>
      * There is <b>no check for concurrent modifications</b> between the nested
-     * instances! The programmer has to make sure that the parent UnitOfWork is not
+     * instances! Client code has to make sure that the parent UnitOfWork is not
      * modified as long as there are nested instances in use. Otherwise modifications
      * in the parent would get <b>lost silently</b>!
      * <p/>
-     * Nested UnitOfWork depends on the capability of the {@link StoreSPI store
-     * implementation} to clone {@link CompositeState Entity states}.
+     * The availability of nested UnitOfWork depends on the capability of the
+     * {@link StoreSPI store implementation} to clone {@link CompositeState Entity
+     * states}.
      */
     public UnitOfWork newUnitOfWork();
     

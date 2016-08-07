@@ -376,7 +376,7 @@ public class UnitOfWorkImpl
             finally {
                 if (prepareResult != PREPARED) {
                     rollback();
-                }                
+                }
             }
         }
         if (prepareResult != PREPARED) {
@@ -395,7 +395,7 @@ public class UnitOfWorkImpl
 
     
     /** 
-     * Reset status of {@link #loaded} after {@link #commit()}.
+     * Reset status of all {@link #modified} entities (after {@link #commit()}).
      */
     protected void resetStatusLoaded() {        
         for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
@@ -417,20 +417,36 @@ public class UnitOfWorkImpl
     public void rollback() throws ModelRuntimeException {
         checkOpen();
         lifecycle( State.BEFORE_ROLLBACK );
-        storeUow.rollback();
-        lifecycle( State.AFTER_ROLLBACK );
-        prepareResult = null;
         
-        // discard modified Entities
+        // give all entities a new state
+        storeUow.rollback( modified.values() );
+        
+        // reset Entity internal caches
+        for (Entity entity : modified.values()) {
+            new ResetCachesVisitor().process( entity );            
+        }
+        
+        // reset status of modified entities
+        for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
+            if (entry.getValue().status() == EntityStatus.CREATED) {
+                InstanceBuilder.contextOf( entry.getValue() ).detach();
+                loaded.remove( entry.getKey() );
+            }
+            else {
+                repo.contextOf( entry.getValue() ).resetStatus( EntityStatus.LOADED );
+            }
+        }
         modified.clear();
-        loaded.clear();
+        
+        lifecycle( State.AFTER_ROLLBACK );
+        prepareResult = null;        
         commitLock.unlock( true );
     }
 
 
     public void close() {
         if (isOpen()) {
-            // detach loaded Entities in order to avoid leaks and improper state access
+            // detach loaded Entities to avoid leaks and improper state access
             for (Cache.Entry<Object,Entity> entry : loaded) {
                 InstanceBuilder.contextOf( entry.getValue() ).detach();
             }            

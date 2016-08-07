@@ -259,7 +259,7 @@ public class EntityRepositoryImpl
         protected void checkState() {
             assert status != EntityStatus.EVICTED;
             if (status == EntityStatus.DETACHED || uow == null) {
-                throw new ModelRuntimeException( "Entity is detached after UnitOfWork has been closed: " + entity );
+                throw new ModelRuntimeException( "Entity is detached after UnitOfWork has been closed or rolled back: " + entity );
             }
         }
         

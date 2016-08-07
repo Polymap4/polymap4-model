@@ -18,6 +18,7 @@ import static java.util.Collections.singletonList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -99,10 +100,10 @@ public class OptimisticLocking
 
         
         @Override
-        public void prepareCommit( Iterable<Entity> loaded ) throws Exception {
-            // check only versions
+        public void prepareCommit( Iterable<Entity> modified ) throws Exception {
+            // check only
             prepared = new ArrayList( loadedVersions.size() );
-            for (Entity entity : loaded) {
+            for (Entity entity : modified) {
                 if (entity.status() == EntityStatus.MODIFIED || entity.status() == EntityStatus.REMOVED) {
                     Integer loadedVersion = loadedVersions.get( entity.id() );
                     Integer storeVersion = storeVersions.get( entity.id() );
@@ -117,7 +118,7 @@ public class OptimisticLocking
             }
 
             // delegate
-            suow.prepareCommit( loaded );
+            suow.prepareCommit( modified );
         }
 
         
@@ -133,7 +134,7 @@ public class OptimisticLocking
                         : new Integer( loadedVersion.intValue() + 1 );
 
                 Integer storeVersion = storeVersions.put( entity.id(), newVersion );
-                if (storeVersion != loadedVersion) {
+                if (!Objects.equals( storeVersion, loadedVersion )) {
                     storeVersions.put( entity.id(), storeVersion );
                     throw new ConcurrentEntityModificationException( 
                             "Entity has been modified AFTER prepare(): " + entity.id(), 
@@ -150,8 +151,14 @@ public class OptimisticLocking
 
         
         @Override
-        public void rollback() {
-            super.rollback();
+        public void rollback( Iterable<Entity> modified ) {
+            super.rollback( modified );
+            
+            // reset versions
+            for (Entity entity : modified) {
+                Integer storeVersion = storeVersions.get( entity.id() );
+                loadedVersions.put( entity.id(), storeVersion );                
+            }
             prepared = null;
         }
 

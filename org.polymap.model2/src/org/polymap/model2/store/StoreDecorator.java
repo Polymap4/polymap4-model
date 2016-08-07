@@ -72,8 +72,8 @@ public abstract class StoreDecorator
             this.suow = suow;
         }
 
-        public void prepareCommit( Iterable<Entity> loaded ) throws Exception {
-            suow.prepareCommit( loaded );
+        public void prepareCommit( Iterable<Entity> modified ) throws Exception {
+            suow.prepareCommit( modified );
         }
 
         public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
@@ -100,8 +100,8 @@ public abstract class StoreDecorator
             suow.close();
         }
 
-        public void rollback() {
-            suow.rollback();
+        public void rollback( Iterable<Entity> modified ) {
+            suow.rollback( modified );
         }
         
     }

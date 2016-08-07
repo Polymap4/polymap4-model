@@ -22,6 +22,8 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREAT
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
 
 import java.util.Iterator;
+import java.util.Map;
+
 import java.io.IOException;
 
 import javax.cache.Cache;
@@ -77,6 +79,7 @@ public class UnitOfWorkNested
                 // be faster and less memory consuming but also would introduce a lot more complexity;
                 // maybe I will later investigate a global copy-on-write cache for Entities
                 T parentEntity = parent.entity( entityClass, id );
+                
                 if (parentEntity == null) {
                     return null;
                 }
@@ -249,10 +252,28 @@ public class UnitOfWorkNested
     public void rollback() throws ModelRuntimeException {
         checkOpen();
         lifecycle( State.BEFORE_ROLLBACK );
+
+        // reset status of modified entities
+        for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
+            Entity entity = entry.getValue();
+            if (entity.status() == EntityStatus.CREATED) {
+                InstanceBuilder.contextOf( entity ).detach();
+                loaded.remove( entry.getKey() );
+            }
+            else {
+                CompositeState state = repo.contextOf( entity ).getState();
+                Entity parentEntity = parent.entity( entity.getClass(), entity.id() );
+                CompositeState parentState = repo.contextOf( parentEntity ).getState();
+                storeUow().reincorparateEntityState( state, parentState );
+
+                new ResetCachesVisitor().process( entity );            
+                repo.contextOf( entity ).resetStatus( EntityStatus.LOADED );
+            }
+        }
+        modified.clear();
+        
         lifecycle( State.AFTER_ROLLBACK );
         prepareResult = null;
-        loaded.clear();
-        modified.clear();
         commitLock.unlock( false );
     }
 

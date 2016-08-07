@@ -21,6 +21,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.common.collect.Iterables;
 
+import org.polymap.model2.engine.UnitOfWorkNested;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
@@ -28,7 +29,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 
 /**
- * Test for simple models: no associations, no Composite properties
+ * Test of {@link UnitOfWorkNested}.
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */

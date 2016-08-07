@@ -21,7 +21,7 @@ import org.polymap.model2.PropertyBase;
 import org.polymap.model2.runtime.CompositeStateVisitor;
 
 /**
- * 
+ * Resets all internal caches of a {@link Composite}.
  *
  * @author Falko Bräutigam
  */

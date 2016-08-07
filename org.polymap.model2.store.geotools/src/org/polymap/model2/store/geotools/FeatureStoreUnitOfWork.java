@@ -250,13 +250,13 @@ public class FeatureStoreUnitOfWork
 
 
     @Override
-    public void prepareCommit( Iterable<Entity> loaded )
+    public void prepareCommit( Iterable<Entity> modified )
     throws IOException, ConcurrentEntityModificationException {
         assert tx == null;
         
         tx = new DefaultTransaction( getClass().getName() + " Transaction" );
         try {
-            apply( loaded );
+            apply( modified );
         }
         catch (IOException e) {
             Transaction tx2 = tx;
@@ -295,30 +295,32 @@ public class FeatureStoreUnitOfWork
 
 
     @Override
-    public void rollback() {
-        if (tx != null && tx != TX_FAILED) {
-            try {
-                tx.rollback();
-                tx.close();
-                tx = null;
-
-                for (FeatureSource fs : featureSources.asMap().values()) {
-                    //                log.debug( "Checking features: " + fs );
-                    ((FeatureStore)fs).setTransaction( Transaction.AUTO_COMMIT );
-                    //                fs.getFeatures().accepts( new FeatureVisitor() {
-                    //                    public void visit( Feature feature ) {
-                    //                        log.debug( "FeatureId: " + feature.getIdentifier() );
-                    //                    }
-                    //                }, null );
-                }
-
-                modifications.clear();            
-                featureSources.asMap().clear();
-            }
-            catch (Exception e) {
-                throw new ModelRuntimeException( e );
-            }
-        }
+    public void rollback( Iterable<Entity> modified ) {
+        throw new RuntimeException( "Rolling back entity states is not yet supported." );
+        
+//        if (tx != null && tx != TX_FAILED) {
+//            try {
+//                tx.rollback();
+//                tx.close();
+//                tx = null;
+//
+//                for (FeatureSource fs : featureSources.asMap().values()) {
+//                    //                log.debug( "Checking features: " + fs );
+//                    ((FeatureStore)fs).setTransaction( Transaction.AUTO_COMMIT );
+//                    //                fs.getFeatures().accepts( new FeatureVisitor() {
+//                    //                    public void visit( Feature feature ) {
+//                    //                        log.debug( "FeatureId: " + feature.getIdentifier() );
+//                    //                    }
+//                    //                }, null );
+//                }
+//
+//                modifications.clear();            
+//                featureSources.asMap().clear();
+//            }
+//            catch (Exception e) {
+//                throw new ModelRuntimeException( e );
+//            }
+//        }
     }
 
 
