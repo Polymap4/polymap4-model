@@ -81,7 +81,7 @@ class CompositePropertyImpl<T extends Composite>
     @Override
     public void set( T value ) {
         this.value = value;
-        storeProp.set( value.state() );
+        storeProp.set( value != null ? value.state() : null );
     }
 
     

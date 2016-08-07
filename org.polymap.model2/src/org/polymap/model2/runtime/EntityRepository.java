@@ -75,9 +75,8 @@ public abstract class EntityRepository
         
         /**
          * The strategy to handle concurrent attempts to prepare/commit. Defaults to
-         * {@link CommitLockStrategy.FailOnConcurrentCommit}
+         * {@link CommitLockStrategy.Serialize}
          * 
-         * @see CommitLockStrategy.FailOnConcurrentCommit
          * @see CommitLockStrategy.Serialize
          */
         public Property<Configuration,Supplier<CommitLockStrategy>> commitLockStrategy;
@@ -92,7 +91,7 @@ public abstract class EntityRepository
                 cacheManager.set( new SimpleCacheManager() );
             }
             if (commitLockStrategy.get() == null) {
-                commitLockStrategy.set( () -> new CommitLockStrategy.FailOnConcurrentCommit() );
+                commitLockStrategy.set( () -> new CommitLockStrategy.Serialize() );
             }
             if (nameInStoreMapper.get() == null) {
                 nameInStoreMapper.set( new DefaultNameInStoreMapper() );

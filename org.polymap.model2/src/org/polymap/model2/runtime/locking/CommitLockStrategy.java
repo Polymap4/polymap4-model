@@ -37,6 +37,8 @@ public abstract class CommitLockStrategy {
     
     /**
      * Throw a {@link RuntimeException} when concurrent prepare/commit is detected.
+     * 
+     * @deprecated Seems to be broken. Throws wrong exception on rollback()!
      */
     public static class FailOnConcurrentCommit
             extends CommitLockStrategy {
