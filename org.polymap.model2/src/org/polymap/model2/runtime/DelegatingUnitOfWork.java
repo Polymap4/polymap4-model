@@ -36,6 +36,10 @@ public abstract class DelegatingUnitOfWork
         this.delegate = delegate;
     }
 
+    protected UnitOfWork delegate() {
+        return delegate;
+    }
+    
     public UnitOfWork newUnitOfWork() {
         return delegate.newUnitOfWork();
     }
@@ -65,7 +69,7 @@ public abstract class DelegatingUnitOfWork
     }
 
     public void commit() throws ModelRuntimeException {
-        delegate.rollback();
+        delegate.commit();
     }
 
     public void rollback() throws ModelRuntimeException {

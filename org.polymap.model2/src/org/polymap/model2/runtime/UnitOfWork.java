@@ -21,6 +21,7 @@ import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRepository.Configuration;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
+import org.polymap.model2.runtime.locking.OptimisticLocking;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreSPI;
 
@@ -155,6 +156,11 @@ public interface UnitOfWork
      * This method can be called before or after {@link #prepare()}. The states of
      * all modified entities are reloaded from backend store. Newly created entities
      * are in {@link EntityStatus#DETACHED} state afterwards.
+     * <p/>
+     * {@link OptimisticLocking}: after rollback() locally modified entities are
+     * updated to the store state. In case of concurrent modifications that state
+     * might be <b>different</b> to the state first loaded in this UnitOfWork. In
+     * other words, rollback() can be used to incorporate changes from the store.
      * <p/>
      * This may flush internal caches.
      * 

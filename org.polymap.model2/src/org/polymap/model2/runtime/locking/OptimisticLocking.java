@@ -107,7 +107,7 @@ public class OptimisticLocking
                 if (entity.status() == EntityStatus.MODIFIED || entity.status() == EntityStatus.REMOVED) {
                     Integer loadedVersion = loadedVersions.get( entity.id() );
                     Integer storeVersion = storeVersions.get( entity.id() );
-                    if (storeVersion != loadedVersion) {
+                    if (!Objects.equals( storeVersion, loadedVersion )) {
                         throw new ConcurrentEntityModificationException( 
                                 "Entity has been modified be another UnitOfWork: " + entity +
                                 "\r\n\t(loadedVersion=" + loadedVersion + ", storedVersion=" + storeVersion + ")", 
