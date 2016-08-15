@@ -15,6 +15,7 @@
 package org.polymap.model2.runtime;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -113,7 +114,12 @@ public class TwoPhaseCommit {
         return resource;
     }
 
+    
+    public List<TransactionAware> registered() {
+        return Collections.unmodifiableList( resources );    
+    }
 
+    
     public void commit( CommitType type ) throws Exception {
         try {
             assert !resources.isEmpty();
