@@ -36,6 +36,9 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.AccessedExpiryPolicy;
 import javax.cache.expiry.Duration;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 
@@ -67,6 +70,8 @@ import org.polymap.model2.store.StoreUnitOfWork;
  */
 public class UnitOfWorkImpl
         implements UnitOfWork {
+
+    private static final Log log = LogFactory.getLog( UnitOfWorkImpl.class );
 
     protected static final Exception        PREPARED = new Exception( "Successfully prepared for commit." );
     
@@ -327,7 +332,12 @@ public class UnitOfWorkImpl
     protected void lifecycle( State state ) {
         for (Entity entity : modified.values()) {
             if (entity instanceof Lifecycle) {
-                ((Lifecycle)entity).onLifecycleChange( state );
+                try {
+                    ((Lifecycle)entity).onLifecycleChange( state );
+                }
+                catch (Throwable e) {
+                    log.warn( "Error while calling onLifecycleChange()", e );
+                }
             }
         }
     }
@@ -389,6 +399,7 @@ public class UnitOfWorkImpl
         
         resetStatusLoaded();
         lifecycle( State.AFTER_COMMIT );
+        
         modified.clear();
         commitLock.unlock( true );
     }
@@ -436,9 +447,9 @@ public class UnitOfWorkImpl
                 repo.contextOf( entry.getValue() ).resetStatus( EntityStatus.LOADED );
             }
         }
-        modified.clear();
-        
         lifecycle( State.AFTER_ROLLBACK );
+
+        modified.clear();        
         prepareResult = null;        
         commitLock.unlock( true );
     }
