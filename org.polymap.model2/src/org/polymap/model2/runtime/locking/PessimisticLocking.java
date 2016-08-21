@@ -122,7 +122,7 @@ public abstract class PessimisticLocking
             // FIXME polling! wait that GC reclaimed readers and writer
             // a writer has read lock too, so we avoid writer check
             while (!condition.get()) {
-                log.warn( Thread.currentThread().getName() + ": await lock: " + mode + " on: " + context.getEntity().id() );
+                log.info( Thread.currentThread().getName() + ": await lock: " + mode + " on: " + context.getEntity().id() );
                 try { 
                     wait( 100 );
                     cleanStaleHolders();    

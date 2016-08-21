@@ -141,7 +141,7 @@ public class TwoPhaseCommit {
     }
     
     
-    public void rollback( CommitType type ) throws Exception {
+    public void rollback( CommitType type ) {
         try {
             assert !resources.isEmpty();
             doRollback();

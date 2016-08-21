@@ -157,7 +157,13 @@ public class OptimisticLocking
             // reset versions
             for (Entity entity : modified) {
                 Integer storeVersion = storeVersions.get( entity.id() );
-                loadedVersions.put( entity.id(), storeVersion );                
+                // newly created entities do not have storeVersion
+                if (storeVersion != null) {
+                    loadedVersions.put( entity.id(), storeVersion );
+                }
+                else {
+                    loadedVersions.remove( entity.id() );
+                }
             }
             prepared = null;
         }
