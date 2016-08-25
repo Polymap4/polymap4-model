@@ -17,6 +17,7 @@ package org.polymap.model2;
 import java.util.AbstractCollection;
 import java.util.Iterator;
 
+import org.polymap.model2.engine.PropertyInterceptorBase;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 
@@ -30,33 +31,35 @@ import org.polymap.model2.runtime.PropertyInfo;
  */
 public abstract class PropertyConcernBase<T>
         extends AbstractCollection<T>
-        implements PropertyBase<T> {
+        implements PropertyInterceptorBase<T> {
 
     protected EntityRuntimeContext      context;
     
     /**
-     * The delegate of this concern. Cast this to {@link Property} or {@link CollectionProperty}.
+     * The delegate of this concern.
      */
     protected PropertyBase<T>           delegate;
 
-    
+
+    @Override
+    public PropertyBase<T> delegate() {
+        return delegate;
+    }
+
     @Override
     public PropertyInfo info() {
         return delegate.info();
     }
-
 
     @Override
     public Iterator<T> iterator() {
         return ((ManyAssociation)delegate).iterator();
     }
 
-
     @Override
     public int size() {
         return ((ManyAssociation)delegate).size();
     }
-
 
     @Override
     public boolean add( T e ) {

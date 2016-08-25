@@ -36,18 +36,21 @@ public class BidiAssociationConcern<T extends Entity>
     private static Log log = LogFactory.getLog( BidiAssociationConcern.class );
 
     
+    protected Association<T> _delegate() {
+        return (Association<T>)super.delegate();        
+    }
+    
     @Override
     public T get() {
-        return ((Association<T>)delegate).get();
+        return _delegate().get();
     }
 
-    
     @Override
     public void set( T value ) {
         // value == null signals that association is removed, so we use current value as target
         T target = value != null ? value : get();
 
-        Entity currentValue = ((Association)delegate).get();
+        Entity currentValue = _delegate().get();
         // avoid ping-pong between double-sided bidi associations
         if (currentValue == value) {
             return;
@@ -58,7 +61,7 @@ public class BidiAssociationConcern<T extends Entity>
         }
         
         // delegate
-        ((Association<T>)delegate).set( value );
+        _delegate().set( value );
         
         // find back association
         PropertyBase backAssoc = findBackAssociation( context, info(), target );

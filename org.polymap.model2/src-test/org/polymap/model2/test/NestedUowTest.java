@@ -63,25 +63,21 @@ public abstract class NestedUowTest
      * 
      */
     public void testModification() throws Exception {
-        Employee loadedEmployee = uow.createEntity( Employee.class, null, new ValueInitializer<Employee>() {
-            public Employee initialize( Employee prototype ) throws Exception {
-                prototype.name.set( "loaded" ); 
-                return prototype;
-            }
+        Company company = uow.createEntity( Company.class, null );
+        Employee loadedEmployee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+             proto.name.set( "loaded" ); 
+             return proto;
         });
-        Employee modifiedEmployee = uow.createEntity( Employee.class, null, new ValueInitializer<Employee>() {
-            public Employee initialize( Employee prototype ) throws Exception {
-                prototype.name.set( "init" ); 
-                return prototype;
-            }
+        Employee modifiedEmployee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+            proto.name.set( "init" );
+            proto.company.set( company );
+            return proto;
         });
         uow.commit();
 
-        Employee createdEmployee = uow.createEntity( Employee.class, null, new ValueInitializer<Employee>() {
-            public Employee initialize( Employee prototype ) throws Exception {
-                prototype.name.set( "created" );
-                return prototype;
-            }
+        Employee createdEmployee = uow.createEntity( Employee.class, null, (Employee proto) -> {
+            proto.name.set( "created" );
+            return proto;
         });
         modifiedEmployee.name.set( "modified" );
         
@@ -96,7 +92,8 @@ public abstract class NestedUowTest
         assertEquals( "created", nestedCreated.name.get() );
         assertEquals( EntityStatus.LOADED, nestedCreated.status() );
 
-        Employee nestedModified = nested.entity( Employee.class, modifiedEmployee.id() );
+        Employee nestedModified = nested.entity( modifiedEmployee );
+        assertEquals( modifiedEmployee.id(), nestedModified.id() );
         assertEquals( "modified", nestedModified.name.get() );
         assertEquals( EntityStatus.LOADED, nestedModified.status() );
 
@@ -104,6 +101,7 @@ public abstract class NestedUowTest
         nestedLoaded.name.set( "nestedLoaded" ); assertEquals( "nestedLoaded", nestedLoaded.name.get() );
         nestedCreated.name.set( "nestedCreated" ); assertEquals( "nestedCreated", nestedCreated.name.get() );
         nestedModified.name.set( "nestedModified" ); assertEquals( "nestedModified", nestedModified.name.get() );
+        nestedModified.company.set( null );
 
         Employee innerCreated = nested.createEntity( Employee.class, null, new ValueInitializer<Employee>() {
             public Employee initialize( Employee prototype ) throws Exception {
@@ -138,6 +136,7 @@ public abstract class NestedUowTest
         assertEquals( "nestedLoaded", loadedEmployee.name.get() );
         assertEquals( "nestedCreated", createdEmployee.name.get() );
         assertEquals( "nestedModified", modifiedEmployee.name.get() );
+        assertFalse( modifiedEmployee.company.isPresent() );
 
         assertEquals( "nestedLoaded", uow.entity( Employee.class, loadedEmployee.id() ).name.get() );
         assertEquals( "nestedCreated", uow.entity( Employee.class, createdEmployee.id() ).name.get() );

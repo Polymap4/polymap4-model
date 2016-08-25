@@ -26,6 +26,7 @@ import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Mixins;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
+import org.polymap.model2.engine.PropertyInterceptorBase;
 
 /**
  * Allows to visit the entire hierachy of properties of the given {@link Composite}
@@ -61,8 +62,8 @@ public abstract class CompositeStateVisitor<E extends Exception> {
      * Override this in order to visit {@link Property}s with a {@link Composite}
      * value.
      * 
-     * @return False specifies that the members of the composite will not be visited.
-     *         (default: true)
+     * @return False specifies that the properties of the {@link Composite} will not
+     *         be visited. (default: true)
      */
     protected boolean visitCompositeProperty( Property prop ) throws E {
         return true; 
@@ -129,22 +130,21 @@ public abstract class CompositeStateVisitor<E extends Exception> {
         Collection<PropertyInfo> props = composite.info().getProperties();
         for (PropertyInfo propInfo : props) {
             PropertyBase prop = propInfo.get( composite );
-            // Property
-            if (prop instanceof Property) {
-                if (Composite.class.isAssignableFrom( propInfo.getType() )) {
-                    if (visitCompositeProperty( (Property)prop )) {
-                        Composite value = (Composite)((Property)prop).opt().orElse( null );
-                        if (value != null) {
-                            processComposite( value );
-                        }
-                    }
-                }
-                else {
-                    visitProperty( (Property)prop );
-                }
+            
+            // Concerns may implement multiple interfaces, find the rootDelegate
+            // the get the real type of the Property
+            PropertyBase rootDelegate = PropertyInterceptorBase.rootDelegate( (PropertyInterceptorBase)prop );
+            
+            // Association
+            if (rootDelegate instanceof Association) {
+                visitAssociation( (Association)prop );
+            }
+            // ManyAssociation
+            else if (rootDelegate instanceof ManyAssociation) {
+                visitManyAssociation( (ManyAssociation)prop );
             }
             // Collection
-            else if (prop instanceof CollectionProperty) {
+            else if (rootDelegate instanceof CollectionProperty) {
                 if (Composite.class.isAssignableFrom( propInfo.getType() )) {
                     if (visitCompositeCollectionProperty( (CollectionProperty)prop )) {
                         for (Composite value : ((CollectionProperty<Composite>)prop)) {
@@ -156,13 +156,19 @@ public abstract class CompositeStateVisitor<E extends Exception> {
                     visitCollectionProperty( (CollectionProperty)prop );
                 }
             }
-            // Association
-            else if (prop instanceof Association) {
-                visitAssociation( (Association)prop );
-            }
-            // ManyAssociation
-            else if (prop instanceof ManyAssociation) {
-                visitManyAssociation( (ManyAssociation)prop );
+            // Property
+            else if (rootDelegate instanceof Property) {
+                if (Composite.class.isAssignableFrom( propInfo.getType() )) {
+                    if (visitCompositeProperty( (Property)prop )) {
+                        Composite value = (Composite)((Property)prop).opt().orElse( null );
+                        if (value != null) {
+                            processComposite( value );
+                        }
+                    }
+                }
+                else {
+                    visitProperty( (Property)prop );
+                }
             }
             else {
                 throw new RuntimeException( "Unhandled Property type:" + prop );

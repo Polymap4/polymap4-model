@@ -25,28 +25,33 @@ public abstract class PropertyConcernAdapter<T>
         extends PropertyConcernBase<T>
         implements PropertyConcern<T> {
 
-    protected Property<T> delegate() {
+    @Override
+    public PropertyBase<T> delegate() {
+        return delegate;
+    }
+
+    protected Property<T> _delegate() {
         return (Property<T>)delegate;
     }
 
     @Override
     public T get() {
-        return delegate().get();
+        return _delegate().get();
     }
 
     @Override
     public <U extends T> U createValue( ValueInitializer<U> initializer ) {
-        return delegate().createValue( initializer );
+        return _delegate().createValue( initializer );
     }
 
     @Override
     public void set( T value ) {
-        delegate().set( value );
+        _delegate().set( value );
     }
 
     @Override
     public String toString() {
-        return delegate().toString();
+        return _delegate().toString();
     }
 
 }

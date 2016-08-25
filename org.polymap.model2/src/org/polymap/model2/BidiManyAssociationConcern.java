@@ -53,19 +53,18 @@ public class BidiManyAssociationConcern<T extends Entity>
         throw new RuntimeException( "not implemented." );
     }
 
-    
-    protected ManyAssociation delegate() {
-        return (ManyAssociation)delegate;
+    protected ManyAssociation _delegate() {
+        return (ManyAssociation)delegate();
     }
 
     @Override
     public boolean add( T element ) {
         // avoid ping-pong between double-sided bidi associations
-        if (delegate().contains( element )) {
+        if (_delegate().contains( element )) {
             return false;
         }
         else {
-            delegate().add( element );
+            _delegate().add( element );
             updateBackReference( element, true );
             return true;
         }
@@ -75,11 +74,11 @@ public class BidiManyAssociationConcern<T extends Entity>
     @Override
     public boolean remove( Object element ) {
         // avoid ping-pong between double-sided bidi associations
-        if (!delegate().contains( element )) {
+        if (!_delegate().contains( element )) {
             return false;
         }
         else {
-            delegate().remove( element );
+            _delegate().remove( element );
             updateBackReference( (T)element, false );
             return true;
         }

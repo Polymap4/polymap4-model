@@ -35,13 +35,13 @@ public class InvocationCountConcern
     @Override
     public Object get() {
         getCount.incrementAndGet();
-        return delegate().get();
+        return _delegate().get();
     }
 
     @Override
     public void set( Object value ) {
         setCount.incrementAndGet();
-        delegate().set( value );
+        _delegate().set( value );
     }
 
 }

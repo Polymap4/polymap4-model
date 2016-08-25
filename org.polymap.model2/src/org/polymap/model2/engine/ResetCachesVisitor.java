@@ -14,8 +14,10 @@
  */
 package org.polymap.model2.engine;
 
+import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Composite;
+import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
 import org.polymap.model2.runtime.CompositeStateVisitor;
@@ -26,34 +28,47 @@ import org.polymap.model2.runtime.CompositeStateVisitor;
  * @author Falko Bräutigam
  */
 public class ResetCachesVisitor
-        extends CompositeStateVisitor {
+        extends CompositeStateVisitor<RuntimeException> {
 
     @Override
-    public void process( Composite composite ) {
-        try {
-            super.process( composite );
-        }
-        catch (Exception e) {
-            throw new RuntimeException( e );
-        }
+    protected void visitProperty( Property prop ) {
+        resetCache( prop );
     }
 
     @Override
-    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) throws Exception {
-        PropertyBase delegate = ((ConstraintsInterceptor)prop).delegate();
-        if (delegate instanceof CachingProperty) {
-            ((CachingProperty)delegate).clearCache();
-        }
+    protected void visitCollectionProperty( CollectionProperty prop ) {
+        resetCache( prop );
+    }
+
+    @Override
+    protected void visitAssociation( Association prop ) {
+        resetCache( prop );
+    }
+
+    @Override
+    protected void visitManyAssociation( ManyAssociation prop ) {
+        resetCache( prop );
+    }
+
+    @Override
+    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) {
+        resetCache( prop );
         return true;
     }
 
     @Override
-    protected boolean visitCompositeProperty( Property prop ) throws Exception {
-        PropertyBase delegate = ((ConstraintsInterceptor)prop).delegate();
-        if (delegate instanceof CachingProperty) {
-            ((CachingProperty)delegate).clearCache();
-        }
+    protected boolean visitCompositeProperty( Property prop ) {
+        resetCache( prop );
         return true;
+    }
+
+    protected void resetCache( PropertyBase prop ) {
+        PropertyInterceptorBase.visitDelegates( prop, delegate -> {
+            if (delegate instanceof CachingProperty) {
+                ((CachingProperty)delegate).clearCache();
+            }
+            return true;
+        });
     }
     
 }

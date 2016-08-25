@@ -28,7 +28,7 @@ import org.polymap.model2.runtime.PropertyInfo;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 abstract class ConstraintsInterceptor<T>
-        implements PropertyBase<T> {
+        implements PropertyInterceptorBase<T> {
 
     protected static final Object       UNINITIALIZED = new Object();
     
@@ -57,7 +57,8 @@ abstract class ConstraintsInterceptor<T>
         this.isNullable = info.isNullable();
     }
 
-    
+
+    @Override
     public PropertyBase<T> delegate() {
         return delegate;
     }

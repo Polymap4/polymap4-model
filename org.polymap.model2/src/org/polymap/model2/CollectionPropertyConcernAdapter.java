@@ -28,17 +28,22 @@ public abstract class CollectionPropertyConcernAdapter<T>
         extends PropertyConcernBase<T>
         implements CollectionPropertyConcern<T> {
 
-    protected CollectionProperty<T> delegate() {
+    @Override
+    public PropertyBase<T> delegate() {
+        return delegate;
+    }
+
+    protected CollectionProperty<T> _delegate() {
         return (CollectionProperty<T>)delegate;
     }
 
     public <U extends T> U createElement( ValueInitializer<U> initializer ) {
-        return delegate().createElement( initializer );
+        return _delegate().createElement( initializer );
     }
 
     @Override
     public int hashCode() {
-        return delegate().hashCode();
+        return _delegate().hashCode();
     }
 
     @Override
@@ -47,7 +52,7 @@ public abstract class CollectionPropertyConcernAdapter<T>
             return info() == ((CollectionProperty)o).info();
         }
         else if (o instanceof Collection) {
-            return ((Collection)o).containsAll( delegate() );
+            return ((Collection)o).containsAll( _delegate() );
         }
         else {
             return false;
@@ -56,7 +61,7 @@ public abstract class CollectionPropertyConcernAdapter<T>
 
     @Override
     public String toString() {
-        return delegate().toString();
+        return _delegate().toString();
     }
     
 
@@ -64,67 +69,67 @@ public abstract class CollectionPropertyConcernAdapter<T>
     
     @Override
     public int size() {
-        return delegate().size();
+        return _delegate().size();
     }
 
     @Override
     public boolean isEmpty() {
-        return delegate().isEmpty();
+        return _delegate().isEmpty();
     }
 
     @Override
     public boolean contains( Object o ) {
-        return delegate().contains( o );
+        return _delegate().contains( o );
     }
 
     @Override
     public Iterator<T> iterator() {
-        return delegate().iterator();
+        return _delegate().iterator();
     }
 
     @Override
     public Object[] toArray() {
-        return delegate().toArray();
+        return _delegate().toArray();
     }
 
     @Override
     public <V> V[] toArray( V[] a ) {
-        return delegate().toArray( a );
+        return _delegate().toArray( a );
     }
 
     @Override
     public boolean add( T e ) {
-        return delegate().add( e );
+        return _delegate().add( e );
     }
 
     @Override
     public boolean remove( Object o ) {
-        return delegate().remove( o );
+        return _delegate().remove( o );
     }
 
     @Override
     public boolean containsAll( Collection<?> c ) {
-        return delegate().containsAll( c );
+        return _delegate().containsAll( c );
     }
 
     @Override
     public boolean addAll( Collection<? extends T> c ) {
-        return delegate().addAll( c );
+        return _delegate().addAll( c );
     }
 
     @Override
     public boolean removeAll( Collection<?> c ) {
-        return delegate().removeAll( c );
+        return _delegate().removeAll( c );
     }
 
     @Override
     public boolean retainAll( Collection<?> c ) {
-        return delegate().retainAll( c );
+        return _delegate().retainAll( c );
     }
 
     @Override
     public void clear() {
-        delegate().clear();
+        _delegate().clear();
     }
     
 }
