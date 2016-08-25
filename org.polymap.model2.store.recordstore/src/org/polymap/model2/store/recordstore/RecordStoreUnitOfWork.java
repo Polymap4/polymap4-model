@@ -16,16 +16,19 @@ package org.polymap.model2.store.recordstore;
 
 import static org.polymap.model2.store.recordstore.RecordCompositeState.TYPE_KEY;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.google.common.collect.Iterables;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
@@ -101,28 +104,33 @@ public class RecordStoreUnitOfWork
         for (Map.Entry<String,Object> entry : ((RecordCompositeState)state).state) {
             clonedState.put( entry.getKey(), entry.getValue() );
         }
+        assert clonedState.id().equals( state.id() );
         return new RecordCompositeState( clonedState );
     }
 
 
     @Override
     public void reincorparateEntityState( CompositeState state, CompositeState clonedState ) {
-        // just replacing the IRecordState is not possible out-of-the-box as it was newly created (wrong id) ??
+        IRecordState from = ((RecordCompositeState)clonedState).state;
+        IRecordState to = ((RecordCompositeState)state).state;
         
         // cloned -> state
         Set<String> keys = new HashSet( 128 );
-        for (Map.Entry<String,Object> entry : ((RecordCompositeState)clonedState).state) {
-            ((RecordCompositeState)state).state.put( entry.getKey(), entry.getValue() );
+        for (Map.Entry<String,Object> entry : from) {
+            to.put( entry.getKey(), entry.getValue() );
             keys.add( entry.getKey() );
         }
         // check removed
-        Iterator<Map.Entry<String,Object>> it = ((RecordCompositeState)state).state.iterator();
-        while (it.hasNext()) {
-            Entry<String,Object> entry = it.next();
+        List<String> toRemove = new ArrayList(); 
+        for (Map.Entry<String,Object> entry : to) {
             if (!keys.contains( entry.getKey() )) {
-                it.remove();
+                toRemove.add( entry.getKey() );
             }
         }
+        for (String name : toRemove) {
+            to.remove( name );
+        }
+        assert clonedState.id().equals( state.id() );
     }
 
 
@@ -200,8 +208,12 @@ public class RecordStoreUnitOfWork
             throws IOException, ConcurrentEntityModificationException {
         assert tx == null;
         prepareFailed = false;
-        this.tx = store.prepareUpdate();
         
+        if (Iterables.isEmpty( modified )) {
+            return;
+        }
+        
+        this.tx = store.prepareUpdate();
         try {
             for (Entity entity : modified) {
                 IRecordState state = (IRecordState)entity.state();
@@ -237,11 +249,13 @@ public class RecordStoreUnitOfWork
     
     @Override
     public void commit() {
-        assert tx != null;
         assert !prepareFailed : "Previous prepareCommit() failed.";
 
-        tx.apply();
-        tx = null;
+        // if modified was empty then there is no tx at all
+        if (tx != null) {
+            tx.apply();
+            tx = null;
+        }
     }
 
 
