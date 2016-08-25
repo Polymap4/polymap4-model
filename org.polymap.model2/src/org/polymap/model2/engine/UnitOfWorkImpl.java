@@ -22,6 +22,7 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIF
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -181,7 +182,7 @@ public class UnitOfWorkImpl
 
     @Override
     public <T extends Entity> T entity( T entity ) {
-        return (T)entity( entity.getClass(), entity.id(), null );
+        return (T)entity( entity.getClass(), entity.id() );
     }
 
 
@@ -326,6 +327,12 @@ public class UnitOfWorkImpl
         else {
             throw new UnsupportedOperationException( "The current store backend does not support cloning states (nested UnitOfWork): " + storeUow );
         }
+    }
+
+
+    @Override
+    public Optional<UnitOfWork> parent() {
+        return Optional.empty();
     }
 
 

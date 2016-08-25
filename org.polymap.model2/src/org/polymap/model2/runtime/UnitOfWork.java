@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.runtime;
 
+import java.util.Optional;
+
 import java.io.IOException;
 
 import org.polymap.model2.Entity;
@@ -228,5 +230,12 @@ public interface UnitOfWork
      * states}.
      */
     public UnitOfWork newUnitOfWork();
+    
+    
+    /**
+     * The parent {@link UnitOfWork} if this is a nested instance created by
+     * {@link #newUnitOfWork()}.
+     */
+    public Optional<UnitOfWork> parent();
     
 }

@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -38,7 +39,6 @@ public class OneReaderPessimisticLocking
         extends PessimisticLocking {
 
     private static final Log log = LogFactory.getLog( OneReaderPessimisticLocking.class );
-
     
     @Override
     protected EntityLock newLock( EntityKey key, Entity entity ) {
@@ -52,11 +52,12 @@ public class OneReaderPessimisticLocking
     protected class OneReaderEntityLock
             extends EntityLock {
         
-        private Reference<UnitOfWork>   reader;
+        /** Aquired by this {@link UnitOfWork}. */
+        protected Reference<UnitOfWork>   reader;
         
-        private Supplier<Boolean>       noReader = () -> reader == null || reader.get() == null || !reader.get().isOpen();
+        protected Supplier<Boolean>       noReader = () -> reader == null || reader.get() == null || !reader.get().isOpen();
         
-        private Predicate<UnitOfWork>   isAquired = uow -> reader != null && reader.get() == uow;
+        protected Predicate<UnitOfWork>   isAquired = uow -> reader != null && reader.get() == uow;
         
         @Override
         public void aquire( UnitOfWork uow, AccessMode accessMode ) {
@@ -70,13 +71,17 @@ public class OneReaderPessimisticLocking
         }
 
         @Override
-        public void checkRelease( UnitOfWork uow ) {
+        public boolean checkRelease( UnitOfWork uow ) {
             if (isAquired.test( uow )) {
                 synchronized (this) {
+                    log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
+                            + " released: " + context.getEntity().id() );
                     reader = null;
                     notifyAll();
+                    return true;
                 }
             }
+            return false;
         }
     }
 

@@ -84,14 +84,16 @@ public class MrowPessimisticLocking
         }
 
         @Override
-        public void checkRelease( UnitOfWork uow ) {
+        public boolean checkRelease( UnitOfWork uow ) {
             if (writer != null && writer.get() == uow
                     || readers.remove( uow.hashCode() ) != null) {
                 synchronized (this) {
                     writer = null;
                     notifyAll();
+                    return true;
                 }
             }
+            return false;
         }
 
         @Override

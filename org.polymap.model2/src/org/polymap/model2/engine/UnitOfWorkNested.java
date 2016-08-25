@@ -23,6 +23,7 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIF
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 import java.io.IOException;
 
@@ -66,7 +67,7 @@ public class UnitOfWorkNested
     CloneCompositeStateSupport storeUow() {
         return (CloneCompositeStateSupport)storeUow;    
     }
-    
+
     
     @Override
     public <T extends Entity> T entity( final Class<T> entityClass, final Object id ) {
@@ -180,6 +181,12 @@ public class UnitOfWorkNested
         return new UnitOfWorkNested( repo, storeUow(), this );
     }
 
+    
+    @Override
+    public Optional<UnitOfWork> parent() {
+        return Optional.of( parent );
+    }
+
 
     @Override
     public void prepare() throws IOException, ConcurrentEntityModificationException {
@@ -285,10 +292,12 @@ public class UnitOfWorkNested
                 InstanceBuilder.contextOf( entry.getValue() ).detach();
             }
             commitLock.unlock( false );
-            parent = null;
             repo = null;
             loaded = null;
             modified = null;
+            
+            // keep parent for parent()
+            //parent = null;
         }
     }
 

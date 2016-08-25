@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.runtime;
 
+import java.util.Optional;
+
 import java.io.IOException;
 
 import org.polymap.model2.Entity;
@@ -88,4 +90,9 @@ public abstract class DelegatingUnitOfWork
         return delegate.query( entityClass );
     }
 
+    @Override
+    public Optional<UnitOfWork> parent() {
+        return delegate.parent();
+    }
+    
 }

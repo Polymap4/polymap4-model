@@ -17,6 +17,7 @@ package org.polymap.model2.runtime.locking;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -50,8 +51,12 @@ public abstract class PessimisticLocking
 
     private static final Log log = LogFactory.getLog( PessimisticLocking.class );
 
+    // XXX memory sensitive cache?
     private static ConcurrentMap<EntityKey,EntityLock>  locks = new MapMaker().concurrencyLevel( 4 ).initialCapacity( 256 ).makeMap();
     
+    /**
+     * 
+     */
     protected enum AccessMode {
         READ, WRITE
     }
@@ -99,9 +104,11 @@ public abstract class PessimisticLocking
     protected void lock( AccessMode accessMode ) {
         UnitOfWork uow = context.getUnitOfWork();
         Entity entity = context.getEntity();
-        EntityKey key = new EntityKey( entity );
         
-        EntityLock entityLock = locks.computeIfAbsent( key, k -> newLock( k, entity ) );
+        // XXX check if cached entiyLock is for same type of locking (OneReader, MROW)
+        EntityLock entityLock = locks.computeIfAbsent( new EntityKey( entity ), key -> 
+                newLock( key, entity ) );
+        
         entityLock.aquire( uow, accessMode );
     }
 
@@ -116,19 +123,28 @@ public abstract class PessimisticLocking
 
         public abstract void aquire( UnitOfWork uow, AccessMode accessMode );
         
-        public abstract void checkRelease( UnitOfWork uow );
+        public abstract boolean checkRelease( UnitOfWork uow );
         
         protected void await( Supplier<Boolean> condition, AccessMode mode ) {
             // FIXME polling! wait that GC reclaimed readers and writer
             // a writer has read lock too, so we avoid writer check
+            boolean firstLoop = true;
             while (!condition.get()) {
-                log.info( Thread.currentThread().getName() + ": await lock: " + mode + " on: " + context.getEntity().id() );
+                if (firstLoop) {
+                    log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
+                            + " await lock: " + mode + " on: " + context.getEntity().id() );
+                    firstLoop = false;
+                }
                 try { 
                     wait( 100 );
                     cleanStaleHolders();    
                 } 
                 catch (InterruptedException e) {
                 }
+            }
+            if (!firstLoop) {
+                log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
+                        + " got lock." );
             }
         }
         
@@ -140,7 +156,8 @@ public abstract class PessimisticLocking
     /**
      * 
      */
-    protected class EntityKey {
+    protected static class EntityKey
+            implements Comparable {
         
         private String      key; 
     
@@ -154,8 +171,13 @@ public abstract class PessimisticLocking
         }
     
         @Override
-        public boolean equals( Object obj ) {
-            return key.equals( ((EntityKey)obj).key );
+        public boolean equals( Object other ) {
+            return key.equals( ((EntityKey)other).key );
+        }
+
+        @Override
+        public int compareTo( Object other ) {
+            return key.compareTo( ((EntityKey)other).key );
         }        
     }
 
