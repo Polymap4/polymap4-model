@@ -114,6 +114,13 @@ class CompositeCollectionPropertyImpl<T extends Composite>
     
     
     @Override
+    public void clear() {
+        super.clear();
+        clearCache();
+    }
+
+
+    @Override
     public Iterator<T> iterator() {
         // FIXME remove not supported yet
         return Iterators.unmodifiableIterator( checkInitCache().iterator() );

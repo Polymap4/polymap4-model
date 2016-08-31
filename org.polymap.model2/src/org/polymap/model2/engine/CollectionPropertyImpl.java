@@ -68,6 +68,11 @@ class CollectionPropertyImpl<T>
     public boolean add( T elm ) {
         return storeProp.add( elm );
     }
+    
+    @Override
+    public void clear() {
+        storeProp.clear();
+    }
 
     @Override
     public String toString() {

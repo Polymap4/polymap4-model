@@ -281,6 +281,11 @@ class FeatureCompositeState
             return featureProps().add( prop );
         }
 
+        @Override
+        public void clear() {
+            throw new RuntimeException( "not yet implemented." );
+        }
+        
     }
     
 }

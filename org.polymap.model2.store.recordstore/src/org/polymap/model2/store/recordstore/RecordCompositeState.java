@@ -248,17 +248,24 @@ class RecordCompositeState
                 public boolean hasNext() {
                     return index < size;
                 }
-
                 @Override
                 public Object next() {
                     return state.get( fieldname.arrayElement( index++ ).get() );
                 }
-
                 @Override
                 public void remove() {
                     CollectionPropertyImpl.this.remove( index );
                 }
             };
+        }
+
+        @Override
+        public void clear() {
+            // reverse order to prevent shifting
+            for (int i=size()-1; i>=0; i--) {
+                remove( i );
+            }
+            assert size() == 0 : "Size should be 0: " + size();            
         }
 
         public void remove( int index ) {

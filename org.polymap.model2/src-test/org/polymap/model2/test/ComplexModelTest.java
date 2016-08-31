@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.polymap.model2.runtime.EntityRepository;
@@ -375,8 +376,27 @@ public abstract class ComplexModelTest
 //        Address firstAddress3 = Iterables.get( company2.moreAddresses, 0 );
 //        assertEquals( firstAddress2, firstAddress3 );
 //    }
-    
 
+    
+    public void testCompositeCollectionClear() {
+        Company company = uow.createEntity( Company.class, null );
+        company.moreAddresses.createElement( (Address proto) -> {
+            proto.street.set( "To be removed" );
+            proto.nr.set( 1 );
+            return proto;
+        });
+        company.moreAddresses.createElement( (Address proto) -> {
+            proto.street.set( "To be removed" );
+            proto.nr.set( 2 );
+            return proto;
+        });
+        
+        company.moreAddresses.clear();
+        assertEquals( 0, company.moreAddresses.size() );
+        assertEquals( 0, Iterators.size( company.moreAddresses.iterator() ) );
+    }
+    
+    
     public void _testCompositeCollectionElementRemove() {
         Company company = uow.createEntity( Company.class, null );
         Address address = company.moreAddresses.createElement( new ValueInitializer<Address>() {
@@ -417,7 +437,7 @@ public abstract class ComplexModelTest
         } );
 
         uow.commit();
-
+        
         log.info( "Company: " + company );
         company.moreAddresses.remove( address );
         log.info( "Company (removed, commited): " + company );

@@ -51,6 +51,8 @@ public interface StoreCollectionProperty<T>
      */
     public T createValue( Class actualType );
 
+    public void clear();
+
     public PropertyInfo info();
 
 }
