@@ -20,10 +20,11 @@ import org.apache.commons.logging.LogFactory;
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Composite;
+import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Property;
 
 /**
- * 
+ * Copies the entire hierarchy of properties.
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
@@ -59,6 +60,11 @@ public class CopyCompositeState<C extends Composite>
     @Override
     protected void visitAssociation( Association prop ) {
         ((Association)prop.info().get( to )).set( prop.get() );
+    }
+
+    @Override
+    protected void visitManyAssociation( ManyAssociation prop ) {
+        throw new RuntimeException( "not yet implemented." );
     }
 
     @Override
