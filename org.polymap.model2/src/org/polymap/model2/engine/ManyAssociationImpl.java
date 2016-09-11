@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2015, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2015-2016, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -30,7 +30,7 @@ import org.polymap.model2.store.StoreCollectionProperty;
 /**
  * 
  *
- * @author <a href="http://www.polymap.de">Falko Br�utigam</a>
+ * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 class ManyAssociationImpl<T extends Entity>
         extends AbstractCollection<T>
@@ -66,12 +66,10 @@ class ManyAssociationImpl<T extends Entity>
 
     @Override
     public Iterator<T> iterator() {
+        UnitOfWork uow = context.getUnitOfWork();
+        Class<? extends Entity> entityType = info().getType();
+        
         return Iterators.transform( storeProp.iterator(), new Function<Object,T>() {
-
-            UnitOfWork              uow = context.getUnitOfWork();
-            
-            Class<? extends Entity> entityType = info().getType();
-            
             @Override
             public T apply( Object id ) {
                 return (T)uow.entity( entityType, id );
