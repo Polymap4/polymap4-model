@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.test;
 
+import static org.junit.Assert.assertNotEquals;
+
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
@@ -90,17 +92,18 @@ public class PessimisticLockingTest
             UnitOfWork uow = repo.newUnitOfWork();
             Locked e1 = uow.entity( _e1 );
             before.set( e1.read() );
-            try { Thread.sleep( 1000 ); } catch (InterruptedException e) { }
+            try { Thread.sleep( 500 ); } catch (InterruptedException e) { }
             uow.close();
             PessimisticLocking.notifyClosed( uow );
             uow = null;
             
+            try { Thread.sleep( 100 ); } catch (InterruptedException e) { }
             uow = repo.newUnitOfWork();
             e1 = uow.entity( _e1 );
             after.set( e1.read() );
             uow.close();
             PessimisticLocking.notifyClosed( uow );
-        }, "reader" );
+        }, "re" );
         t1.start();
         
         // write
@@ -111,18 +114,22 @@ public class PessimisticLockingTest
             log.info( e1.read() );
             e1.write( "modified" );
             log.info( e1.read() );
+            try { Thread.sleep( 500 ); } catch (InterruptedException e) { }
             uow.commit();
             uow.close();
             PessimisticLocking.notifyClosed( uow );
-        }, "writer" );
+        }, "wr" );
         t2.start();
         
         t1.join();
         t2.join();
-        assertEquals( before.get(), after.get() );
+        assertNotEquals( before.get(), after.get() );
     }
+
     
-    
+    /**
+     * 
+     */
     public static abstract class Locked
             extends Entity {
         

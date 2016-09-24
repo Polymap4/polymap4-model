@@ -159,7 +159,7 @@ public interface UnitOfWork
      * all modified entities are reloaded from backend store. Newly created entities
      * are in {@link EntityStatus#DETACHED} state afterwards.
      * <p/>
-     * {@link OptimisticLocking}: after rollback() locally modified entities are
+     * {@link OptimisticLocking}: after rollback() all locally modified entities are
      * updated to the store state. In case of concurrent modifications that state
      * might be <b>different</b> to the state first loaded in this UnitOfWork. In
      * other words, rollback() can be used to incorporate changes from the store.
@@ -172,6 +172,17 @@ public interface UnitOfWork
 
 
     /**
+     * Reload the state of the given {@link Entity} from backend store no matter what
+     * the current {@link EntityStatus} is. This is kind of a forced {@link #rollback()}
+     * for the given entity.
+     *
+     * @param entity The {@link Entity} to reload.
+     * @throws ModelRuntimeException
+     */
+    public void reload( Entity entity ) throws ModelRuntimeException;
+    
+    
+    /**
      * Closes this UnitOfWork by releasing all resources associated with this
      * instance. All uncommitted modifications are discarded.
      * <p/>
@@ -179,6 +190,7 @@ public interface UnitOfWork
      * {@link #isOpen()}.
      */
     public void close();
+    
     
     public boolean isOpen();
 

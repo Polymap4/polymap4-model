@@ -60,11 +60,12 @@ public class MrowPessimisticLocking
         private Reference<UnitOfWork>   writer;        
 
         @Override
-        public void aquire( UnitOfWork uow, AccessMode accessMode ) {
+        public void aquire( UnitOfWork uow, Entity entity, AccessMode accessMode ) {
             // read lock
             if (!readers.containsKey( uow.hashCode() )) {
                 synchronized (this) {
-                    await( () -> writer == null || writer.get() == null || !writer.get().isOpen(), READ );
+                    await( () -> writer == null || writer.get() == null || !writer.get().isOpen(),
+                            READ, uow, entity );
                     readers.put( uow.hashCode(), uow );
                 }
             }   
@@ -76,7 +77,8 @@ public class MrowPessimisticLocking
                 }
                 else {
                     synchronized (this) {
-                        await( () -> readers.size() == 1 /*|| (writer != null && writer.get() != uow)*/, WRITE );
+                        await( () -> readers.size() == 1 /*|| (writer != null && writer.get() != uow)*/, 
+                                WRITE, uow, entity );
                         writer = new WeakReference( uow );
                     }
                 }

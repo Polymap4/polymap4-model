@@ -285,6 +285,12 @@ public class UnitOfWorkNested
     }
 
 
+    @Override
+    public void reload( Entity entity ) throws ModelRuntimeException {
+        throw new RuntimeException( "not yet implemented." );
+    }
+
+
     public void close() {
         if (isOpen()) {
             // detach loaded Entities in order to avoid leaks and improper state access

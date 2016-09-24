@@ -53,18 +53,18 @@ public class OneReaderPessimisticLocking
             extends EntityLock {
         
         /** Aquired by this {@link UnitOfWork}. */
-        protected Reference<UnitOfWork>   reader;
+        protected volatile Reference<UnitOfWork>    reader;
         
         protected Supplier<Boolean>       noReader = () -> reader == null || reader.get() == null || !reader.get().isOpen();
         
         protected Predicate<UnitOfWork>   isAquired = uow -> reader != null && reader.get() == uow;
         
         @Override
-        public void aquire( UnitOfWork uow, AccessMode accessMode ) {
+        public void aquire( UnitOfWork uow, Entity entity, AccessMode accessMode ) {
             // do we have to lock? -> avoid synchronize
             if (!isAquired.test( uow )) {
                 synchronized (this) {
-                    await( noReader, accessMode );
+                    await( noReader, accessMode, uow, entity );
                     reader = new WeakReference( uow );
                 }
             }

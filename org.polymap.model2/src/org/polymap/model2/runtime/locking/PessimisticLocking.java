@@ -14,14 +14,13 @@
  */
 package org.polymap.model2.runtime.locking;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import com.google.common.collect.MapMaker;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
@@ -34,7 +33,7 @@ import org.polymap.model2.runtime.ValueInitializer;
 
 /**
  * Provides base abstractions of pessimistic locking of {@link Entity}s accessed from
- * different {@link UnitOfWork} (not Thread!) instances.
+ * different {@link UnitOfWork} (not Thread) instances.
  * <p>
  * <b>Beware</b>: Not thoroughly tested yet. Implementation currently uses polling
  * and {@link WeakReference} to get informed about the end of an {@link UnitOfWork}.
@@ -52,7 +51,7 @@ public abstract class PessimisticLocking
     private static final Log log = LogFactory.getLog( PessimisticLocking.class );
 
     // XXX memory sensitive cache?
-    private static ConcurrentMap<EntityKey,EntityLock>  locks = new MapMaker().concurrencyLevel( 4 ).initialCapacity( 256 ).makeMap();
+    private static ConcurrentMap<EntityKey,EntityLock>  locks = new ConcurrentHashMap( 256, 0.75f, 4);
     
     /**
      * 
@@ -95,13 +94,14 @@ public abstract class PessimisticLocking
 
     
     @Override
-    public boolean add( Object e ) {
+    public boolean add( Object elm ) {
        lock( AccessMode.WRITE );
-       return ((ManyAssociation)delegate).add( e );
+       return ((ManyAssociation)delegate).add( elm );
     }
 
     
     protected void lock( AccessMode accessMode ) {
+        //log.info( "lock: " + info().getName() + "()" + " : " + accessMode );
         UnitOfWork uow = context.getUnitOfWork();
         Entity entity = context.getEntity();
         
@@ -109,7 +109,7 @@ public abstract class PessimisticLocking
         EntityLock entityLock = locks.computeIfAbsent( new EntityKey( entity ), key -> 
                 newLock( key, entity ) );
         
-        entityLock.aquire( uow, accessMode );
+        entityLock.aquire( uow, entity, accessMode );
     }
 
     
@@ -121,18 +121,38 @@ public abstract class PessimisticLocking
      */
     protected abstract class EntityLock {
 
-        public abstract void aquire( UnitOfWork uow, AccessMode accessMode );
+        /**
+         * 
+         *
+         * @param uow The {@link UnitOfWork} from which the entity is accessed.
+         * @param entity The actual Entity instance from within the given UnitOfWork.
+         * @param accessMode
+         */
+        public abstract void aquire( UnitOfWork uow, Entity entity, AccessMode accessMode );
         
+        /**
+         * 
+         *
+         * @param uow
+         * @return True if the lock was aquired and actually got released.
+         */
         public abstract boolean checkRelease( UnitOfWork uow );
         
-        protected void await( Supplier<Boolean> condition, AccessMode mode ) {
-            // FIXME polling! wait that GC reclaimed readers and writer
+        /**
+         * 
+         *
+         * @param condition
+         * @param mode
+         * @param uow The {@link UnitOfWork} from which the entity is accessed.
+         * @param entity The actual Entity instance from within the given UnitOfWork.
+         */
+        protected void await( Supplier<Boolean> condition, AccessMode mode, UnitOfWork uow, Entity entity ) {
+            // XXX polling! wait that GC reclaimed readers and writer
             // a writer has read lock too, so we avoid writer check
             boolean firstLoop = true;
             while (!condition.get()) {
                 if (firstLoop) {
-                    log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
-                            + " await lock: " + mode + " on: " + context.getEntity().id() );
+                    log.warn( logPrefix() + "await lock: " + mode + " on: " + context.getEntity().id() );
                     firstLoop = false;
                 }
                 try { 
@@ -140,12 +160,20 @@ public abstract class PessimisticLocking
                     cleanStaleHolders();    
                 } 
                 catch (InterruptedException e) {
+                    log.warn( logPrefix() + "Interrupted!" );
                 }
             }
             if (!firstLoop) {
-                log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
-                        + " got lock." );
+                log.warn( logPrefix() + "got lock on: " + context.getEntity().id() );
+                // now we have the lock; the other UnitOfWork might have modified
+                // the Entity state, so we have to reload; the client code has not seen
+                // any properties of the entity yet
+                uow.reload( entity );
             }
+        }
+        
+        protected String logPrefix() {
+            return "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "] ";            
         }
         
         protected void cleanStaleHolders() {

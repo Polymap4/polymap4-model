@@ -42,50 +42,67 @@ public abstract class DelegatingUnitOfWork
         return delegate;
     }
     
+    @Override
     public UnitOfWork newUnitOfWork() {
         return delegate.newUnitOfWork();
     }
 
+    @Override
     public <T extends Entity> T entityForState( Class<T> entityClass, Object state ) {
         return delegate.entityForState( entityClass, state );
     }
 
+    @Override
     public <T extends Entity> T entity( Class<T> entityClass, Object id ) {
         return delegate.entity( entityClass, id );
     }
 
+    @Override
     public <T extends Entity> T entity( T entity ) {
         return delegate.entity( entity );
     }
 
+    @Override
     public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T>... initializers ) {
         return delegate.createEntity( entityClass, id, initializers );
     }
 
+    @Override
     public void removeEntity( Entity entity ) {
         delegate.removeEntity( entity );
     }
 
+    @Override
     public void prepare() throws IOException, ConcurrentEntityModificationException {
         delegate.prepare();
     }
 
+    @Override
     public void commit() throws ModelRuntimeException {
         delegate.commit();
     }
 
+    @Override
     public void rollback() throws ModelRuntimeException {
         delegate.rollback();
     }
 
+    @Override
+    public void reload( Entity entity ) throws ModelRuntimeException {
+        delegate.reload( entity );
+    }
+
+    @Override
     public void close() {
         delegate.close();
     }
 
+    @Override
     public boolean isOpen() {
         return delegate.isOpen();
     }
 
+    @Override
     public <T extends Entity> Query<T> query( Class<T> entityClass ) {
         return delegate.query( entityClass );
     }

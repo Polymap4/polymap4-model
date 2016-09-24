@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterators.transform;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +46,7 @@ import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
+import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.engine.cache.LoadingCache;
 import org.polymap.model2.engine.cache.LoadingCache.Loader;
 import org.polymap.model2.engine.cache.SimpleCache;
@@ -83,6 +85,7 @@ public class UnitOfWorkImpl
     /** Only set if this is the root UnitOfwork, or null if this is a nested instance. */
     protected StoreUnitOfWork               storeUow;
     
+    /** id -> entity */
     protected LoadingCache<Object,Entity>   loaded;
     
     protected LoadingCache<String,Composite> loadedMixins;
@@ -462,6 +465,25 @@ public class UnitOfWorkImpl
     }
 
 
+    @Override
+    public void reload( Entity entity ) throws ModelRuntimeException {
+        EntityRuntimeContextImpl context = repo.contextOf( entity );
+        assert context.getUnitOfWork() == this;
+        assert loaded.containsKey( entity.id() );
+        assert entity.status() != EntityStatus.CREATED : "Illegal: reload() of CREATED entity";
+  
+        // XXX 
+        context.resetStatus( EntityStatus.MODIFIED );
+        storeUow.rollback( Collections.singleton( entity ) );
+        
+        new ResetCachesVisitor().process( entity );
+        
+        context.resetStatus( EntityStatus.LOADED );
+        modified.remove( entity.id() );
+    }
+
+
+    @Override
     public void close() {
         if (isOpen()) {
             // detach loaded Entities to avoid leaks and improper state access
@@ -480,7 +502,9 @@ public class UnitOfWorkImpl
 
     @Override
     protected void finalize() throws Throwable {
-        close();
+        if (isOpen()) {
+            close();
+        }
     }
 
 
