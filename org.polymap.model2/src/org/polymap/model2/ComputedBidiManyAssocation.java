@@ -97,8 +97,26 @@ public class ComputedBidiManyAssocation<T extends Entity>
     }
 
 
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * Note that this uses {@link Entity#equals(Object)}. That is, entities from
+     * different {@link UnitOfWork} instances are not equal!
+     */
     @Override
     public boolean contains( Object o ) {
+        assert o != null;
+        for (T elm : this) {
+            if (elm.equals( o )) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    @Override
+    public boolean containsAll( Collection<?> c ) {
         // XXX Auto-generated method stub
         throw new RuntimeException( "not yet implemented." );
     }
@@ -116,13 +134,6 @@ public class ComputedBidiManyAssocation<T extends Entity>
 
     @Override
     public <U> U[] toArray( U[] a ) {
-        // XXX Auto-generated method stub
-        throw new RuntimeException( "not yet implemented." );
-    }
-
-
-    @Override
-    public boolean containsAll( Collection<?> c ) {
         // XXX Auto-generated method stub
         throw new RuntimeException( "not yet implemented." );
     }
