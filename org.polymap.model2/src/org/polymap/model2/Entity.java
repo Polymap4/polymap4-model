@@ -60,6 +60,8 @@ public abstract class Entity
      * By default two entities are {@link #equals(Object) equal} only if they are the
      * same object. That is, even two {@link Entity} instances refering the same state
      * are not equal if they were instantiated in differnet {@link UnitOfWork}s.
+     * 
+     * @see Entities
      */
     @Override
     public boolean equals( Object obj ) {

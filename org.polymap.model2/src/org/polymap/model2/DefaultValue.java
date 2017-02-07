@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 
+ * Denotes the default value of a {@link Property}.
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */

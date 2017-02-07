@@ -41,13 +41,6 @@ abstract class ConstraintsInterceptor<T>
     
     protected boolean                   isNullable;
 
-    /**
-     * Lazily init variable for fast access when frequently used. Don't use cool
-     * {@link LazyInit} in order to save memory (one more Object per property
-     * instance).
-     */
-    protected Object                    defaultValue = UNINITIALIZED;
-    
     
     public ConstraintsInterceptor( PropertyBase<T> delegate, EntityRuntimeContextImpl context ) {
         this.delegate = delegate;
