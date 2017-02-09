@@ -14,6 +14,9 @@
  */
 package org.polymap.model2.store.recordstore;
 
+import static org.apache.commons.lang3.StringUtils.split;
+import static org.apache.commons.lang3.StringUtils.startsWith;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -91,9 +94,19 @@ class RecordCompositeState
             // field is written by CompositeCollectionPropertyImpl.createValue() or
             // CompositePropertyImpl.createValue()
             String classname = state.get( basename.composite( TYPE_KEY ).get() );
+            
+            // FIXME super dirty hack: support old classnames in style package after refactoring;
+            // remove this when no old styles exists on mapzone.io
+            if (startsWith( classname, "org.polymap.core.style.model." )) {
+                String[] parts = split( classname, '.' );
+                if (parts.length == 6) {
+                    classname ="org.polymap.core.style.model.feature." + parts[5];
+                }
+            }
+            
             return classname != null && !declared.getName().equals( classname )
                     ? (Class<? extends Composite>)declared.getClassLoader().loadClass( classname )
-                     : declared;
+                    : declared;
         }
         catch (ClassNotFoundException e) {
             throw new RuntimeException( e );
