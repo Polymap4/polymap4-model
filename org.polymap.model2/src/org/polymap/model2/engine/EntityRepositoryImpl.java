@@ -77,8 +77,19 @@ public class EntityRepositoryImpl
 
                 // init static TYPE variable
                 try {
+                    for (Field f : type.getFields()) {
+                        if (f.getName().equals( "TYPE" )) {
+                            log.info( "TYPE field: " + f );
+                        }
+                    }
                     Field field = type.getDeclaredField( "TYPE" );
                     field.setAccessible( true );
+                    
+                    //assert field.get( null ) != null : "Entity class is already connected to an other repository.";
+                    Composite current = (Composite)field.get( null );
+                    if (current != null) {
+                        log.warn( "Entity class is already connected to an other repository: " + type.getName() );
+                    }
                     field.set( null, Expressions.template( type, this ) );
                 }
                 catch (NoSuchFieldException e) {

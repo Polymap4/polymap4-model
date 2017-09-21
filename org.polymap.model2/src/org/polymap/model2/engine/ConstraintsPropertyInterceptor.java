@@ -89,6 +89,7 @@ final class ConstraintsPropertyInterceptor<T>
     @Override
     public <U extends T> U createValue( ValueInitializer<U> initializer ) {
         context.checkState();
+        context.raiseStatus( EntityStatus.MODIFIED );
         return delegate().createValue( initializer );
     }
 
