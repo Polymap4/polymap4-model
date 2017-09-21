@@ -34,6 +34,8 @@ public class DefaultValues {
     public static final Integer     DEFAULT_INTEGER = new Integer( 0 );
     public static final Date        DEFAULT_DATE = new Date( 0 );
     public static final Boolean     DEFAULT_BOOLEAN = Boolean.FALSE;
+    public static final Float       DEFAULT_FLOAT = new Float( 0 );
+    public static final Double      DEFAULT_DOUBLE = new Double( 0 );
 
     /**
      * Creates a default value for the given field. The default value can be defined
@@ -54,6 +56,12 @@ public class DefaultValues {
             }
             else if (type.equals( Integer.class )) {
                 return Integer.parseInt( defaultValue.value() );
+            }
+            else if (type.equals( Float.class )) {
+                return Float.parseFloat( defaultValue.value() );
+            }
+            else if (type.equals( Double.class )) {
+                return Double.parseDouble( defaultValue.value() );
             }
             else if (type.equals( Boolean.class )) {
                 return Boolean.parseBoolean( defaultValue.value() );
@@ -78,6 +86,12 @@ public class DefaultValues {
             }
             else if (type.equals( Boolean.class )) {
                 return DEFAULT_BOOLEAN;
+            }
+            else if (type.equals( Float.class )) {
+                return DEFAULT_FLOAT;
+            }
+            else if (type.equals( Double.class )) {
+                return DEFAULT_DOUBLE;
             }
             // XXX
             else {
