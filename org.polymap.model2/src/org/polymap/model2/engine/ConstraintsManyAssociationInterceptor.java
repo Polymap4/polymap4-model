@@ -142,6 +142,13 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
     }
 
     @Override
+    public void clear() {
+        context.checkState();
+        coll().clear();
+        context.raiseStatus( EntityStatus.MODIFIED );
+    }
+
+    @Override
     public Iterator<T> iterator() {
         context.checkState();
         if (!isImmutable) {
@@ -201,12 +208,6 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
     public boolean containsAll( Collection<?> c ) {
         context.checkState();
         return coll().containsAll( c );
-    }
-
-    @Override
-    public void clear() {
-        context.checkState();
-        coll().clear();
     }
 
 }

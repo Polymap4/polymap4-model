@@ -93,6 +93,7 @@ public class TwoPhaseCommit {
 
     // instance *******************************************
     
+    /** Sequence of resources in order of calling {@link #register(TransactionAware)}. */
     private List<TransactionAware>      resources = new ArrayList();
     
     private boolean                     commitStarted = false;
@@ -106,7 +107,8 @@ public class TwoPhaseCommit {
     
     
     /**
-     * Registers a resource to take part on the 2-phase-commit.
+     * Registers a resource to take part on the 2-phase-commit. Commit/rollback id
+     * done in order of registering the resources.
      */
     public <T extends TransactionAware> T register( T resource ) {
         assert !commitStarted;
