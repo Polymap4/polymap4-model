@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright 2012, Falko Bräutigam. All rights reserved.
+ * Copyright 2012-2018, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -35,6 +35,19 @@ public interface ValueInitializer<T> {
         return rawTypeParameter( getClass() );
     }
 
+    
+    public default ValueInitializer<T> and( ValueInitializer<T> other ) {
+        ValueInitializer<T> self = this;
+        return new ValueInitializer<T>() {
+            @Override
+            public T initialize( T prototype ) throws Exception {
+                prototype = self.initialize( prototype );
+                return other.initialize( prototype );
+            }
+        };
+    }
+    
+    
     public abstract T initialize( T prototype ) throws Exception;
 
 
