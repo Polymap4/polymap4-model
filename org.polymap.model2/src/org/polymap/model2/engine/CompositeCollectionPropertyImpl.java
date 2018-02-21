@@ -18,9 +18,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Composite;
@@ -38,8 +35,6 @@ import org.polymap.model2.store.StoreCollectionProperty;
 class CompositeCollectionPropertyImpl<T extends Composite>
         extends CollectionPropertyImpl<T>
         implements CachingProperty {
-
-    private static Log log = LogFactory.getLog( CompositeCollectionPropertyImpl.class );
 
     /**
      * Cache of the Composite value. As building the Composite is an expensive
@@ -59,7 +54,6 @@ class CompositeCollectionPropertyImpl<T extends Composite>
     @Override
     public <U extends T> U createElement( ValueInitializer<U> initializer ) {
         Class actualType = initializer.rawResultType().orElse( info().getType() );
-
         CompositeState state = (CompositeState)storeProp.createValue( actualType );
                 
         InstanceBuilder builder = new InstanceBuilder( entityContext );
@@ -78,14 +72,16 @@ class CompositeCollectionPropertyImpl<T extends Composite>
         }
         
         // cache
-        checkInitCache().add( (T)value );
+        if (cache != null) {
+            cache.add( (T)value );
+        }
         return (U)value;
     }
 
     
     /**
      * Simple, straight forward: init all elements on first access. This is not very
-     * smart but other implementations are ticky; this one works and, as number of
+     * smart but other implementations are tricky; this one works and, as the number of
      * elements in a Composite collection is limited in "most cases", performs ok 
      */
     protected List<T> checkInitCache() {
@@ -107,7 +103,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
     
     @Override
     public void clearCache() {
-        // XXX client code may reference the old instrances; so this produces
+        // XXX client code may reference the old instances; so this produces
         // new Composite instances while another instance for the same state may already exists!
         cache = null;
     }
