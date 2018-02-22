@@ -70,27 +70,24 @@ public abstract class SimpleModelTest
         Employee employee = uow.createEntity( Employee.class, null );
         log.info( "Employee: id=" + employee.id() );
 //        assertEquals( employee.id(), "employee1" );
-        log.info( "Employee: name=" + employee.name.get() );
         assertNull( employee.name.get() );
         // default value
-        log.info( "Employee: firstname=" + employee.firstname.get() );
         assertEquals( employee.firstname.get(), "Ulli" );
         // set name
         employee.name.set( "Philipp" );
-        log.info( "Employee: name=" + employee.name.get() );
         assertEquals( employee.name.get(), "Philipp" );
+        employee._float.set( 0f );
+        assertEquals( employee._float.get(), 0f );
 
         // commit
-        log.info( "### COMMIT ###" );
         uow.commit();
 
         // re-read
         log.info( "Employee: id=" + employee.id() );
         Employee employee2 = uow.entityForState( Employee.class, employee.state() );
-        log.info( "Employee: name=" + employee2.name.get() );
         assertEquals( "Philipp", employee2.name.get() );
-        log.info( "Employee: firstname=" + employee2.firstname.get() );
         assertEquals( "Ulli", employee2.firstname.get() );
+        assertEquals( employee._float.get(), 0f );
 
         Employee employee3 = uow.entity( Employee.class, employee.id() );
         log.info( "Employee: name=" + employee3.name.get() );

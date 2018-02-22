@@ -23,6 +23,10 @@ import org.polymap.model2.runtime.ValueInitializer;
  * A multi-value property of a {@link Composite}. Possible types are simple values (
  * {@link Number}, {@link Boolean}, {@link String}, {@link Date}, {@link Enum}) or
  * {@link Composite} values.
+ * <p/>
+ * For {@link Composite} values the load/cache behaviour is not defined. Especially
+ * it is not defined if all values are loaded altogether or on-demand nor if a memory
+ * sensitive cache is used.
  * 
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */

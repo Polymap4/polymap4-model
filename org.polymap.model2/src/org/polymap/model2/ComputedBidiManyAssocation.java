@@ -21,9 +21,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
@@ -34,7 +31,7 @@ import org.polymap.model2.runtime.UnitOfWork;
  * Provides a computed back reference of a bidirectional {@link Association}.
  * <p/>
  * Not cached. Every call of {@link #iterator()} or {@link #size()} executes a
- * {@link Query}.
+ * {@link Query}. However, client code should not rely on this behaviour.
  * 
  * @see BidiAssociationName
  * @see BidiManyAssociationConcern
@@ -42,9 +39,6 @@ import org.polymap.model2.runtime.UnitOfWork;
  */
 public class ComputedBidiManyAssocation<T extends Entity>
         extends ComputedManyAssociation<T> {
-
-    private static Log log = LogFactory.getLog( ComputedBidiManyAssocation.class );
-
 
     protected ResultSet<T> results() {
         EntityRepository repo = composite.context.getRepository();

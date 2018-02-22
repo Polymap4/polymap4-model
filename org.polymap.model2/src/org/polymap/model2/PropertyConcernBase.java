@@ -15,6 +15,7 @@
 package org.polymap.model2;
 
 import java.util.AbstractCollection;
+import java.util.Collection;
 import java.util.Iterator;
 
 import org.polymap.model2.engine.PropertyInterceptorBase;
@@ -53,17 +54,17 @@ public abstract class PropertyConcernBase<T>
 
     @Override
     public Iterator<T> iterator() {
-        return ((ManyAssociation)delegate).iterator();
+        return ((Collection)delegate).iterator();
     }
 
     @Override
     public int size() {
-        return ((ManyAssociation)delegate).size();
+        return ((Collection)delegate).size();
     }
 
     @Override
     public boolean add( T e ) {
-        return ((ManyAssociation)delegate).add( e );
+        return ((Collection)delegate).add( e );
     }    
     
 }

@@ -41,6 +41,8 @@ public class Employee
     @Defaults
     public Property<Integer>        jap;
     
+    public Property<Float>          _float;
+    
     @Defaults
     @NameInStore("defaultStr") // shapefile supports 10 chars in name
     public Property<String>         defaultString;

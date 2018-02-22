@@ -64,7 +64,7 @@ public abstract class Composite {
 
     public String toString() {
         return getClass().getSimpleName() + 
-                (context.getStatus() != EntityStatus.DETACHED ? "[detached!]" : "[state=" + state() + "]") ;
+                (context.getStatus() == EntityStatus.DETACHED ? "[detached!]" : "[state=" + state() + "]") ;
     }
     
     /**
