@@ -252,6 +252,7 @@ public abstract class ComplexModelTest
     }
 
     
+    @SuppressWarnings( "unlikely-arg-type" )
     public void testPrimitiveCollection() {
         Company company = uow.createEntity( Company.class, null );
 
