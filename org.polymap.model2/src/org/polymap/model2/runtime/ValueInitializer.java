@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 
 /**
  * 
@@ -93,8 +94,15 @@ public interface ValueInitializer<T> {
         else if (result instanceof ParameterizedType) {
             return Optional.of( (Class<R>)((ParameterizedType)result).getRawType() );
         }
+        else if (result instanceof TypeVariable) {
+            // The type parameter is something like <T>. So the compiler does not
+            // know what it actually is. This was first used in Styling plugin. I'm
+            // not quite sure what to return. Object seems to be ok. The store backend
+            // stores the actual runtime class. Maybe lower bound of the TypeVariable?
+            return Optional.of( (Class<R>)Object.class );
+        }
         else {
-            throw new RuntimeException( "Unknown parameterized type: " + result );
+            throw new RuntimeException( "Unknown type argument: " + result + " of type: " + type );
         }
     }
 
