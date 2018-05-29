@@ -186,7 +186,7 @@ public final class InstanceBuilder {
                     }
 
                     PropertyInfo info = compositeInfo.getProperty( field.getName() );
-                    assert info != null : "No property info for field: '" + field.getName() + "'! - Entity type correctly declared in EntityRepository?";
+                    assert info != null : "No property info for field: " + superClass.getSimpleName() + "." + field.getName() + " ! - Entity type correctly declared in EntityRepository?";
                     PropertyBase prop = null;
 
                     // Property
