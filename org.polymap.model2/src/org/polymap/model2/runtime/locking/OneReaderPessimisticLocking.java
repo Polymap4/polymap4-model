@@ -74,7 +74,7 @@ public class OneReaderPessimisticLocking
         public boolean checkRelease( UnitOfWork uow ) {
             if (isAquired.test( uow )) {
                 synchronized (this) {
-                    log.info( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
+                    log.debug( "[" + StringUtils.right( Thread.currentThread().getName(), 2 ) + "]" 
                             + " released: " + context.getEntity().id() );
                     reader = null;
                     notifyAll();

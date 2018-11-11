@@ -152,7 +152,7 @@ public abstract class PessimisticLocking
             boolean firstLoop = true;
             while (!condition.get()) {
                 if (firstLoop) {
-                    log.warn( logPrefix() + "await lock: " + mode + " on: " + context.getEntity().id() );
+                    log.debug( logPrefix() + "await lock: " + mode + " on: " + context.getEntity().id() );
                     firstLoop = false;
                 }
                 try { 
@@ -164,7 +164,7 @@ public abstract class PessimisticLocking
                 }
             }
             if (!firstLoop) {
-                log.warn( logPrefix() + "got lock on: " + context.getEntity().id() );
+                log.debug( logPrefix() + "got lock on: " + context.getEntity().id() );
                 // now we have the lock; the other UnitOfWork might have modified
                 // the Entity state, so we have to reload; the client code has not seen
                 // any properties of the entity yet
