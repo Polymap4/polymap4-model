@@ -30,24 +30,28 @@ public class Person extends Entity {
     @DefaultValue("Ulli")
     public Property<String>      firstname;
 
-    /** Protected property of type Date. */
+    /** Protected property of type Date. Might be null. */
     @Nullable
     protected Property<Date>     birthday;
+    
+    /** Associates other employees. */
+    ManyAssociation<Employee>    worksWith;
 }
 ```
 
 **Create an entity** of type Person in the repository:
 ```java
-UnitOfWork uow = repo.newUnitOfWork();
-Person person = uow.createEntity( Person.class, null, (Person prototyp) -> {
-        prototyp.name.set( "Model2" );
-        return prototyp;
-});
-// persistently write changes to the backend store
-uow.commit();
+try (UnitOfWork uow = repo.newUnitOfWork()) {
+    Person person = uow.createEntity( Person.class, null, (Person prototyp) -> {
+            prototyp.name.set( "Model2" );
+            return prototyp;
+    });
+    // persistently write changes to the backend store
+    uow.commit();
+}
 ```
 
 **Access** properties of the newly created Entity:
 ```java
-System.out.println( "The name of the person is " + person.name.get() );
+System.out.println( "The name of the person is " + person.name.opt().orElse( "No name." ) );
 ```
