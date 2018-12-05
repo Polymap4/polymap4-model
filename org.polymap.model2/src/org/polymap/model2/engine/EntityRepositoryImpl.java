@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.engine;
 
+import static java.util.Arrays.stream;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -47,7 +49,7 @@ import org.polymap.model2.store.StoreUnitOfWork;
 public class EntityRepositoryImpl
         extends EntityRepository {
 
-    private static Log log = LogFactory.getLog( EntityRepositoryImpl.class );
+    private static final Log log = LogFactory.getLog( EntityRepositoryImpl.class );
 
     private Configuration               config;
     
@@ -77,11 +79,7 @@ public class EntityRepositoryImpl
 
                 // init static TYPE variable
                 try {
-                    for (Field f : type.getFields()) {
-                        if (f.getName().equals( "TYPE" )) {
-                            log.info( "TYPE field: " + f );
-                        }
-                    }
+                    stream( type.getFields() ).filter( f -> f.getName().equals( "TYPE" ) ).forEach( f -> log.debug( "TYPE field: " + f ) );
                     Field field = type.getDeclaredField( "TYPE" );
                     field.setAccessible( true );
                     
