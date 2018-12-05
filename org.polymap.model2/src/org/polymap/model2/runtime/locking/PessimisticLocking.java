@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2012-2016, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2018, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -32,7 +32,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 
 /**
- * Provides base abstractions of pessimistic locking of {@link Entity}s accessed from
+ * Provides base abstractions for pessimistic locking of {@link Entity}s accessed from
  * different {@link UnitOfWork} (not Thread) instances.
  * <p>
  * <b>Beware</b>: Not thoroughly tested yet. Implementation currently uses polling
@@ -61,9 +61,7 @@ public abstract class PessimisticLocking
     }
 
     /**
-     * 
-     *
-     * @param uow
+     * Release all locks the given {@link UnitOfWork} might held.
      */
     public static void notifyClosed( UnitOfWork uow ) {
         locks.forEach( (key, lock) -> lock.checkRelease( uow ) );
