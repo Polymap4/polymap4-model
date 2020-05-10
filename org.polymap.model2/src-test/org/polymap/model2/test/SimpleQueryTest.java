@@ -25,11 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import junit.framework.TestCase;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -41,6 +36,10 @@ import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.test.Employee.Rating;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
+import junit.framework.TestCase;
 
 /**
  * Test for simple model queries.

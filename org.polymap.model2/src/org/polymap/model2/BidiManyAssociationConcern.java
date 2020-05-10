@@ -16,10 +16,10 @@ package org.polymap.model2;
 
 import static org.polymap.model2.BidiBackAssociationFinder.findBackAssociation;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.runtime.ValueInitializer;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * This {@link ManyAssociation} concern maintains the back reference of a

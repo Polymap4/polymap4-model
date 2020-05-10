@@ -14,7 +14,8 @@
  */
 package org.polymap.model2.runtime.config;
 
-import java.lang.reflect.Field;
+import areca.common.reflect.ClassInfo;
+import areca.common.reflect.FieldInfo;
 
 /**
  * 
@@ -26,14 +27,13 @@ public class ConfigurationFactory {
     /**
      * Creates a new configuration of the given type.
      */
-    public static <T> T create( Class<T> cl ) throws ConfigurationException {
+    public static <T> T create( ClassInfo<T> cl ) throws ConfigurationException {
         try {
             // create instance
             T instance = cl.newInstance();
             
             // init properties
-            for (Field f : cl.getDeclaredFields()) {
-                f.setAccessible( true );
+            for (FieldInfo f : cl.fields()) {
                 Property prop = new Property() {
 
                     private Object      value;
@@ -51,22 +51,22 @@ public class ConfigurationFactory {
 
                     @Override
                     public Object get() {
-                        if (value == null && f.getAnnotation( Mandatory.class ) != null) {
-                            throw new ConfigurationException( "Configuration property is @Mandatory: " + f.getName() );
+                        if (value == null && f.annotation( Mandatory.class ).isPresent()) {
+                            throw new ConfigurationException( "Configuration property is @Mandatory: " + f.name() );
                         }
-                        DefaultValue defaultValue = f.getAnnotation( DefaultValue.class );
+                        DefaultValue defaultValue = f.annotation( DefaultValue.class ).orElse( null );
                         if (value == null && defaultValue != null) {
                             return defaultValue.value();
                         }
-                        DefaultDouble defaultDouble = f.getAnnotation( DefaultDouble.class );
+                        DefaultDouble defaultDouble = f.annotation( DefaultDouble.class ).orElse( null );
                         if (value == null && defaultDouble != null) {
                             return defaultDouble.value();
                         }
-                        DefaultInt defaultInt = f.getAnnotation( DefaultInt.class );
+                        DefaultInt defaultInt = f.annotation( DefaultInt.class ).orElse( null );
                         if (value == null && defaultInt != null) {
                             return defaultInt.value();
                         }
-                        DefaultBoolean defaultBoolean = f.getAnnotation( DefaultBoolean.class );
+                        DefaultBoolean defaultBoolean = f.annotation( DefaultBoolean.class ).orElse( null );
                         if (value == null && defaultBoolean != null) {
                             return defaultBoolean.value();
                         }

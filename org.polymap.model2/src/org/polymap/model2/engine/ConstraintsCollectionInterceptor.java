@@ -19,9 +19,9 @@ import java.util.Iterator;
 
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.ValueInitializer;
-import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
 /**
  * 

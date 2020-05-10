@@ -14,33 +14,32 @@
  */
 package org.polymap.model2.engine;
 
-import static java.util.Arrays.stream;
-
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
-import java.lang.reflect.Field;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.runtime.CompositeInfo;
+import org.polymap.model2.runtime.Configuration;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.EntityRuntimeContext;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
+
+import areca.common.Assert;
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
+import areca.common.reflect.ClassInfo;
+import areca.common.reflect.FieldInfo;
 
 /**
  * 
@@ -54,61 +53,60 @@ public class EntityRepositoryImpl
     private Configuration               config;
     
     /** Infos of Entities, Mixins, Composite properties. */
-    private Map<Class<? extends Composite>,CompositeInfo> infos = new HashMap();
+    private Map<ClassInfo<? extends Composite>,CompositeInfo<?>> infos = new HashMap<>();
     
     
     public EntityRepositoryImpl( final Configuration config ) {
         this.config = config;
         
-        // init store
-        getStore().init( new StoreRuntimeContextImpl() );
-        
         // init infos
         log.debug( "Initialializing Composite types:" );
-        Queue<Class<? extends Composite>> queue = new LinkedList();
-        queue.addAll( Arrays.asList( config.entities.get() ) );
+        Queue<ClassInfo<? extends Composite>> queue = new LinkedList<>();
+        queue.addAll( config.entities.get() );
         
         while (!queue.isEmpty()) {
-            Class<? extends Composite> type = queue.poll();
-            if (!infos.containsKey( type )) {
-                log.debug( "    Composite type: " + type );
-                CompositeInfoImpl info = new CompositeInfoImpl( type );
-                if (infos.put( type, info ) != null) {
-                    throw new ModelRuntimeException( "CompositeInfo already registered for: " + type );
+            ClassInfo<? extends Composite> typeInfo = queue.poll();
+            if (!infos.containsKey( typeInfo )) {
+                log.debug( "    Composite type: " + typeInfo );
+                CompositeInfoImpl<?> info = new CompositeInfoImpl<>( typeInfo );
+                if (infos.put( typeInfo, info ) != null) {
+                    throw new ModelRuntimeException( "CompositeInfo already registered for: " + typeInfo );
                 }
 
                 // init static TYPE variable
                 try {
-                    stream( type.getFields() ).filter( f -> f.getName().equals( "TYPE" ) ).forEach( f -> log.debug( "TYPE field: " + f ) );
-                    Field field = type.getDeclaredField( "TYPE" );
-                    field.setAccessible( true );
+                    FieldInfo field = typeInfo.fields().stream().filter( f -> f.name().equals( "TYPE" ) )
+                            .findAny().orElse( null );
                     
-                    //assert field.get( null ) != null : "Entity class is already connected to an other repository.";
-                    Composite current = (Composite)field.get( null );
-                    if (current != null) {
-                        log.warn( "Entity class is already connected to an other repository: " + type.getName() );
+                    if (field != null) {
+                        //assert field.get( null ) != null : "Entity class is already connected to an other repository.";
+                        Composite current = (Composite)field.get( null );
+                        if (current != null) {
+                            log.warn( "Entity class is already connected to an other repository: " + typeInfo.name() );
+                        }
+                        field.set( null, Expressions.template( typeInfo.type(), this ) );
                     }
-                    field.set( null, Expressions.template( type, this ) );
                 }
-                catch (NoSuchFieldException e) {
-                }
-                catch (SecurityException|IllegalAccessException e) {
+                catch (SecurityException e) {
                     throw new ModelRuntimeException( e );
                 }
                 
                 // mixins
-                queue.addAll( info.getMixins() );
+                info.getMixins().stream().map( m -> ClassInfo.of( m ) ).forEach( m -> queue.offer( m ) );
 
                 // Composite properties
-                for (PropertyInfo propInfo : info.getProperties()) {
+                for (PropertyInfo<?> propInfo : info.getProperties()) {
                     if (Composite.class.isAssignableFrom( propInfo.getType() )) {
-                        queue.offer( propInfo.getType() );
+                        queue.offer( ClassInfo.of( (Class<Composite>)propInfo.getType() ) );
                     }
                 }
             }
         }
 //        infos.entrySet().forEach( entry -> System.out.println( "   " + entry.getKey() + " -> ..." ) );
 //        log.debug( "done" );
+        
+        // init store
+        getStore().init( new StoreRuntimeContextImpl() );
     }
 
     
@@ -145,19 +143,20 @@ public class EntityRepositoryImpl
     }
 
     @Override
-    public <T extends Composite> CompositeInfo infoOf( Class<T> compositeClass ) {
-        CompositeInfo result = infos.get( compositeClass );
+    @SuppressWarnings( "unchecked" )
+    public <T extends Composite> CompositeInfo<T> infoOf( ClassInfo<T> compositeClassInfo ) {
+        CompositeInfo<T> result = (CompositeInfo<T>)infos.get( compositeClassInfo );
         
         // for Composite properties the actual type might be a sub-class of the declared type
         // see TypedValueInitializer
         if (result == null) {
-            for (Map.Entry<Class<? extends Composite>,CompositeInfo> entry : infos.entrySet()) {
-                if (entry.getKey().isAssignableFrom( compositeClass )) {
-                    return entry.getValue();
+            for (Map.Entry<ClassInfo<? extends Composite>,CompositeInfo<?>> entry : infos.entrySet()) {
+                if (entry.getKey().type().isAssignableFrom( compositeClassInfo.type() )) {
+                    return (CompositeInfo<T>)entry.getValue();
                 }
             }
         }
-        return result;
+        return Assert.notNull( result );
     }
     
     @Override    
@@ -167,6 +166,7 @@ public class EntityRepositoryImpl
     
     
     protected <T extends Entity> T buildEntity( CompositeState state, Class<T> entityClass, UnitOfWork uow ) {
+        log.info( "buildEntity(): ..." );
         try {
             EntityRuntimeContextImpl entityContext = new EntityRuntimeContextImpl( state, EntityStatus.LOADED, uow );
             InstanceBuilder builder = new InstanceBuilder( entityContext );

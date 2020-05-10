@@ -21,13 +21,13 @@ import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.ResultSet;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 

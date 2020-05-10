@@ -15,6 +15,7 @@
 package org.polymap.model2;
 
 import java.util.Collection;
+
 import com.google.common.base.Joiner;
 
 /**

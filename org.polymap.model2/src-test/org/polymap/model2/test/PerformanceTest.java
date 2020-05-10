@@ -14,15 +14,15 @@
  */
 package org.polymap.model2.test;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
+import junit.framework.TestCase;
 
 /**
  * 

@@ -14,17 +14,16 @@
  */
 package org.polymap.model2.engine;
 
-import org.apache.commons.logging.LogFactory;
-
 import static org.polymap.model2.engine.InstanceBuilder.contextOf;
-
-import org.apache.commons.logging.Log;
 
 import org.polymap.model2.Association;
 import org.polymap.model2.Entity;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.StoreProperty;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 

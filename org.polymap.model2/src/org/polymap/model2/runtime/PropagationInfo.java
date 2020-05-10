@@ -14,7 +14,8 @@
  */
 package org.polymap.model2.runtime;
 
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 
 /**

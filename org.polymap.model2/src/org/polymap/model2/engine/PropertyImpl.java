@@ -20,6 +20,8 @@ import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.store.StoreProperty;
 
+import areca.common.Assert;
+
 /**
  * Property implementation for simple (non-Composite) values.
  *
@@ -32,7 +34,7 @@ class PropertyImpl<T>
 
     
     protected PropertyImpl( StoreProperty<T> storeProp ) {
-        this.storeProp = storeProp;
+        this.storeProp = Assert.notNull( storeProp );
     }
 
     protected StoreProperty<T> delegate() {

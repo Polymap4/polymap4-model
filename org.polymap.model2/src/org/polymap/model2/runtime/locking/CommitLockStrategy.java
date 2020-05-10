@@ -14,12 +14,9 @@
  */
 package org.polymap.model2.runtime.locking;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 
@@ -66,56 +63,56 @@ public abstract class CommitLockStrategy {
     }
     
 
-    /**
-     * Serialize concurrent attempts to {@link #prepare()}/{@link #commit()}.
-     */
-    public static class Serialize
-            extends CommitLockStrategy {
-        
-        private ReentrantLock       lock = new ReentrantLock();
-        
-        private long                timeout;
-        
-        private TimeUnit            timeUnit;
-
-        
-        public Serialize() {
-        }
-
-        /**
-         * Causes {@link #lock()} to throw an {@link RuntimeException} if the given time
-         * expires before we get the lock.
-         * 
-         * @param timeout
-         * @param timeUnit
-         */
-        public Serialize( long timeout, TimeUnit timeUnit ) {
-            this.timeout = timeout;
-            this.timeUnit = timeUnit;
-        }
-
-        @Override
-        public void lock() {
-            if (timeout == 0) {
-                lock.lock();
-            }
-            else {
-                try {
-                    lock.tryLock( timeout, timeUnit );
-                }
-                catch (InterruptedException e) {
-                    throw new RuntimeException( e );
-                }
-            }
-        }
-
-        @Override
-        public void unlock( boolean check ) {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
-    }
+//    /**
+//     * Serialize concurrent attempts to {@link #prepare()}/{@link #commit()}.
+//     */
+//    public static class Serialize
+//            extends CommitLockStrategy {
+//        
+//        private ReentrantLock       lock = new ReentrantLock();
+//        
+//        private long                timeout;
+//        
+//        private TimeUnit            timeUnit;
+//
+//        
+//        public Serialize() {
+//        }
+//
+//        /**
+//         * Causes {@link #lock()} to throw an {@link RuntimeException} if the given time
+//         * expires before we get the lock.
+//         * 
+//         * @param timeout
+//         * @param timeUnit
+//         */
+//        public Serialize( long timeout, TimeUnit timeUnit ) {
+//            this.timeout = timeout;
+//            this.timeUnit = timeUnit;
+//        }
+//
+//        @Override
+//        public void lock() {
+//            if (timeout == 0) {
+//                lock.lock();
+//            }
+//            else {
+//                try {
+//                    lock.tryLock( timeout, timeUnit );
+//                }
+//                catch (InterruptedException e) {
+//                    throw new RuntimeException( e );
+//                }
+//            }
+//        }
+//
+//        @Override
+//        public void unlock( boolean check ) {
+//            if (lock.isHeldByCurrentThread()) {
+//                lock.unlock();
+//            }
+//        }
+//    }
     
     
     /**

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
 import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Composite;
@@ -53,11 +54,11 @@ class CompositeCollectionPropertyImpl<T extends Composite>
     
     @Override
     public <U extends T> U createElement( ValueInitializer<U> initializer ) {
-        Class actualType = initializer.rawResultType().orElse( info().getType() );
+        Class<U> actualType = info().getType(); // XXX initializer.rawResultType().orElse( info().getType() );
         CompositeState state = (CompositeState)storeProp.createValue( actualType );
                 
         InstanceBuilder builder = new InstanceBuilder( entityContext );
-        Composite value = builder.newComposite( state, (Class<U>)actualType );
+        U value = builder.newComposite( state, actualType );
         
         if (initializer != null) {
             try {
@@ -86,12 +87,12 @@ class CompositeCollectionPropertyImpl<T extends Composite>
      */
     protected List<T> checkInitCache() {
         if (cache == null) {
-            cache = new ArrayList();
+            cache = new ArrayList<>();
             // always completely iterating until hasNext()==false 'fixes' this problem that
             // iterator has no close(); hasNext()=false signals the impl to close the connection
-            Iterator<CompositeState> it = (Iterator<CompositeState>)storeProp.iterator();
+            Iterator<T> it = storeProp.iterator();
             while (it.hasNext()) {
-                CompositeState state = it.next();
+                CompositeState state = (CompositeState)it.next();
                 InstanceBuilder builder = new InstanceBuilder( entityContext );
                 T instance = (T)builder.newComposite( state, state.compositeInstanceType( info().getType() ) );
                 cache.add( instance );

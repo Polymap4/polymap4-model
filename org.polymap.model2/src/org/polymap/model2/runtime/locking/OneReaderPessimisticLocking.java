@@ -21,11 +21,12 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.runtime.UnitOfWork;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Implements One-Reader {@link PessimisticLocking}.

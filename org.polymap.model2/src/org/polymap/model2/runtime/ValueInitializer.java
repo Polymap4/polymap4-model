@@ -16,9 +16,10 @@ package org.polymap.model2.runtime;
 
 import java.util.Optional;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import areca.common.Assert;
+import areca.common.reflect.GenericType;
+import areca.common.reflect.GenericType.ClassType;
+import areca.common.reflect.GenericType.ParameterizedType;
 
 /**
  * 
@@ -28,13 +29,13 @@ import java.lang.reflect.TypeVariable;
 @FunctionalInterface
 public interface ValueInitializer<T> {
 
-    /**
-     * XXX Lambda declaration does not seem to deliver the type parameter, a fallback
-     * needs to be given for this case.
-     */
-    public default Optional<Class<T>> rawResultType() {
-        return rawTypeParameter( getClass() );
-    }
+//    /**
+//     * XXX Lambda declaration does not seem to deliver the type parameter, a fallback
+//     * needs to be given for this case.
+//     */
+//    public default Optional<Class<T>> rawResultType() {
+//        return rawTypeParameter( getClass() );
+//    }
 
     
     public default ValueInitializer<T> and( ValueInitializer<T> other ) {
@@ -63,46 +64,47 @@ public interface ValueInitializer<T> {
      * @throws AssertionError If argument is not a parameterized.
      * @throws RuntimeException
      */
-    public static <R> Optional<Class<R>> rawTypeParameter( Type type ) {
+    public static <R> Optional<Class<R>> rawTypeParameter( GenericType genericType ) {
         ParameterizedType parameterized = null;
-        if (type instanceof ParameterizedType) {
-            parameterized = (ParameterizedType)type;
+        if (genericType instanceof ParameterizedType) {
+            parameterized = (ParameterizedType)genericType;
         }
-        else if (type instanceof Class) {
-            // class
-            Type generic = ((Class)type).getGenericSuperclass();
-            // interface
-            Type[] genericInterfaces = ((Class)type).getGenericInterfaces();
-            if (generic.equals( Object.class )) {
-                assert genericInterfaces.length == 1;
-                generic = genericInterfaces[0];
-            }
-            if (!(generic instanceof ParameterizedType)) {
-                return Optional.empty();
-            }
-            parameterized = (ParameterizedType)generic;
+        else if (genericType instanceof ClassType) {
+            throw new UnsupportedOperationException( "Type parameter in superclass is not yet supported." );
+//            // class
+//            Type generic = ((Class)genericType).getGenericSuperclass();
+//            // interface
+//            Type[] genericInterfaces = ((Class)genericType).getGenericInterfaces();
+//            if (generic.equals( Object.class )) {
+//                assert genericInterfaces.length == 1;
+//                generic = genericInterfaces[0];
+//            }
+//            if (!(generic instanceof ParameterizedType)) {
+//                return Optional.empty();
+//            }
+//            parameterized = (ParameterizedType)generic;
         }
         else {
-            throw new RuntimeException( "Unknown type: " + type );            
+            throw new RuntimeException( "Unknown type: " + genericType );            
         }
         
-        assert parameterized instanceof ParameterizedType : "Argument is no a ParameterizedType: " + parameterized;
-        Type result = ((ParameterizedType)parameterized).getActualTypeArguments()[0];
-        if (result instanceof Class) {
-            return Optional.of( (Class<R>)result );
+        Assert.that( parameterized instanceof ParameterizedType, "Argument is no a ParameterizedType: " + parameterized );
+        GenericType result = ((ParameterizedType)parameterized).getActualTypeArguments()[0];
+        if (result instanceof ClassType) {
+            return Optional.of( ((Class<R>)((ClassType)result).getRawType()) );
         }
         else if (result instanceof ParameterizedType) {
             return Optional.of( (Class<R>)((ParameterizedType)result).getRawType() );
         }
-        else if (result instanceof TypeVariable) {
-            // The type parameter is something like <T>. So the compiler does not
-            // know what it actually is. This was first used in Styling plugin. I'm
-            // not quite sure what to return. Object seems to be ok. The store backend
-            // stores the actual runtime class. Maybe lower bound of the TypeVariable?
-            return Optional.of( (Class<R>)Object.class );
-        }
+//        else if (result instanceof TypeVariable) {
+//            // The type parameter is something like <T>. So the compiler does not
+//            // know what it actually is. This was first used in Styling plugin. I'm
+//            // not quite sure what to return. Object seems to be ok. The store backend
+//            // stores the actual runtime class. Maybe lower bound of the TypeVariable?
+//            return Optional.of( (Class<R>)Object.class );
+//        }
         else {
-            throw new RuntimeException( "Unknown type argument: " + result + " of type: " + type );
+            throw new RuntimeException( "Unknown type argument: " + result + " of type: " + genericType );
         }
     }
 

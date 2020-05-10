@@ -19,6 +19,8 @@ import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
+import areca.common.reflect.ClassInfo;
+
 /**
  * A Composite is the base abstraction for defining a domain model. A Composite can
  * be an {@link Entity}, a Mixin or a complex Property. A Composite consists of a
@@ -48,7 +50,7 @@ import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
  */
 public abstract class Composite {
 
-    protected EntityRuntimeContext      context;
+    public EntityRuntimeContext      context;
     
 
     public Object state() {
@@ -58,8 +60,8 @@ public abstract class Composite {
     /**
      * Static type and model information about this Composite.
      */
-    public CompositeInfo info() {
-        return context.getRepository().infoOf( getClass() );
+    public CompositeInfo<?> info() {
+        return context.getRepository().infoOf( ClassInfo.of( getClass() ) );
     }
 
     public String toString() {

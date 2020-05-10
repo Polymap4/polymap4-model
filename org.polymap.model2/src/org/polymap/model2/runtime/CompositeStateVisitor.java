@@ -16,8 +16,6 @@ package org.polymap.model2.runtime;
 
 import java.util.Collection;
 
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
-
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Composite;
@@ -27,6 +25,9 @@ import org.polymap.model2.Mixins;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
 import org.polymap.model2.engine.PropertyInterceptorBase;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Allows to visit the entire hierachy of properties of the given {@link Composite}
@@ -127,7 +128,7 @@ public abstract class CompositeStateVisitor<E extends Exception> {
      * Recursivly process properties of the given Composite.
      */
     protected final void processComposite( Composite composite ) throws E {
-        Collection<PropertyInfo> props = composite.info().getProperties();
+        Collection<PropertyInfo<?>> props = composite.info().getProperties();
         for (PropertyInfo propInfo : props) {
             PropertyBase prop = propInfo.get( composite );
             

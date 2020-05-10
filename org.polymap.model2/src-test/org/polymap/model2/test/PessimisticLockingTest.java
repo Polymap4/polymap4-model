@@ -18,14 +18,13 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.locking.PessimisticLocking;
 
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 import junit.framework.TestCase;
 
 /**
@@ -33,7 +32,7 @@ import junit.framework.TestCase;
  *
  * @author Falko Bräutigam
  */
-public class PessimisticLockingTest
+public abstract class PessimisticLockingTest
         extends TestCase {
 
     private static final Log log = LogFactory.getLog( PessimisticLockingTest.class );

@@ -69,9 +69,9 @@ public interface CompositeInfo<T extends Composite> {
      */
     public boolean isImmutable();
 
-    public Collection<PropertyInfo> getProperties();
+    public Collection<PropertyInfo<?>> getProperties();
 
-    public PropertyInfo getProperty( String name );
+    public PropertyInfo<?> getProperty( String name );
 
 //    /**
 //     * Provides information of the underlying store.

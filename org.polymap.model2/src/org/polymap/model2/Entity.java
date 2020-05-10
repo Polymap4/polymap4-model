@@ -17,8 +17,8 @@ package org.polymap.model2;
 import java.util.Optional;
 
 import org.polymap.model2.engine.UnitOfWorkImpl;
-import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
+import org.polymap.model2.runtime.UnitOfWork;
 
 /**
  * An Entity is a directly instantiable {@link Composite} with an {@link #id()
@@ -52,7 +52,7 @@ public abstract class Entity
         return getClass().getSimpleName() 
                 + "[id=" + id() 
                 + ",status=" + status() 
-                + (status() != EntityStatus.DETACHED ? ",state=" + state() : "") 
+                //+ (status() != EntityStatus.DETACHED ? ",state=" + state() : "") 
                 + "]" ;
     }
 

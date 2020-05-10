@@ -14,10 +14,6 @@
  */
 package org.polymap.model2.runtime.event;
 
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
-
-import org.polymap.core.runtime.event.EventManager;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Property;
@@ -25,6 +21,10 @@ import org.polymap.model2.PropertyConcern;
 import org.polymap.model2.PropertyConcernBase;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.ValueInitializer;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
+import areca.common.event.EventManager;
 
 /**
  * Fires a {@link PropertyAccessEvent} via {@link EventManager} when a
@@ -65,7 +65,7 @@ public class PropertyAccessSupport
         PropertyInfo info = delegate.info();
         Entity entity = context.getCompositePart( Entity.class );
         PropertyAccessEvent ev = new PropertyAccessEvent( entity, info, value );
-        EventManager.instance().publish( ev );
+        throw new RuntimeException( "EventManager.instance().publish( event )" );
     }
 
 }

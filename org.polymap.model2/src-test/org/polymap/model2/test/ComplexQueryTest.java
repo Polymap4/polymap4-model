@@ -21,10 +21,6 @@ import static org.polymap.model2.query.Expressions.id;
 import static org.polymap.model2.query.Expressions.is;
 import static org.polymap.model2.query.Expressions.matches;
 import static org.polymap.model2.query.Expressions.the;
-import junit.framework.TestCase;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -35,6 +31,10 @@ import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.test.Employee.Rating;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
+import junit.framework.TestCase;
 
 /**
  * Test for simple model queries.

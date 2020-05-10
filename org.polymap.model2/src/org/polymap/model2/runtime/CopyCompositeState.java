@@ -14,14 +14,14 @@
  */
 package org.polymap.model2.runtime;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Composite;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Property;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Copies the entire hierarchy of properties.

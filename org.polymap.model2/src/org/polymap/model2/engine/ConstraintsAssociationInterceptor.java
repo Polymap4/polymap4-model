@@ -17,8 +17,8 @@ package org.polymap.model2.engine;
 import org.polymap.model2.Association;
 import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
-import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
+import org.polymap.model2.runtime.ModelRuntimeException;
 
 /**
  *

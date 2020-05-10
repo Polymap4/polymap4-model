@@ -16,10 +16,10 @@ package org.polymap.model2.engine;
 
 import org.polymap.model2.Property;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ImmutableException;
 import org.polymap.model2.runtime.NotNullableException;
 import org.polymap.model2.runtime.ValueInitializer;
-import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
 /**
  * 

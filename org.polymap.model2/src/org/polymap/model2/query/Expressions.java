@@ -42,6 +42,8 @@ import org.polymap.model2.query.grammar.TheAssociationQuantifier;
 import org.polymap.model2.query.grammar.TheCompositeQuantifier;
 import org.polymap.model2.runtime.EntityRepository;
 
+import areca.common.reflect.ClassInfo;
+
 /**
  * Static factory methods to create query expressions. 
  *
@@ -185,7 +187,7 @@ public class Expressions {
      * @return Newly created query template instance.
      */
     public static <T extends Composite> T template( Class<T> type, EntityRepository repo ) {
-        return new TemplateInstanceBuilder( repo ).newComposite( type );
+        return new TemplateInstanceBuilder( repo ).newComposite( ClassInfo.of( type ) );
     }
 
 }

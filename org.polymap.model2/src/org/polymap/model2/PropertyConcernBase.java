@@ -34,12 +34,12 @@ public abstract class PropertyConcernBase<T>
         extends AbstractCollection<T>
         implements PropertyInterceptorBase<T> {
 
-    protected EntityRuntimeContext      context;
+    public EntityRuntimeContext         context;
     
     /**
      * The delegate of this concern.
      */
-    protected PropertyBase<T>           delegate;
+    public PropertyBase<T>              delegate;
 
 
     @Override

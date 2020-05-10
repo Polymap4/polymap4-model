@@ -14,10 +14,11 @@
  */
 package org.polymap.model2.store;
 
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Provides a no-op decorator for an underlying store.

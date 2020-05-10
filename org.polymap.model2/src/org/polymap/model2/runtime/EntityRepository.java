@@ -14,22 +14,12 @@
  */
 package org.polymap.model2.runtime;
 
-import java.util.function.Supplier;
-
-import javax.cache.CacheManager;
-
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
-import org.polymap.model2.engine.EntityRepositoryImpl;
-import org.polymap.model2.engine.cache.SimpleCache;
-import org.polymap.model2.engine.cache.SimpleCacheManager;
 import org.polymap.model2.runtime.config.ConfigurationFactory;
-import org.polymap.model2.runtime.config.Mandatory;
-import org.polymap.model2.runtime.config.Property;
-import org.polymap.model2.runtime.locking.CommitLockStrategy;
 import org.polymap.model2.store.StoreSPI;
+
+import areca.common.reflect.ClassInfo;
 
 /**
  * 
@@ -43,62 +33,15 @@ import org.polymap.model2.store.StoreSPI;
 public abstract class EntityRepository
         implements AutoCloseable {
 
-    private static Log log = LogFactory.getLog( EntityRepository.class );
-
-    // config factory *************************************
-    
     /**
      * Returns a new Configuration to {@link Configuration#create()} a new
      * {@link EntityRepository} from.
      */
     public static Configuration newConfiguration() {
-        return ConfigurationFactory.create( Configuration.class );
+        return ConfigurationFactory.create( ConfigurationClassInfo.INFO );
     }
     
-    /**
-     * 
-     */
-    public static class Configuration {
-
-        @Mandatory
-        public Property<Configuration,StoreSPI>     store;
-        
-        @Mandatory
-        public Property<Configuration,Class<Entity>[]> entities;
-        
-        /**
-         * The CacheManager to create internal caches from. Mainly this is used to
-         * create the cache for {@link Entity} instances. If not specified then a
-         * default Cache ({@link SimpleCache}) implementation is used.
-         */
-        public Property<Configuration,CacheManager> cacheManager;
-        
-        /**
-         * The strategy to handle concurrent attempts to prepare/commit. Defaults to
-         * {@link CommitLockStrategy.Serialize}
-         * 
-         * @see CommitLockStrategy.Serialize
-         */
-        public Property<Configuration,Supplier<CommitLockStrategy>> commitLockStrategy;
-        
-        /**
-         * @deprecated Not supported yet.
-         */
-        public Property<Configuration,NameInStoreMapper> nameInStoreMapper;
-        
-        public EntityRepository create() {
-            if (cacheManager.get() == null) {
-                cacheManager.set( new SimpleCacheManager() );
-            }
-            if (commitLockStrategy.get() == null) {
-                commitLockStrategy.set( () -> new CommitLockStrategy.Serialize() );
-            }
-            if (nameInStoreMapper.get() == null) {
-                nameInStoreMapper.set( new DefaultNameInStoreMapper() );
-            }
-            return new EntityRepositoryImpl( this );
-        }
-    }
+    
         
 
     // instance *******************************************
@@ -118,7 +61,7 @@ public abstract class EntityRepository
      * @return The info object, or null if the given Class is not an Entity, Mixin or
      *         complex property in this repository.
      */
-    public abstract <T extends Composite> CompositeInfo<T> infoOf( Class<T> compositeClass );
+    public abstract <T extends Composite> CompositeInfo<T> infoOf( ClassInfo<T> compositeClassInfo );
     
     
     /**

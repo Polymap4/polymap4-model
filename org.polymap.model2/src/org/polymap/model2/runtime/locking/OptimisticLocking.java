@@ -22,8 +22,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.logging.LogFactory;import org.apache.commons.logging.Log;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.ConcurrentEntityModificationException;
@@ -36,6 +34,9 @@ import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * This {@link StoreDecorator} provides a simple check for concurrent modifications

@@ -86,9 +86,10 @@ class CompositePropertyImpl<T extends Composite>
 
     
     @Override
+    @SuppressWarnings( "unchecked" )
     public <U extends T> U createValue( ValueInitializer<U> initializer ) {
         synchronized (this) {
-            Class actualType = initializer.rawResultType().orElse( info().getType() );
+            Class<T> actualType = info().getType();  // XXX initializer.rawResultType().orElse( info().getType() );
 
             CompositeState state = storeProp.createValue( actualType );
             assert state != null : "Store must not return null as newValue().";

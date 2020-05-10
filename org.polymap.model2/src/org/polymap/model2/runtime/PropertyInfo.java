@@ -17,14 +17,16 @@ package org.polymap.model2.runtime;
 import java.util.Optional;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.ParameterizedType;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.Description;
 import org.polymap.model2.Immutable;
 import org.polymap.model2.NameInStore;
+import org.polymap.model2.Nullable;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
+
+import areca.common.reflect.GenericType.ParameterizedType;
 
 /**
  * Provides runtime information about a {@link Property}.

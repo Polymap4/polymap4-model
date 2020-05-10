@@ -17,14 +17,15 @@ package org.polymap.model2;
 import static org.polymap.model2.BidiBackAssociationFinder.findBackAssociation;
 import static org.polymap.model2.query.Expressions.anyOf;
 import static org.polymap.model2.query.Expressions.id;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Provides a computed back reference of a bidirectional {@link ManyAssociation}.

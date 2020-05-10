@@ -21,25 +21,14 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREAT
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import java.io.IOException;
-
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.expiry.AccessedExpiryPolicy;
-import javax.cache.expiry.Duration;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
@@ -47,9 +36,6 @@ import com.google.common.collect.Iterators;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
-import org.polymap.model2.engine.cache.LoadingCache;
-import org.polymap.model2.engine.cache.LoadingCache.Loader;
-import org.polymap.model2.engine.cache.SimpleCache;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.query.grammar.BooleanExpression;
@@ -65,6 +51,10 @@ import org.polymap.model2.store.CloneCompositeStateSupport;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
+
+import areca.common.Assert;
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 
@@ -86,12 +76,12 @@ public class UnitOfWorkImpl
     protected StoreUnitOfWork               storeUow;
     
     /** id -> entity */
-    protected LoadingCache<Object,Entity>   loaded;
+    protected Map<Object,Entity>   loaded;
     
-    protected LoadingCache<String,Composite> loadedMixins;
+    protected Map<String,Composite> loadedMixins;
     
     /** Strong reference to Entities that must not be GCed from {@link #loaded} cache. */
-    protected ConcurrentMap<Object,Entity>  modified;
+    protected Map<Object,Entity>            modified;
     
     protected volatile Exception            prepareResult;
     
@@ -104,13 +94,13 @@ public class UnitOfWorkImpl
         assert repo != null : "repo must not be null.";
         assert suow != null : "suow must not be null.";
 
-        MutableConfiguration cacheConfig = new MutableConfiguration()
-                .setExpiryPolicyFactory( AccessedExpiryPolicy.factoryOf( Duration.ONE_MINUTE ) );
-        CacheManager cacheManager = repo.getConfig().cacheManager.get();
+//        MutableConfiguration cacheConfig = new MutableConfiguration()
+//                .setExpiryPolicyFactory( AccessedExpiryPolicy.factoryOf( Duration.ONE_MINUTE ) );
+//        CacheManager cacheManager = repo.getConfig().cacheManager.get();
         
-        this.loaded = LoadingCache.create( cacheManager, cacheConfig );
-        this.loadedMixins = LoadingCache.create( cacheManager, cacheConfig );
-        this.modified = new ConcurrentHashMap( SimpleCache.INITIAL_SIZE, 0.75f, SimpleCache.CONCURRENCY );
+        this.loaded = new /*Concurrent*/HashMap<>( 128 );  //LoadingCache.create( cacheManager, cacheConfig );
+        this.loadedMixins = new /*Concurrent*/HashMap<>( 128 );  //LoadingCache.create( cacheManager, cacheConfig );
+        this.modified = new /*Concurrent*/HashMap<>( 128/*, 0.75f, SimpleCache.CONCURRENCY*/ );
 
         commitLock = repo.getConfig().commitLockStrategy.get().get();
         
@@ -144,18 +134,21 @@ public class UnitOfWorkImpl
 
 
     @Override
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T>... initializers ) {
+    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer ) {
         checkOpen();
+        
         // build id; don't depend on store's ability to deliver id for newly created state
         id = id != null ? id : entityClass.getSimpleName() + "." + idCount.getAndIncrement();
+        log.info( "id = " + id );
 
         CompositeState state = storeUow.newEntityState( id, entityClass );
-        assert id == null || state.id().equals( id );
+        Assert.that( id == null || state.id().equals( id ) );
+        log.info( "state = " + state );
         
         T result = repo.buildEntity( state, entityClass, this );
         repo.contextOf( result ).raiseStatus( EntityStatus.CREATED );
 
-        boolean ok = loaded.putIfAbsent( id, result );
+        boolean ok = loaded.putIfAbsent( id, result ) == null;
         if (!ok) {
             throw new ModelRuntimeException( "ID of newly created Entity already exists: " + id );
         }
@@ -163,10 +156,8 @@ public class UnitOfWorkImpl
         
         // initializer
         try {
-            if (initializers != null) {
-                for (ValueInitializer<T> initializer : initializers) {
-                    initializer.initialize( result );
-                }
+            if (initializer != null) {
+                initializer.initialize( result );
             }
         }
         catch (Exception e) {
@@ -205,20 +196,20 @@ public class UnitOfWorkImpl
         assert entityClass != null : "Given entity Class is null.";
         assert id != null : "Given Id is null.";
         checkOpen();
-        T result = (T)loaded.get( id, new Loader<Object,Entity>() {
-            public Entity load( Object key ) throws RuntimeException {
+        @SuppressWarnings( "unchecked" )
+        T result = (T)loaded.computeIfAbsent( id, key -> {
                 // get preloaded if provided
                 CompositeState state = preloaded != null ? preloaded.get() : null;
                 // no preloaded or it returned null?
                 state = state != null ? state : storeUow.loadEntityState( id, entityClass );
                 return state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
-            }
         });
         return result != null && result.status() != EntityStatus.REMOVED ? result : null;
     }
 
 
     @Override
+    @SuppressWarnings( "unchecked" )
     public <T extends Entity> T entityForState( final Class<T> entityClass, Object state ) {
         checkOpen();
         
@@ -230,24 +221,21 @@ public class UnitOfWorkImpl
             throw new RuntimeException( "Entity is already modified in this UnitOfWork." );
         }
         // build Entity instance
-        return (T)loaded.get( id, new Loader<Object,Entity>() {
-            public Entity load( Object key ) throws RuntimeException {
-                return repo.buildEntity( compositeState, entityClass, UnitOfWorkImpl.this );
-            }
+        return (T)loaded.computeIfAbsent( id, key -> {
+            return (T)repo.buildEntity( compositeState, entityClass, UnitOfWorkImpl.this );
         });
     }
 
     
+    @SuppressWarnings( "unchecked" )
     public <T extends Composite> T mixin( final Class<T> mixinClass, final Entity entity ) {
         assert mixinClass != null : "mixinClass must not be null.";
         assert entity != null : "entity must not be null.";
         checkOpen();
         
         String key = Joiner.on( '_' ).join( entity.id().toString(), mixinClass.getName() );
-        return (T)loadedMixins.get( key, new Loader<String,Composite>() {
-            public Composite load( String _key ) throws RuntimeException {
-                return repo.buildMixin( entity, mixinClass, UnitOfWorkImpl.this );
-            }
+        return (T)loadedMixins.computeIfAbsent( key, k -> {
+            return repo.buildMixin( entity, mixinClass, UnitOfWorkImpl.this );
         });
     }
 
@@ -429,8 +417,7 @@ public class UnitOfWorkImpl
         }
         
         // all Entities in loaded have LOADED state?
-        assert !StreamSupport.stream( loaded.spliterator(), false )
-                .filter( e -> e.getValue().status() != EntityStatus.LOADED ).findAny().isPresent();
+        Assert.that( loaded.values().stream().allMatch( e -> e.status() == EntityStatus.LOADED ) );
     }
 
     
@@ -487,8 +474,8 @@ public class UnitOfWorkImpl
     public void close() {
         if (isOpen()) {
             // detach loaded Entities to avoid leaks and improper state access
-            for (Cache.Entry<Object,Entity> entry : loaded) {
-                InstanceBuilder.contextOf( entry.getValue() ).detach();
+            for (Entity entity : loaded.values()) {
+                InstanceBuilder.contextOf( entity ).detach();
             }            
             commitLock.unlock( false );
             storeUow.close();

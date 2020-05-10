@@ -25,12 +25,12 @@ import org.polymap.model2.runtime.PropertyInfo;
 public abstract class ComputedPropertyBase<T>
         implements PropertyBase<T> {
 
-    protected PropertyInfo      info;
+    protected PropertyInfo<T>   info;
     
     protected Composite         composite;
     
     
-    protected void init( PropertyInfo _info, Composite _composite ) {
+    public void init( PropertyInfo<T> _info, Composite _composite ) {
         this.composite = _composite;
         this.info = _info;
     }

@@ -19,9 +19,9 @@ import java.util.Optional;
 import java.io.IOException;
 
 import org.polymap.model2.Entity;
+import org.polymap.model2.Nullable;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
-import org.polymap.model2.runtime.EntityRepository.Configuration;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.locking.OptimisticLocking;
 import org.polymap.model2.store.CompositeState;
@@ -102,7 +102,12 @@ public interface UnitOfWork
      *        default value.
      * @return Newly created {@link Entity}.
      */
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T>... initializers );
+    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer );
+
+    
+    public default <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
+        return createEntity( entityClass, id, null );
+    }
 
 
     /**

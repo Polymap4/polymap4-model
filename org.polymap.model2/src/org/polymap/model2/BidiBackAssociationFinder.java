@@ -18,11 +18,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 
@@ -48,7 +48,7 @@ public class BidiBackAssociationFinder {
         Class hostType = context.getEntity().info().getType();
 
         // find back association
-        Collection<PropertyInfo> propInfos = target.info().getProperties();
+        Collection<PropertyInfo<?>> propInfos = target.info().getProperties();
         List<PropertyInfo> candidates = propInfos.stream()
                 .filter( info -> !info.isComputed() && info.isAssociation() && info.getType().isAssignableFrom( hostType ) )
                 .collect( Collectors.toList() );

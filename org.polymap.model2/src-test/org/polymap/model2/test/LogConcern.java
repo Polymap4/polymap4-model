@@ -17,13 +17,13 @@ package org.polymap.model2.test;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.CollectionPropertyConcernAdapter;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyConcern;
 import org.polymap.model2.runtime.ValueInitializer;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * 

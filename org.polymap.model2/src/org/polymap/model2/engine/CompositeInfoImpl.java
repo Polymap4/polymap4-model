@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import java.lang.reflect.Field;
+import org.apache.commons.lang3.StringUtils;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.Description;
@@ -33,24 +33,26 @@ import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.PropertyInfo;
 
+import areca.common.Assert;
+import areca.common.reflect.ClassInfo;
+import areca.common.reflect.FieldInfo;
+
 /**
  * 
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
-public final class CompositeInfoImpl
-        implements CompositeInfo {
+public final class CompositeInfoImpl<T extends Composite>
+        implements CompositeInfo<T> {
 
-    private Class<? extends Composite>      compositeClass;
+    private ClassInfo<T>                    compositeClassInfo;
     
     /** Maps property name into PropertyInfo. */
-    private Map<String,PropertyInfo>        propertyInfos = new HashMap();
-    
-//    private Lazy<Composite>                 template = new LockedLazyInit();
+    private Map<String,PropertyInfo<?>>     propertyInfos = new HashMap<>();
     
     
-    public CompositeInfoImpl( Class<? extends Composite> compositeClass ) {
-        this.compositeClass = compositeClass;
+    public CompositeInfoImpl( ClassInfo<T> compositeClassInfo ) {
+        this.compositeClassInfo = Assert.notNull( compositeClassInfo );
         try {
             initPropertyInfos();
         }
@@ -64,40 +66,34 @@ public final class CompositeInfoImpl
      * propertyInfos.
      */
     protected void initPropertyInfos() throws Exception {
-        Class superClass = compositeClass;
-        while (superClass != null) {
-            for (Field field : superClass.getDeclaredFields()) {
-                if (PropertyBase.class.isAssignableFrom( field.getType() )) {
-                    
-                    PropertyInfoImpl info = new PropertyInfoImpl( field );
-                    propertyInfos.put( info.getName(), info );
-                }
+        for (FieldInfo field : compositeClassInfo.fields()) {
+            if (PropertyBase.class.isAssignableFrom( field.type() )) {
+                PropertyInfoImpl<?> info = new PropertyInfoImpl<>( field );
+                propertyInfos.put( info.getName(), info );
             }
-            superClass = superClass.getSuperclass();
         }
     }
 
     @Override
     public String getName() {
-        return compositeClass.getSimpleName();
+        return StringUtils.substringAfterLast( compositeClassInfo.name(), "." );
     }
 
     @Override
     public Optional<String> getDescription() {
-        Description a = compositeClass.getAnnotation( Description.class );
-        return a != null ? Optional.of( a.value() ) : Optional.empty();
+        return Optional.ofNullable(
+                compositeClassInfo.annotation( Description.class ).transform( a -> a.value() ).orElse( null ) );
     }
 
     @Override
     public String getNameInStore() {
-        return compositeClass.getAnnotation( NameInStore.class ) != null
-                ? compositeClass.getAnnotation( NameInStore.class ).value()
-                : getName();
+        System.out.println( ":: " ); // + compositeClassInfo );
+        return compositeClassInfo.annotation( NameInStore.class ).transform( a -> a.value() ).orElse( getName() );
     }
 
     @Override
-    public Class<? extends Composite> getType() {
-        return compositeClass;
+    public Class<T> getType() {
+        return compositeClassInfo.type();
     }
 
 //    @Override
@@ -121,7 +117,7 @@ public final class CompositeInfoImpl
 //                EntityRuntimeContextImpl entityContext = new EntityRuntimeContextImpl( 
 //                        templateState, EntityStatus.CREATED );
 //                InstanceBuilder builder = new InstanceBuilder( entityContext );
-//                return builder.newComposite( templateState, compositeClass );
+//                return builder.newComposite( templateState, compositeClassInfo );
 //
 //            }
 //        });
@@ -129,25 +125,24 @@ public final class CompositeInfoImpl
 
     @Override
     public Collection<Class<? extends Composite>> getMixins() {
-        Mixins mixins = compositeClass.getAnnotation( Mixins.class );
-        return mixins != null 
-                ? Arrays.asList( mixins.value() )
-                : Collections.EMPTY_LIST;
+        return compositeClassInfo.annotation( Mixins.class )
+                .transform( a -> Arrays.asList( a.value() ) )
+                .orElse( Collections.EMPTY_LIST );
     }
 
     @Override
-    public Collection<PropertyInfo> getProperties() {
+    public Collection<PropertyInfo<?>> getProperties() {
         return Collections.unmodifiableCollection( propertyInfos.values() );
     }
 
     @Override
-    public PropertyInfo getProperty( String name ) {
+    public PropertyInfo<?> getProperty( String name ) {
         return propertyInfos.get( name );
     }
 
     @Override
     public boolean isImmutable() {
-        return compositeClass.getAnnotation( Immutable.class ) != null;
+        return compositeClassInfo.annotation( Immutable.class ).isPresent();
     }
 
 }

@@ -16,6 +16,7 @@ package org.polymap.model2.engine;
 
 import org.polymap.model2.DefaultValue;
 import org.polymap.model2.Immutable;
+import org.polymap.model2.Nullable;
 import org.polymap.model2.PropertyBase;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.runtime.PropertyInfo;

@@ -3,13 +3,191 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.polymap</groupId>
-		<artifactId>org.polymap.parent</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
-	</parent>
+    
+<!-- 	<parent> -->
+<!-- 		<groupId>org.polymap</groupId> -->
+<!-- 		<artifactId>org.polymap.parent</artifactId> -->
+<!-- 		<version>1.0.0-SNAPSHOT</version> -->
+<!-- 	</parent> -->
 
-	<artifactId>org.polymap.model2</artifactId>
-	<packaging>eclipse-plugin</packaging>
-	<version>3.0.0-SNAPSHOT</version>
+    <groupId>org.polymap</groupId>
+	<artifactId>model2</artifactId>
+    <packaging>jar</packaging>
+	<version>3.0.2-areca-SNAPSHOT</version>
+
+    <!-- Properties -->
+    <properties>
+        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <teavm.version>0.7.0-dev-943</teavm.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>teavm-dev</id>
+            <url>https://dl.bintray.com/konsoletyper/teavm</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>teavm-dev</id>
+            <url>https://dl.bintray.com/konsoletyper/teavm</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <!-- Dependencies -->
+    <dependencies>
+        <dependency>
+            <groupId>areca</groupId>
+            <artifactId>areca.ui</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>areca</groupId> <!-- TIndexedDbStore -->
+            <artifactId>areca.rt.teavm</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.3.2</version>
+        </dependency>
+<!--         <dependency> -->
+<!--             <groupId>commons-logging</groupId> -->
+<!--             <artifactId>commons-logging</artifactId> -->
+<!--             <version>1.2</version> -->
+<!--         </dependency> -->
+            <!--dependency groupId="commons-logging" artifactid="commons-logging" version="1.2" /-->
+            <!--dependency groupId="org.apache.commons" artifactid="commons-collections4" version="4.0" /-->
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+           <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- Build -->
+    <build>
+        <sourceDirectory>src/</sourceDirectory>
+        <testSourceDirectory>src-test/</testSourceDirectory>
+
+        <plugins>
+            <!-- Java compiler -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessors>
+                                <annotationProcessor>areca.common.reflect.ReflectAnnotationProcessor</annotationProcessor>
+                            </annotationProcessors>
+                        </configuration>
+                   </execution>
+                </executions>
+            </plugin>
+            
+            <!-- Sources -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <attach>true</attach>
+                </configuration>
+            </plugin>
+            
+            <!-- TeaVM: pre-integration-test -->
+            <plugin>
+                <groupId>org.teavm</groupId>
+                <artifactId>teavm-maven-plugin</artifactId>
+                <version>${teavm.version}</version>
+                <executions>
+                    <execution>
+<!--                         <id>web-client</id> -->
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <!-- This configuration conforms to the settings of the WAR plugin -->
+                            <targetDirectory>${project.build.directory}/generated/js/teavm</targetDirectory>
+                            <mainClass>org.polymap.model2.test2.Main</mainClass>
+                            <minifying>false</minifying>
+                            <debugInformationGenerated>true</debugInformationGenerated>
+                            <sourceMapsGenerated>true</sourceMapsGenerated>
+                            <sourceFilesCopied>true</sourceFilesCopied>
+                            <!-- Optimization level. Valid values are: SIMPLE, ADVANCED, FULL -->
+                            <optimizationLevel>ADVANCED</optimizationLevel>
+                            <stopOnErrors>true</stopOnErrors>
+                            <incremental>false</incremental>
+                            <!-- <targetType>WEBASSEMBLY</targetType> -->
+                            <targetType>JAVASCRIPT</targetType>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- Configure WAR plugin to include JavaScript files generated by TeaVM -->
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>web-client</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>war</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <webResources>
+                        <resource>
+                            <directory>${project.build.directory}/generated/js</directory>
+                        </resource>
+                        <resource>
+                            <directory>${project.basedir}/resources/webapp</directory>
+                        </resource>
+                    </webResources>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    
 </project>

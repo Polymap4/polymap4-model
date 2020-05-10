@@ -16,12 +16,7 @@ package org.polymap.model2.engine;
 
 import java.util.AbstractCollection;
 import java.util.Iterator;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.logging.Logger;
 
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
@@ -40,6 +35,10 @@ import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreUnitOfWork;
 
+import areca.common.Assert;
+import areca.common.reflect.ClassInfo;
+import areca.common.reflect.FieldInfo;
+
 /**
  * 
  *
@@ -47,11 +46,11 @@ import org.polymap.model2.store.StoreUnitOfWork;
  */
 public final class TemplateInstanceBuilder {
 
-    private static Log log = LogFactory.getLog( TemplateInstanceBuilder.class );
+    private static final Logger LOG = Logger.getLogger( TemplateInstanceBuilder.class.getName() );
 
     private EntityRepository        repo;
 
-    private CompositeInfo           compositeInfo;
+    private CompositeInfo<?>        compositeInfo;
     
     
     public TemplateInstanceBuilder( EntityRepository repo ) {
@@ -59,25 +58,25 @@ public final class TemplateInstanceBuilder {
     }
 
 
-    public <T extends Composite> T newComposite( Class<T> entityClass ) { 
+    public <T extends Composite> T newComposite( ClassInfo<T> entityClassInfo ) { 
         try {
             // composite info
-            compositeInfo = repo.infoOf( entityClass );
+            compositeInfo = repo.infoOf( entityClassInfo );
             if (compositeInfo == null) {
-                log.info( "Mixin type not declared on Entity type: " + entityClass.getName() );
-                compositeInfo = new CompositeInfoImpl( entityClass );
+                LOG.info( "Mixin type not declared on Entity type: " + entityClassInfo.name() );
+                compositeInfo = new CompositeInfoImpl<>( entityClassInfo );
             }
-            assert compositeInfo != null : "No info for Composite type: " + entityClass.getName();
+            Assert.notNull( compositeInfo, "No info for Composite type: " + entityClassInfo.name() );
 
             // create instance
-            Constructor<?> ctor = entityClass.getConstructor( new Class[] {} );
-            T instance = (T)ctor.newInstance( new Object[] {} );
+            T instance = (T)entityClassInfo.newInstance();
             
             // set context
-            InstanceBuilder.contextField.set( instance, new TemplateEntityRuntimeContext() );
+            FieldInfo contextField = entityClassInfo.fields().stream().filter( f -> f.name().equals( "context" ) ).findAny().get();
+            contextField.set( instance, new TemplateEntityRuntimeContext() );
             
             // properties
-            initProperties( instance );
+            initProperties( instance, entityClassInfo );
             
             return instance;
         }
@@ -85,7 +84,7 @@ public final class TemplateInstanceBuilder {
             throw e;
         }
         catch (Exception e) {
-            throw new ModelRuntimeException( "Error while instantiation of: " + entityClass, e );
+            throw new ModelRuntimeException( "Error while instantiation of: " + entityClassInfo.name(), e );
         }
     }
     
@@ -95,51 +94,46 @@ public final class TemplateInstanceBuilder {
      * Composite properties are init with {@link CompositePropertyImpl} which comes back to 
      * {@link TemplateInstanceBuilder} when the value is accessed.
      */
-    protected void initProperties( Composite instance ) throws Exception {
-        Class superClass = instance.getClass();
-        while (superClass != null) {
-            // XXX cache fields
-            for (Field field : superClass.getDeclaredFields()) {
-                if (PropertyBase.class.isAssignableFrom( field.getType() )) {
-                    field.setAccessible( true );
+    protected void initProperties( Composite instance, ClassInfo<?> classInfo ) throws Exception {
+        // XXX cache fields
+        for (FieldInfo field : classInfo.fields()) {
+            if (PropertyBase.class.isAssignableFrom( field.type() )) {
 
-                    PropertyInfo info = compositeInfo.getProperty( field.getName() );
-                    PropertyBase prop = null;
+                PropertyInfo<?> info = compositeInfo.getProperty( field.name() );
+                PropertyBase<?> prop = null;
 
-                    // single property
-                    if (Property.class.isAssignableFrom( field.getType() )) {
-                        // Computed
-                        if (info.isComputed()) {
-                            prop = new NotQueryableProperty( info );
-                        }
-                        // primitive or Composite
-                        else {
-                            prop = new PropertyImpl( info );
-                        }
+                // single property
+                if (Property.class.isAssignableFrom( field.type() )) {
+                    // Computed
+                    if (info.isComputed()) {
+                        prop = new NotQueryableProperty<>( info );
                     }
-
-                    // Collection
-                    else if (CollectionProperty.class.isAssignableFrom( field.getType() )) {
-                        // primitive or Composite
-                        prop = new CollectionPropertyImpl( info );
+                    // primitive or Composite
+                    else {
+                        prop = new PropertyImpl<>( info );
                     }
-
-                    // Association
-                    else if (Association.class.isAssignableFrom( field.getType() )) {
-                        prop = new AssociationImpl( info );
-                    }
-
-                    // ManyAssociation
-                    else if (ManyAssociation.class.isAssignableFrom( field.getType() )) {
-                        prop = new ManyAssociationImpl( info );
-                    }
-
-                    // set field
-                    //assert prop != null : "Unable to build property instance for: " + field;
-                    field.set( instance, prop );                    
                 }
+
+                // Collection
+                else if (CollectionProperty.class.isAssignableFrom( field.type() )) {
+                    // primitive or Composite
+                    prop = new CollectionPropertyImpl( info );
+                }
+
+                // Association
+                else if (Association.class.isAssignableFrom( field.type() )) {
+                    prop = new AssociationImpl( info );
+                }
+
+                // ManyAssociation
+                else if (ManyAssociation.class.isAssignableFrom( field.type() )) {
+                    prop = new ManyAssociationImpl( info );
+                }
+
+                // set field
+                //assert prop != null : "Unable to build property instance for: " + field;
+                field.set( instance, prop );                    
             }
-            superClass = superClass.getSuperclass();
         }
     }
 
@@ -204,7 +198,7 @@ public final class TemplateInstanceBuilder {
         @Override
         public T get() {
             Class<T> type = info.getType();
-            return new TemplateInstanceBuilder( repo ).newComposite( type );
+            return new TemplateInstanceBuilder( repo ).newComposite( ClassInfo.of( type ) );
         }
     }
 

@@ -16,6 +16,7 @@ package org.polymap.model2.store;
 
 import java.util.Iterator;
 
+import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.PropertyInfo;
 
 /**

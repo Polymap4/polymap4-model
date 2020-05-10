@@ -18,8 +18,6 @@ import java.util.Collection;
 
 import java.beans.PropertyChangeEvent;
 
-import org.polymap.core.runtime.event.EventManager;
-
 import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.CollectionPropertyConcern;
 import org.polymap.model2.Entity;
@@ -29,6 +27,8 @@ import org.polymap.model2.PropertyConcern;
 import org.polymap.model2.PropertyConcernBase;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.ValueInitializer;
+
+import areca.common.event.EventManager;
 
 /**
  * Fires {@link PropertyChangeEvent}s via {@link EventManager} when the value of a
@@ -112,7 +112,7 @@ public class PropertyChangeSupport
         PropertyInfo info = delegate.info();
         Entity entity = context.getCompositePart( Entity.class );
         PropertyChangeEvent event = new PropertyChangeEvent( entity, info.getName(), oldValue, newValue );
-        EventManager.instance().publish( event );
+        throw new RuntimeException( "EventManager.instance().publish( event )" );
     }
 
 }

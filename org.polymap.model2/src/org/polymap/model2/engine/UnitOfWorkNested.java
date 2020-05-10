@@ -33,7 +33,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Entity;
-import org.polymap.model2.engine.cache.LoadingCache.Loader;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.query.grammar.BooleanExpression;
@@ -70,25 +69,24 @@ public class UnitOfWorkNested
 
     
     @Override
+    @SuppressWarnings( "unchecked" )
     public <T extends Entity> T entity( final Class<T> entityClass, final Object id ) {
         assert entityClass != null;
         assert id != null;
         checkOpen();
-        T result = (T)loaded.get( id, new Loader<Object,Entity>() {
-            public Entity load( Object key ) throws RuntimeException {
-                // just clone the entire Entity and its state; copy-on-write would probably
-                // be faster and less memory consuming but also would introduce a lot more complexity;
-                // maybe I will later investigate a global copy-on-write cache for Entities
-                T parentEntity = parent.entity( entityClass, id );
-                
-                if (parentEntity == null) {
-                    return null;
-                }
-                else {
-                    CompositeState parentState = repo.contextOf( parentEntity ).getState();
-                    CompositeState state = storeUow().cloneEntityState( parentState );
-                    return repo.buildEntity( state, entityClass, UnitOfWorkNested.this );
-                }
+        T result = (T)loaded.computeIfAbsent( id, key -> {
+            // just clone the entire Entity and its state; copy-on-write would probably
+            // be faster and less memory consuming but also would introduce a lot more complexity;
+            // maybe I will later investigate a global copy-on-write cache for Entities
+            T parentEntity = parent.entity( entityClass, id );
+
+            if (parentEntity == null) {
+                return null;
+            }
+            else {
+                CompositeState parentState = repo.contextOf( parentEntity ).getState();
+                CompositeState state = storeUow().cloneEntityState( parentState );
+                return repo.buildEntity( state, entityClass, UnitOfWorkNested.this );
             }
         });
         return result != null && result.status() != EntityStatus.REMOVED ? result : null;
@@ -294,8 +292,8 @@ public class UnitOfWorkNested
     public void close() {
         if (isOpen()) {
             // detach loaded Entities in order to avoid leaks and improper state access
-            for (Cache.Entry<Object,Entity> entry : loaded) {
-                InstanceBuilder.contextOf( entry.getValue() ).detach();
+            for (Entity entity : loaded.values()) {
+                InstanceBuilder.contextOf( entity ).detach();
             }
             commitLock.unlock( false );
             repo = null;

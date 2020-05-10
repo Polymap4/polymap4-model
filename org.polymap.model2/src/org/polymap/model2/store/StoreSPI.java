@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.store;
 
+import java.beans.PropertyDescriptor;
+
 /**
  * 
  *

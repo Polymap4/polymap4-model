@@ -17,9 +17,6 @@ package org.polymap.model2.engine;
 import java.util.Optional;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
@@ -37,6 +34,11 @@ import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.ValueInitializer;
 
+import areca.common.Assert;
+import areca.common.reflect.FieldInfo;
+import areca.common.reflect.GenericType;
+import areca.common.reflect.GenericType.ParameterizedType;
+
 /**
  * 
  *
@@ -45,35 +47,35 @@ import org.polymap.model2.runtime.ValueInitializer;
 public class PropertyInfoImpl<T>
         implements PropertyInfo<T> {
 
-    private Field                   field;
+    private FieldInfo           field;
 
     
-    public PropertyInfoImpl( Field field ) {
-        assert PropertyBase.class.isAssignableFrom( field.getType() );
+    public PropertyInfoImpl( FieldInfo field ) {
+        Assert.that( PropertyBase.class.isAssignableFrom( field.type() ) );
         this.field = field;
     }
 
-    Field getField() {
+    FieldInfo getField() {
         return field;
     }
 
     @Override
     public Class<T> getType() {
-        Optional<Class<T>> opt = ValueInitializer.rawTypeParameter( field.getGenericType() );
+        Optional<Class<T>> opt = ValueInitializer.rawTypeParameter( field.genericType() );
         return opt.orElseThrow( () -> new ModelRuntimeException( "Type param missing: " + toString() ) );
     }
     
     @Override
     public Optional<ParameterizedType> getParameterizedType() {
-        ParameterizedType declaredType = (ParameterizedType)field.getGenericType();
-        Type result = declaredType.getActualTypeArguments()[0];
+        ParameterizedType declaredType = (ParameterizedType)field.genericType();
+        GenericType result = declaredType.getActualTypeArguments()[0];
         return result instanceof ParameterizedType 
                 ? Optional.of( (ParameterizedType)result ) : Optional.empty();
     }
     
     @Override
     public String getName() {
-        return field.getName();
+        return field.name();
     }
 
     @Override
@@ -84,72 +86,62 @@ public class PropertyInfoImpl<T>
 
     @Override
     public String getNameInStore() {
-        return field.getAnnotation( NameInStore.class ) != null
-                ? field.getAnnotation( NameInStore.class ).value()
-                : field.getName();
+        return field.annotation( NameInStore.class ).transform( a -> a.value() ).orElse( field.name() );
     }
 
     @Override
     public boolean isAssociation() {
-        return Association.class.isAssignableFrom( field.getType() )
-                || ManyAssociation.class.isAssignableFrom( field.getType() );
+        return Association.class.isAssignableFrom( field.type() )
+                || ManyAssociation.class.isAssignableFrom( field.type() );
     }
 
     @Override
     public boolean isNullable() {
-        return field.getAnnotation( Nullable.class ) != null;
+        return field.annotation( Nullable.class ).isPresent();
     }
 
     @Override
     public boolean isImmutable() {
-        return field.getAnnotation( Immutable.class ) != null;
+        return field.annotation( Immutable.class ).isPresent();
     }
 
     @Override
     public boolean isComputed() {
-        return field.getAnnotation( Computed.class ) != null;
+        return field.annotation( Computed.class ).isPresent();
     }
 
     @Override
     public boolean isQueryable() {
-        return field.getAnnotation( Queryable.class ) != null;
+        return field.annotation( Queryable.class ).isPresent();
     }
 
     @Override
     public int getMaxOccurs() {
-        if (CollectionProperty.class.isAssignableFrom( field.getType() )
-                || ManyAssociation.class.isAssignableFrom( field.getType() )) {
-            return field.getAnnotation( MaxOccurs.class ) != null
-                    ? field.getAnnotation( MaxOccurs.class ).value()
-                    : Integer.MAX_VALUE;
+        if (CollectionProperty.class.isAssignableFrom( field.type() )
+                || ManyAssociation.class.isAssignableFrom( field.type() )) {
+            return field.annotation( MaxOccurs.class ).transform( a -> a.value() ).orElse( Integer.MAX_VALUE );
         }
         else {
-            assert field.getAnnotation( MaxOccurs.class ) == null : "@MaxOccurs is not allowed on single value properties.";
+            Assert.that( field.annotation( MaxOccurs.class ).isAbsent(), "@MaxOccurs is not allowed on single value properties." );
             return 1;
         }
     }
 
     @Override
+    @SuppressWarnings( "unchecked" )
     public T getDefaultValue() {
         return (T)DefaultValues.valueOf( this );
     }
 
     @Override    
+    @SuppressWarnings( "unchecked" )
     public <P extends PropertyBase<T>> P get( Composite composite ) {
-        if (!field.isAccessible()) { 
-            field.setAccessible( true ); 
-        }
-        try {
-            return (P)field.get( composite );
-        }
-        catch (IllegalAccessException e) {
-            throw new RuntimeException( e );
-        }
+        return (P)field.get( composite );
     }
 
     @Override
     public <A extends Annotation> A getAnnotation( Class<A> type ) {
-        return field.getAnnotation( type );
+        return field.annotation( type ).orElse( null );
     }
 
     @Override

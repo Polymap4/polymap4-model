@@ -14,9 +14,6 @@
  */
 package org.polymap.model2.test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.google.common.collect.Iterables;
 
 import org.polymap.model2.Association;
@@ -33,6 +30,8 @@ import org.polymap.model2.Nullable;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 import junit.framework.TestCase;
 
 /**

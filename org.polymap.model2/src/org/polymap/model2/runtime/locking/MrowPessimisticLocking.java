@@ -17,16 +17,16 @@ package org.polymap.model2.runtime.locking;
 import static org.polymap.model2.runtime.locking.PessimisticLocking.AccessMode.READ;
 import static org.polymap.model2.runtime.locking.PessimisticLocking.AccessMode.WRITE;
 
+import java.util.HashMap;
+
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.polymap.model2.Entity;
-import org.polymap.model2.engine.cache.ConcurrentReferenceHashMap;
-import org.polymap.model2.engine.cache.ConcurrentReferenceHashMap.ReferenceType;
 import org.polymap.model2.runtime.UnitOfWork;
+
+import areca.common.base.log.LogFactory;
+import areca.common.base.log.LogFactory.Log;
 
 /**
  * Implements Multiple-Readers/One-Writer {@link PessimisticLocking}.
@@ -54,8 +54,8 @@ public class MrowPessimisticLocking
     protected class MrowEntityLock
             extends EntityLock {
         
-        private ConcurrentReferenceHashMap<Integer,UnitOfWork> 
-                                        readers = new ConcurrentReferenceHashMap( 8, 0.75f, 2, ReferenceType.STRONG, ReferenceType.WEAK, null );
+        private /*ConcurrentReference*/HashMap<Integer,UnitOfWork> 
+                                        readers = new HashMap( 8 ); //, 0.75f, 2, ReferenceType.STRONG, ReferenceType.WEAK, null );
 
         private Reference<UnitOfWork>   writer;        
 
