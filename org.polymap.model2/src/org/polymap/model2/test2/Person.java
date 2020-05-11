@@ -16,6 +16,7 @@ package org.polymap.model2.test2;
 
 import java.util.Date;
 
+import org.polymap.model2.Concerns;
 import org.polymap.model2.DefaultValue;
 import org.polymap.model2.Description;
 import org.polymap.model2.Entity;
@@ -27,7 +28,7 @@ import org.polymap.model2.Property;
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
-@Description("Beschreibung dieses Datentyps")
+@Description( "Beschreibung dieses Datentyps" )
 //@Concerns( LogConcern.class )
 //@Mixins( {TrackableMixin.class} )
 public /*abstract*/ class Person
@@ -38,7 +39,7 @@ public /*abstract*/ class Person
     //public static Person TYPE;
     
     @Nullable
-//    @Concerns( InvocationCountConcern.class )
+    @Concerns( InvocationCountConcern.class )
     public Property<String>         name;
 
     /** Defaults to "Ulli". Not Nullable. */

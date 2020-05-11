@@ -14,12 +14,11 @@
  */
 package org.polymap.model2.test2;
 
-import java.util.Arrays;
 import java.util.logging.Logger;
 
-import org.polymap.model2.runtime.EntityRepository;
-import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.store.tidbstore.IDBStore;
+import areca.common.testrunner.LogDecoratorClassInfo;
+import areca.common.testrunner.TestRunner;
+import areca.rt.teavm.testapp.HtmlTestRunnerDecoratorClassInfo;
 
 /**
  * 
@@ -31,27 +30,33 @@ public class Main {
     private static final Logger LOG = Logger.getLogger( Main.class.getName() );
     
 
+    @SuppressWarnings( "unchecked" )
     public static void main( String[] args ) throws Exception {
         try {
-            EntityRepository repo = EntityRepository.newConfiguration()
-                    .entities.set( Arrays.asList( Person.info ) )
-                    .store.set( new IDBStore( "test2" ) )
-                    .create();
-            LOG.info( "MAIN: repo created" );
+            new TestRunner()
+                    .addDecorators( HtmlTestRunnerDecoratorClassInfo.INFO, LogDecoratorClassInfo.INFO )
+                    .addTests( SimpleModelTestClassInfo.INFO )
+                    .run();
             
-//            try (
-                UnitOfWork uow = repo.newUnitOfWork();
-//            ){
-                LOG.info( "MAIN: uow = " + uow );
-                Person person = uow.createEntity( Person.class, null, (Person proto) -> {
-                    LOG.info( "MAIN: proto = " + proto.id() );
-                    proto.name.set( "Schäfchen!" );
-                    return proto;
-                });
-                
-                LOG.info( "Person: " + person.name.get() + " / " + person.firstname.get() + " / " + person.birthday.get() );
-                //uow.commit();
-//            }
+//            EntityRepository repo = EntityRepository.newConfiguration()
+//                    .entities.set( Arrays.asList( Person.info ) )
+//                    .store.set( new IDBStore( "test2" ) )
+//                    .create();
+//            LOG.info( "MAIN: repo created" );
+//            
+////            try (
+//                UnitOfWork uow = repo.newUnitOfWork();
+////            ){
+//                LOG.info( "MAIN: uow = " + uow );
+//                Person person = uow.createEntity( Person.class, null, (Person proto) -> {
+//                    LOG.info( "MAIN: proto = " + proto.id() );
+//                    proto.name.set( "Schäfchen!" );
+//                    return proto;
+//                });
+//                
+//                LOG.info( "Person: " + person.name.get() + " / " + person.firstname.get() + " / " + person.birthday.get() );
+//                //uow.commit();
+////            }
         }
         catch (Exception e) {
             System.out.println( "Exception: " + e + " --> " );

@@ -130,8 +130,10 @@ public class IDBUnitOfWork
 
     @Override
     public void close() {
-        // XXX Auto-generated method stub
-        throw new RuntimeException( "not yet implemented." );
+        if (tx != null) {
+            tx.abort();
+            tx = null;
+        }
     }
     
 }
