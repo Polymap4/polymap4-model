@@ -16,9 +16,9 @@ package org.polymap.model2.test2;
 
 import java.util.logging.Logger;
 
-import areca.common.testrunner.LogDecoratorClassInfo;
+import areca.common.testrunner.LogDecorator;
 import areca.common.testrunner.TestRunner;
-import areca.rt.teavm.testapp.HtmlTestRunnerDecoratorClassInfo;
+import areca.rt.teavm.testapp.HtmlTestRunnerDecorator;
 
 /**
  * 
@@ -34,8 +34,8 @@ public class Main {
     public static void main( String[] args ) throws Exception {
         try {
             new TestRunner()
-                    .addDecorators( HtmlTestRunnerDecoratorClassInfo.INFO, LogDecoratorClassInfo.INFO )
-                    .addTests( SimpleModelTestClassInfo.INFO )
+                    .addDecorators( HtmlTestRunnerDecorator.info, LogDecorator.info )
+                    .addTests( SimpleModelTest.info )
                     .run();
             
 //            EntityRepository repo = EntityRepository.newConfiguration()

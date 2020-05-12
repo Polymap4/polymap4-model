@@ -35,25 +35,22 @@ public class IDBCompositeState
 
     private static final Logger LOG = Logger.getLogger( IDBCompositeState.class.getName() );
     
-    private Object                      id;
-    
     private Class<? extends Composite>  entityClass;
     
     private JSStateObject               jsObject;
 
     
     public IDBCompositeState( Object id, Class<? extends Composite> entityClass ) {
-        this( id, entityClass, null );
-        jsObject = JSStateObject.create();
-        jsObject.set( "id", IDBStore.id( id ) );
+        this.entityClass = Assert.notNull( entityClass );
+        this.jsObject = JSStateObject.create();
+        this.jsObject.set( "id", IDBStore.id( Assert.notNull( id ) ) );
         LOG.info( "jsObject created: " + id() );
     }
     
     
-    public IDBCompositeState( Object id, Class<? extends Composite> entityClass, JSStateObject jsObject ) {
-        this.id = id;
-        this.entityClass = entityClass;
-        this.jsObject = jsObject;
+    public IDBCompositeState( Class<? extends Composite> entityClass, JSStateObject jsObject ) {
+        this.entityClass = Assert.notNull( entityClass );
+        this.jsObject = Assert.notNull( jsObject );
     }
 
 

@@ -55,7 +55,7 @@ public interface StoreUnitOfWork {
     /**
      * 
      */
-    public StoreResultSet executeQuery( Query query );
+    public <T extends Entity> StoreResultSet executeQuery( Query<T> query );
     
     public void prepareCommit( Iterable<Entity> modified ) throws Exception;
     

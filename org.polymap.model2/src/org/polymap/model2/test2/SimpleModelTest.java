@@ -16,6 +16,8 @@ package org.polymap.model2.test2;
 
 import java.util.Arrays;
 
+import org.polymap.model2.query.ResultSet;
+import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.UnitOfWork;
@@ -24,6 +26,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 import areca.common.Assert;
 import areca.common.base.log.LogFactory;
 import areca.common.base.log.LogFactory.Log;
+import areca.common.reflect.ClassInfo;
 import areca.common.testrunner.After;
 import areca.common.testrunner.Before;
 import areca.common.testrunner.Test;
@@ -38,15 +41,18 @@ public class SimpleModelTest {
 
     private static final Log log = LogFactory.getLog( SimpleModelTest.class );
 
+    public static final ClassInfo<SimpleModelTest> info = SimpleModelTestClassInfo.instance();
+
     protected static EntityRepository   repo;
 
     protected UnitOfWork                uow;
     
 
     static {
+        //log.info( "" + InvocationCountConcern.info );
         repo = EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "test2" ) )
+                .store.set( new IDBStore( "test2", 3 ) )
                 .create();
         log.info( "MAIN: repo created" );    
     }
@@ -62,7 +68,19 @@ public class SimpleModelTest {
         uow.close();
     }
 
+    
+    @Test
+    public void testEntityInfo() throws Exception {
+        CompositeInfo<Person> personInfo = repo.infoOf( Person.info );
+        Person person = uow.createEntity( Person.class, null );
+        Assert.isSame( personInfo, person.info() );
+        
+        Assert.isEqual( "Person", personInfo.getName() );
+        Assert.isEqual( "Person", personInfo.getNameInStore() );
+    }
 
+    
+    @Test
     public void testProperties() throws Exception {    
         Person person = uow.createEntity( Person.class, null );
         log.info( "Person: id=" + person.id() );
@@ -73,9 +91,19 @@ public class SimpleModelTest {
         person.name.set( "Philipp" );
         Assert.isEqual( person.name.get(), "Philipp" );
 
-//        // commit
-//        uow.commit();
-//
+        UnitOfWork uow2 = repo.newUnitOfWork();
+        Person p2 = uow2.entity( Person.class, person.id() );
+        log.info( "Person2: " + p2 );
+        Assert.isNull( p2 );
+        
+        // commit
+        uow.commit();
+
+        uow2 = repo.newUnitOfWork();
+        p2 = uow2.entity( Person.class, person.id() );
+        log.info( "Person2: " + p2 );
+        Assert.notNull( p2 );
+
 //        // re-read
 //        log.info( "Employee: id=" + person.id() );
 //        Employee employee2 = uow.entityForState( Employee.class, person.state() );
@@ -98,6 +126,17 @@ public class SimpleModelTest {
     }
     
     
+    @Test
+    public void testQueryIterate() {
+        ResultSet<Person> rs = uow.query( Person.class ).execute();
+//        log.info( "size=" + rs.size() );
+        
+        Person person = rs.stream().findAny().get();
+        log.info( "RS: " + person + ", name=" + person.name.get() );
+    }
+    
+    
+    @Test
     public void testDefaults() throws Exception {
         Person person = uow.createEntity( Person.class, null );
         Assert.isEqual( "Ulli", person.firstname.get() );
@@ -216,7 +255,6 @@ public class SimpleModelTest {
     
     @Test
     public void testConcern() throws Exception {
-        log.info( "" + InvocationCountConcern.info );
         Person person = uow.createEntity( Person.class, null );
 
         int getCount = InvocationCountConcern.getCount.get();

@@ -17,18 +17,19 @@ package org.polymap.model2.store.tidbstore;
 import java.util.logging.Logger;
 
 import org.teavm.jso.JSObject;
-import org.teavm.jso.indexeddb.IDBGetRequest;
-import org.teavm.jso.indexeddb.IDBObjectStore;
-import org.teavm.jso.indexeddb.IDBTransaction;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.store.CompositeState;
+import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBCursor;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBGetRequest;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.Assert;
 import areca.common.base.Sequence;
@@ -55,7 +56,7 @@ public class IDBUnitOfWork
 
     @Override
     public <T extends Entity> CompositeState newEntityState( Object id, Class<T> entityClass ) {
-        LOG.info( "newEntityState() ..." );
+        LOG.info( "IDB: newEntityState() ..." );
         return new IDBCompositeState( id, entityClass );
     }
 
@@ -63,11 +64,13 @@ public class IDBUnitOfWork
     @Override
     public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
         CompositeInfo<T> entityInfo = store.infoOf( entityClass );
+        LOG.info( "IDB: loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
+        
         IDBTransaction local = store.transaction( TxMode.READONLY, entityInfo.getNameInStore() );
         IDBObjectStore os = local.objectStore( entityInfo.getNameInStore() );
         IDBGetRequest request = os.get( IDBStore.id( id ) );
-        JSStateObject jsObject = (JSStateObject)request.getResult();
-        return new IDBCompositeState( id, entityClass, jsObject );
+        JSStateObject jsObject = (JSStateObject)store.waitFor( request ).getResult();
+        return JSStateObject.isUndefined( jsObject ) ? null : new IDBCompositeState( entityClass, jsObject );
     }
 
     
@@ -79,9 +82,41 @@ public class IDBUnitOfWork
 
 
     @Override
-    public StoreResultSet executeQuery( Query query ) {
-        // XXX Auto-generated method stub
-        throw new RuntimeException( "not yet implemented." );
+    public <T extends Entity> StoreResultSet executeQuery( Query<T> query ) {
+        CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
+        LOG.info( "IDB: executeQuery(): " + entityInfo.getNameInStore() + " / " + query.expression );
+        
+        return new StoreResultSet() {
+            IDBTransaction  local = store.transaction( TxMode.READONLY, entityInfo.getNameInStore() );
+            IDBObjectStore  os = local.objectStore( entityInfo.getNameInStore() );
+            IDBCursor       cursor = store.waitFor( os.openCursor() ).getResult();
+            
+            @Override public boolean hasNext() {
+                return true;
+            }
+            
+            @Override public CompositeStateReference next() {
+                LOG.info( "IDB: next()..." );
+                JSObject jsObject = cursor.getValue();
+                IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
+                LOG.info( "IDB: id=" + state.id() );
+                return new CompositeStateReference() {
+                    @Override public Object id() {
+                        return state.id();
+                    }
+                    @Override public CompositeState get() {
+                        return state;
+                    }
+                };
+            }
+            
+            @Override public int size() {
+                return store.waitFor( os.count() ).getResult();
+            }
+
+            @Override public void close() {
+            }
+        };
     }
 
 
@@ -97,7 +132,8 @@ public class IDBUnitOfWork
         for (Entity entity : modified) {
             IDBObjectStore os = tx.objectStore( entity.info().getNameInStore() );
             if (entity.status() == EntityStatus.CREATED) {
-                os.add( (JSObject)entity.state() );
+                LOG.info( "IDB: ADDING entity: " + entity );
+                store.waitFor( os.add( (JSObject)entity.state() ) );
             }
             else if (entity.status() == EntityStatus.MODIFIED) {
                 os.put( (JSObject)entity.state() );
@@ -115,9 +151,8 @@ public class IDBUnitOfWork
     @Override
     public void commit() {
         Assert.notNull( tx );
-        
-        // XXX Auto-generated method stub
-        throw new RuntimeException( "not yet implemented." );
+        // FIXME
+        //tx.commit();
     }
 
 
@@ -130,10 +165,10 @@ public class IDBUnitOfWork
 
     @Override
     public void close() {
-        if (tx != null) {
-            tx.abort();
-            tx = null;
-        }
+//        if (tx != null) {
+//            tx.abort();
+//            tx = null;
+//        }
     }
     
 }

@@ -27,8 +27,6 @@ import java.util.Optional;
 
 import java.io.IOException;
 
-import javax.cache.Cache;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 

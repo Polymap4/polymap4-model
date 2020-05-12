@@ -38,7 +38,7 @@ public abstract class EntityRepository
      * {@link EntityRepository} from.
      */
     public static Configuration newConfiguration() {
-        return ConfigurationFactory.create( ConfigurationClassInfo.INFO );
+        return ConfigurationFactory.create( Configuration.info );
     }
     
     

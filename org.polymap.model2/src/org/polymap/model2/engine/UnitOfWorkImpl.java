@@ -251,7 +251,7 @@ public class UnitOfWorkImpl
     @Override
     public <T extends Entity> Query<T> query( final Class<T> entityClass ) {
         checkOpen();
-        return new Query( entityClass ) {
+        return new Query<T>( entityClass ) {
             @Override
             public ResultSet<T> execute() {
                 // the preloaded entity from the CompositeStateReference is used to build the

@@ -21,8 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.Description;
 import org.polymap.model2.Immutable;
@@ -76,7 +74,7 @@ public final class CompositeInfoImpl<T extends Composite>
 
     @Override
     public String getName() {
-        return StringUtils.substringAfterLast( compositeClassInfo.name(), "." );
+        return compositeClassInfo.simpleName();
     }
 
     @Override
@@ -87,7 +85,6 @@ public final class CompositeInfoImpl<T extends Composite>
 
     @Override
     public String getNameInStore() {
-        System.out.println( ":: " ); // + compositeClassInfo );
         return compositeClassInfo.annotation( NameInStore.class ).transform( a -> a.value() ).orElse( getName() );
     }
 

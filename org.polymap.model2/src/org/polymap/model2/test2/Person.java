@@ -34,7 +34,7 @@ import org.polymap.model2.Property;
 public /*abstract*/ class Person
         extends Entity {
     
-    public static final PersonClassInfo info = PersonClassInfo.INFO;
+    public static final PersonClassInfo info = PersonClassInfo.instance();
     
     //public static Person TYPE;
     

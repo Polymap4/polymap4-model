@@ -31,7 +31,7 @@ public class InvocationCountConcern<T>
         extends PropertyConcernAdapter<T>
         implements PropertyConcern<T> {
 
-    public static final InvocationCountConcernClassInfo info = InvocationCountConcernClassInfo.INFO;
+    public static final InvocationCountConcernClassInfo info = InvocationCountConcernClassInfo.instance();
     
     public static AtomicInteger     getCount = new AtomicInteger();
     

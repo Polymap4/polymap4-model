@@ -14,19 +14,24 @@
  */
 package org.polymap.model2.store.tidbstore;
 
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.teavm.jso.core.JSString;
-import org.teavm.jso.indexeddb.EventHandler;
-import org.teavm.jso.indexeddb.IDBDatabase;
-import org.teavm.jso.indexeddb.IDBOpenDBRequest;
-import org.teavm.jso.indexeddb.IDBTransaction;
+import org.teavm.jso.dom.events.Event;
+import org.teavm.jso.dom.events.EventListener;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
+import org.polymap.model2.store.tidbstore.indexeddb.EventHandler;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBDatabase;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBFactory;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBOpenDBRequest;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.Assert;
 import areca.common.reflect.ClassInfo;
@@ -49,34 +54,32 @@ public class IDBStore
     
     private String                  dbName;
     
+    private int                     dbVersion;
+    
     private StoreRuntimeContext     context;
 
     IDBDatabase                     db;
 
-    private EventHandler            onErrorHandler; // = () -> throw new RuntimeException( "Error during IDB request." );
+    private EventHandler            onErrorHandler;
     
     private EventHandler            onSuccessHandler;
     
     private EventHandler            onBlockedHandler;
+
     
-    
-    public IDBStore( String dbName ) {
+    public IDBStore( String dbName, int dbVersion ) {
         this.dbName = Assert.notNull( dbName );
+        this.dbVersion = dbVersion;
         
-        onErrorHandler = new EventHandler() {
-            @Override public void handleEvent() {
-                throw new RuntimeException( "Error during IndexedDB request." );
-            }
+        onErrorHandler = (Event ev) -> { 
+            LOG.warning( "IDB: error during request: " + ev.getType() );
+            //throw new RuntimeException( "Error during IndexedDB request." );
         };
-        onSuccessHandler = new EventHandler() {
-            @Override public void handleEvent() {
-                LOG.info( "IDB: request successfully completed" );
-            }
+        onSuccessHandler = (Event ev) -> {
+            LOG.info( "IDB: request successfully completed: '" + ev.getType() + "'" );
         };
-        onBlockedHandler = new EventHandler() {
-            @Override public void handleEvent() {
-                LOG.info( "IDB: request blocked" );
-            }
+        onBlockedHandler = (Event ev) -> {
+            LOG.info( "IDB: request blocked" );
         };
     }
 
@@ -84,9 +87,9 @@ public class IDBStore
     @Override
     public void init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
         this.context = context;
-        LOG.info( "IDB: " + FixedIDBFactory.isSupported() );
-        FixedIDBFactory factory = FixedIDBFactory.getInstance();
-        IDBOpenDBRequest request = factory.open( dbName, 2 );
+        LOG.info( "IDB: " + IDBFactory.isSupported() );
+        IDBFactory factory = IDBFactory.getInstance();
+        IDBOpenDBRequest request = factory.open( dbName, dbVersion );
         request.setOnError( onErrorHandler );
         request.setOnSuccess( onSuccessHandler );
         request.setOnBlocked( onBlockedHandler );
@@ -94,16 +97,7 @@ public class IDBStore
             new ObjectStoreBuilder( this ).checkSchemas( context.getRepository(), request.getResult() );            
         });
         
-        while (request.getReadyState().equals( "pending" )) {
-            try {
-                LOG.info( "IDB: " + request.getReadyState() );
-                Thread.sleep( 100 );
-            }
-            catch (InterruptedException e) {
-            }
-        }
-        LOG.info( "IDB: " + request.getReadyState() );
-        db = request.getResult();
+        db = waitFor( request ).getResult();
     }
 
     
@@ -124,19 +118,53 @@ public class IDBStore
 
 
     IDBTransaction transaction( TxMode mode, String... storeNames ) {
-        LOG.info( "STORE: creating " + mode + " TX for " +  storeNames );
+        LOG.info( "IDB: creating " + mode + " TX for " + Arrays.asList( storeNames ) );
         IDBTransaction tx = db.transaction( storeNames, mode.name().toLowerCase() );
         tx.setOnError( onErrorHandler );
-        tx.setOnComplete( new EventHandler() {
-            @Override
-            public void handleEvent() {
-                LOG.info( "STORE: TX completed" );
-            }
+        tx.setOnComplete( (Event ev) -> {
+            LOG.info( "IDB: TX completed" );
         });
         return tx;
     }
 
+    
+    /**
+     * Wair for the given request to become ready.
+     * <p>
+     * XXX This is probably a bad solution. But model2 does not currently have an
+     * async API so I'm going with this to make any progress and learn about IDB.
+     * Later I maybe I will think about async API in model2. 
+     *
+     * @return The completed request.
+     */
+    <R extends IDBRequest> R waitFor( R request ) {
+        if (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
+            
+            Long monitor = System.currentTimeMillis();
+            EventListener<Event> listener = (Event ev) -> {
+                synchronized (monitor) {
+                    //LOG.info( "IDB: " + ev.getType() + ". notifyAll()..." );
+                    monitor.notifyAll();
+                }
+            };
+            request.addEventListener( "success", listener );
+            request.addEventListener( "error", listener );
 
+            while (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
+                try {
+                    //LOG.info( "IDB: waiting... (" + request.getReadyState() + ")" );
+                    synchronized (monitor) {
+                        monitor.wait( 500 );
+                    }
+                } 
+                catch (InterruptedException e) {}
+            }
+            LOG.info( "IDB: request ready. (" + (System.currentTimeMillis()-monitor) + "ms)" );
+        }
+        return request;
+    }
+
+    
     @Override
     public void close() {
         db.close();
