@@ -166,7 +166,7 @@ public class EntityRepositoryImpl
     
     
     protected <T extends Entity> T buildEntity( CompositeState state, Class<T> entityClass, UnitOfWork uow ) {
-        log.info( "buildEntity(): ..." );
+        //log.info( "buildEntity(): ..." );
         try {
             EntityRuntimeContextImpl entityContext = new EntityRuntimeContextImpl( state, EntityStatus.LOADED, uow );
             InstanceBuilder builder = new InstanceBuilder( entityContext );

@@ -15,7 +15,6 @@
 package org.polymap.model2.test2;
 
 import java.util.Arrays;
-
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
@@ -99,10 +98,10 @@ public class SimpleModelTest {
         // commit
         uow.commit();
 
-        uow2 = repo.newUnitOfWork();
-        p2 = uow2.entity( Person.class, person.id() );
-        log.info( "Person2: " + p2 );
-        Assert.notNull( p2 );
+//        uow2 = repo.newUnitOfWork();
+//        p2 = uow2.entity( Person.class, person.id() );
+//        log.info( "Person2: " + p2 );
+//        Assert.notNull( p2 );
 
 //        // re-read
 //        log.info( "Employee: id=" + person.id() );
@@ -129,10 +128,11 @@ public class SimpleModelTest {
     @Test
     public void testQueryIterate() {
         ResultSet<Person> rs = uow.query( Person.class ).execute();
-//        log.info( "size=" + rs.size() );
+        log.info( "size=" + rs.size() );
         
-        Person person = rs.stream().findAny().get();
-        log.info( "RS: " + person + ", name=" + person.name.get() );
+        for (Person person : rs) {
+            log.info( "RS: " + person.id() + ", name=" + person.name.get() );
+        }
     }
     
     

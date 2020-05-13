@@ -60,11 +60,11 @@ public class IDBStore
 
     IDBDatabase                     db;
 
-    private EventHandler            onErrorHandler;
+    EventHandler            onErrorHandler;
     
-    private EventHandler            onSuccessHandler;
+    EventHandler            onSuccessHandler;
     
-    private EventHandler            onBlockedHandler;
+    EventHandler            onBlockedHandler;
 
     
     public IDBStore( String dbName, int dbVersion ) {

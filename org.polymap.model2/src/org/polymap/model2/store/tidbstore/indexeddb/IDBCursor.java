@@ -15,11 +15,13 @@
  */
 package org.polymap.model2.store.tidbstore.indexeddb;
 
+import org.teavm.interop.NoSideEffects;
+import org.teavm.jso.JSBody;
 import org.teavm.jso.JSMethod;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 
-public interface IDBCursor extends JSObject {
+public abstract class IDBCursor implements JSObject {
     String DIRECTION_NEXT = "next";
 
     String DIRECTION_NEXT_UNIQUE = "nextunique";
@@ -29,26 +31,32 @@ public interface IDBCursor extends JSObject {
     String DIRECTION_PREVIOUS_UNIQUE = "prevunique";
 
     @JSProperty
-    IDBCursorSource getSource();
+    public abstract IDBCursorSource getSource();
 
     @JSProperty
-    String getDirection();
+    public abstract String getDirection();
 
     @JSProperty
-    JSObject getKey();
+    public abstract JSObject getKey();
 
     @JSProperty
-    JSObject getValue();
+    public abstract JSObject getValue();
 
     @JSProperty
-    JSObject getPrimaryKey();
+    public abstract JSObject getPrimaryKey();
 
-    IDBRequest update(JSObject value);
+    public abstract IDBRequest update(JSObject value);
 
-    void advance(int count);
+    public abstract void advance(int count);
 
     @JSMethod("continue")
-    void doContinue();
+    public abstract void doContinue();
 
-    IDBRequest delete();
+    public abstract IDBRequest delete();
+    
+    /** XXX falko: check after {@link #doContinue()} */
+    @NoSideEffects
+    @JSBody(script = "return this === null;")
+    public native boolean isNull();
+
 }

@@ -30,6 +30,19 @@ import org.polymap.model2.runtime.UnitOfWork;
 public interface CompositeStateReference
         extends Supplier<CompositeState> {
 
+    public static CompositeStateReference create( Object id, CompositeState state ) {
+        return new CompositeStateReference() {
+            @Override public Object id() {
+                return id;
+            }
+            @Override public CompositeState get() {
+                return state;
+            }
+        };
+    }
+    
+    // instance *******************************************
+    
     public Object id();
     
     
@@ -37,6 +50,7 @@ public interface CompositeStateReference
      * If available, provides a state that was <b>preloaded</b> during execution of
      * the query, or null if no such preloaded state exists.
      */
+    @Override
     public CompositeState get();
     
 }

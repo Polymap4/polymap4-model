@@ -105,7 +105,7 @@ public final class InstanceBuilder {
     
     
     public <T extends Composite> T newComposite( CompositeState state, Class<T> entityClass ) {
-        LOG.info( "newComposite(): " );
+//        LOG.info( "newComposite(): " );
         try {
             ClassInfo<T> entityClassInfo = ClassInfo.of( entityClass );
             
