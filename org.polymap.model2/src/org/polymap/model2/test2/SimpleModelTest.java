@@ -98,10 +98,10 @@ public class SimpleModelTest {
         // commit
         uow.commit();
 
-//        uow2 = repo.newUnitOfWork();
-//        p2 = uow2.entity( Person.class, person.id() );
-//        log.info( "Person2: " + p2 );
-//        Assert.notNull( p2 );
+        uow2 = repo.newUnitOfWork();
+        p2 = uow2.entity( Person.class, person.id() );
+        log.info( "Person2: " + p2 );
+        //Assert.notNull( p2 );
 
 //        // re-read
 //        log.info( "Employee: id=" + person.id() );

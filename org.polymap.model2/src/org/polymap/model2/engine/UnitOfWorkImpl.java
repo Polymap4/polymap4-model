@@ -198,9 +198,7 @@ public class UnitOfWorkImpl
         checkOpen();
         @SuppressWarnings( "unchecked" )
         T result = (T)loaded.computeIfAbsent( id, key -> {
-                // get preloaded if provided
                 CompositeState state = preloaded != null ? preloaded.get() : null;
-                // no preloaded or it returned null?
                 state = state != null ? state : storeUow.loadEntityState( id, entityClass );
                 return state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
         });

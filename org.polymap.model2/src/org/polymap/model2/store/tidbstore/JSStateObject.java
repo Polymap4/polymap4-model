@@ -43,4 +43,9 @@ public abstract class JSStateObject
     @JSIndexer
     public abstract void set( String key, JSObject object );
     
+
+    @NoSideEffects
+    @JSBody( script = "return typeof this === 'undefined';" )
+    public native boolean isUndefined();
+
 }

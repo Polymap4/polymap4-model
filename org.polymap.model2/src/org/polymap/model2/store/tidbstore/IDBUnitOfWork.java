@@ -17,7 +17,6 @@ package org.polymap.model2.store.tidbstore;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -28,19 +27,20 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.CompositeInfo;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBCursor;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBGetRequest;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
-import areca.common.base.Consumer;
+import areca.common.Assert;
 import areca.common.base.Function;
+import areca.common.base.Sequence;
 
 /**
  * 
@@ -60,13 +60,13 @@ public class IDBUnitOfWork
     }
 
 
-    protected <E extends Exception> void doRequest( TxMode mode, List<String> storeNames, Consumer<Map<String,IDBObjectStore>,E> action ) throws E {
-        IDBTransaction tx = store.transaction( mode, storeNames.toArray( String[]::new ) );
-        Map<String,IDBObjectStore> objectStores = storeNames.stream()
-                .map( storeName -> tx.objectStore( storeName ) )
-                .collect( Collectors.toMap( os -> os.getName(), os -> os ) );
-        action.accept( objectStores );
-    }
+//    protected <E extends Exception> void doRequest( TxMode mode, List<String> storeNames, Consumer<Map<String,IDBObjectStore>,E> action ) throws E {
+//        IDBTransaction tx = store.transaction( mode, storeNames.toArray( String[]::new ) );
+//        Map<String,IDBObjectStore> objectStores = storeNames.stream()
+//                .map( storeName -> tx.objectStore( storeName ) )
+//                .collect( Collectors.toMap( os -> os.getName(), os -> os ) );
+//        action.accept( objectStores );
+//    }
 
     protected <RE extends IDBRequest,R> R doRequest( TxMode mode, String storeName, 
             Function<IDBObjectStore,RE,RuntimeException> doRequest, 
@@ -88,7 +88,7 @@ public class IDBUnitOfWork
     
     @Override
     public <T extends Entity> CompositeState newEntityState( Object id, Class<T> entityClass ) {
-        LOG.info( "IDB: newEntityState() ..." );
+        LOG.info( "SUOW: newEntityState() ..." );
         return new IDBCompositeState( id, entityClass );
     }
 
@@ -96,14 +96,14 @@ public class IDBUnitOfWork
     @Override
     public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
         CompositeInfo<T> entityInfo = store.infoOf( entityClass );
-        LOG.info( "IDB: loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
+        LOG.info( "SUOW: loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
         return doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
                 os -> {
                     return os.get( IDBStore.id( id ) );
                 },
-                (IDBGetRequest request) -> {
+                request -> {
                     JSStateObject jsObject = (JSStateObject)request.getResult();
-                    return JSStateObject.isUndefined( jsObject ) ? null : new IDBCompositeState( entityClass, jsObject );
+                    return jsObject.isUndefined() ? null : new IDBCompositeState( entityClass, jsObject );
                 }
         );
     }
@@ -119,14 +119,14 @@ public class IDBUnitOfWork
     @Override
     public <T extends Entity> StoreResultSet executeQuery( Query<T> query ) {
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
-        LOG.info( "IDB: executeQuery(): " + entityInfo.getNameInStore() + " / " + query.expression );
+        LOG.info( "SUOW: executeQuery(): " + entityInfo.getNameInStore() + " / " + query.expression );
         
         return new StoreResultSet() {
             String                              storeName = entityInfo.getNameInStore();
             List<CompositeStateReference>       results = new ArrayList<>( 128 );
             Iterator<CompositeStateReference>   resultsIt; 
             {
-                LOG.info( "IDB: StoreResultSet init..." );
+                LOG.info( "SUOW: StoreResultSet init..." );
                 doRequest( TxMode.READONLY, storeName, 
                         os -> os.openCursor(), 
                         request -> {
@@ -134,7 +134,8 @@ public class IDBUnitOfWork
                             if (!cursor.isNull()) {
                                 JSObject jsObject = cursor.getValue();
                                 IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
-                                LOG.info( "IDB: id=" + state.id() );
+                                LOG.info( "SUOW: id=" + state.id() );
+                                //if (query.expression.evaluate( state )
                                 results.add( CompositeStateReference.create( state.id(), state ) );
                                 cursor.doContinue();
                             }
@@ -164,11 +165,32 @@ public class IDBUnitOfWork
 
     @Override
     public void prepareCommit( Iterable<Entity> modified ) throws Exception {
-//        Assert.isNull( tx );
-//        String[] storeNames = Sequence.of( modified )
-//                .transform( entity -> entity.info().getNameInStore() )
-//                .toArray( String[]::new );
-//        
+        List<String> storeNames = Sequence.of( modified )
+                .transform( entity -> entity.info().getNameInStore() )
+                .collect( Collectors.toList() );
+        Assert.isEqual( 1, storeNames.size() );
+
+        for (Entity entity : modified) {
+            // FIXME separated transactions
+            doRequest( TxMode.READWRITE, storeNames.get( 0 ),
+                    os -> {
+                        LOG.info( "SUOW: " + entity.status() + " entity: " + entity );
+                        if (entity.status() == EntityStatus.CREATED) {
+                            return os.add( (JSObject)entity.state() );
+                        }
+                        else if (entity.status() == EntityStatus.MODIFIED) {
+                            return os.put( (JSObject)entity.state() );
+                        }
+                        else if (entity.status() == EntityStatus.REMOVED) {
+                            return os.delete( IDBStore.id( entity.id() ) );
+                        }
+                        else {
+                            throw new IllegalStateException( "Status: " + entity.status() );
+                        }
+                    },
+                    request -> null );
+        }
+        
 //        tx = store.transaction( TxMode.READWRITE, storeNames );
 //        
 //        for (Entity entity : modified) {
