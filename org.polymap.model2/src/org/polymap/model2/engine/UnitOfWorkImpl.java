@@ -277,23 +277,6 @@ public class UnitOfWorkImpl
                         })
                         .transform( entity -> (T)entity );
 
-//                // ResultSet
-//                return new ResultSet<T>() {
-//                    Sequence<T,RuntimeException> results = unmodifiedResults.concat( modifiedResults );
-//                    @Override
-//                    public Iterator<T> iterator() {
-//                        return results.asIterable().iterator();
-//                    }
-//                    @Override
-//                    public int size() {
-//                        return modified.isEmpty() ? rs.size() : results.count(); 
-//                    }
-//                    @Override
-//                    public void close() {
-//                        rs.close();
-//                    }
-//                };
-                
                 // ResultSet, caching the ids for subsequent runs
                 Iterable<T> allResults = unmodifiedResults.concat( modifiedResults ).asIterable();
                 return new CachingResultSet<T>( allResults.iterator() ) {
