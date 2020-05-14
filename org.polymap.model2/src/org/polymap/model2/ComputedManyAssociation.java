@@ -16,8 +16,6 @@ package org.polymap.model2;
 
 import java.util.Collection;
 
-import com.google.common.base.Joiner;
-
 /**
  * Bases class of computed {@link ManyAssociation} implementations. See
  * {@link Computed} annotation.
@@ -60,7 +58,7 @@ public abstract class ComputedManyAssociation<T extends Entity>
 
     @Override
     public String toString() {
-        return "ComputedManyAssociation[name:" + info().getName() + ",elms=" + Joiner.on(", ").join( this ) + "]";
+        return "ComputedManyAssociation[name:" + info().getName() + ",elms=???" /*+ Joiner.on(", ").join( this )*/ + "]";
     }
 
 }

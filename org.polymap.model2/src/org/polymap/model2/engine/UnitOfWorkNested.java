@@ -14,26 +14,15 @@
  */
 package org.polymap.model2.engine;
 
-import static com.google.common.collect.Iterators.concat;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
 import static java.util.Collections.singletonList;
-import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
-import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
-
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 
 import java.io.IOException;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.Iterators;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
-import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.ConcurrentEntityModificationException;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.Lifecycle.State;
@@ -120,53 +109,54 @@ public class UnitOfWorkNested
         return new Query<T>( entityClass ) {
             @Override
             public ResultSet<T> execute() {
-                // unmodified ***
-                final ResultSet<T> parentRs = parent.query( entityClass )
-                        .where( expression )
-                        .maxResults( maxResults )
-                        .firstResult( firstResult )
-                        .execute();
-                // adopt entities
-                Iterator<T> results = transform( parentRs.iterator(),
-                        entity -> entity( entityClass, entity.id() ) );
-                // filter
-                Iterator<T> unmodifiedResults = filter( results,
-                        entity -> {
-                            EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-                            assert status != EntityStatus.CREATED; 
-                            return status == EntityStatus.LOADED;                            
-                        });
-
-                // modified ***
-                assert expression instanceof BooleanExpression;
-                Iterator<T> modifiedResults = (Iterator<T>)filter( modified.values().iterator(),
-                        entity -> entity.getClass().equals( entityClass ) 
-                                    && (entity.status() == CREATED || entity.status() == MODIFIED )
-                                    && expression.evaluate( entity ) );
-
-                // ResultSet, caching the ids for subsequent runs
-                return new CachingResultSet<T>( concat( unmodifiedResults, modifiedResults ) ) {
-                    @Override
-                    protected T entity( Object id ) {
-                        return UnitOfWorkNested.this.entity( entityClass, id, null );
-                    }
-                    @Override
-                    public int size() {
-                        if (cachedSize == -1) {
-                            cachedSize = delegate == null
-                                    ? cachedIds.size()
-                                    : modified.isEmpty() 
-                                            ? parentRs.size()
-                                            : Iterators.size( iterator() );
-                        }
-                        return cachedSize;
-                    }
-                    @Override
-                    public void close() {
-                        parentRs.close();
-                        super.close();
-                    }
-                };
+                throw new UnsupportedOperationException( "NestedUnitOfWork needs some more work..." );
+//                // unmodified ***
+//                final ResultSet<T> parentRs = parent.query( entityClass )
+//                        .where( expression )
+//                        .maxResults( maxResults )
+//                        .firstResult( firstResult )
+//                        .execute();
+//                // adopt entities
+//                Iterator<T> results = transform( parentRs.iterator(),
+//                        entity -> entity( entityClass, entity.id() ) );
+//                // filter
+//                Iterator<T> unmodifiedResults = filter( results,
+//                        entity -> {
+//                            EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
+//                            assert status != EntityStatus.CREATED; 
+//                            return status == EntityStatus.LOADED;                            
+//                        });
+//
+//                // modified ***
+//                assert expression instanceof BooleanExpression;
+//                Iterator<T> modifiedResults = (Iterator<T>)filter( modified.values().iterator(),
+//                        entity -> entity.getClass().equals( entityClass ) 
+//                                    && (entity.status() == CREATED || entity.status() == MODIFIED )
+//                                    && expression.evaluate( entity ) );
+//
+//                // ResultSet, caching the ids for subsequent runs
+//                return new CachingResultSet<T>( concat( unmodifiedResults, modifiedResults ) ) {
+//                    @Override
+//                    protected T entity( Object id ) {
+//                        return UnitOfWorkNested.this.entity( entityClass, id, null );
+//                    }
+//                    @Override
+//                    public int size() {
+//                        if (cachedSize == -1) {
+//                            cachedSize = delegate == null
+//                                    ? cachedIds.size()
+//                                    : modified.isEmpty() 
+//                                            ? parentRs.size()
+//                                            : Iterators.size( iterator() );
+//                        }
+//                        return cachedSize;
+//                    }
+//                    @Override
+//                    public void close() {
+//                        parentRs.close();
+//                        super.close();
+//                    }
+//                };
             }
         };
     }
@@ -232,8 +222,11 @@ public class UnitOfWorkNested
             try {
                 prepare();
             }
+            catch (/*ModelRuntimeException|*/RuntimeException e) {
+                throw e;
+            }
             catch (Exception e) {
-                Throwables.propagateIfPossible( e, ModelRuntimeException.class );
+                throw new RuntimeException( e );
             }
         }
         if (prepareResult != PREPARED) {

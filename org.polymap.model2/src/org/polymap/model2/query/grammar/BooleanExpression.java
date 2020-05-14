@@ -14,13 +14,13 @@
  */
 package org.polymap.model2.query.grammar;
 
-import com.google.common.base.Joiner;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
 import org.polymap.model2.engine.TemplateProperty;
 import org.polymap.model2.runtime.PropertyInfo;
+
+import areca.common.base.Sequence;
 
 /**
  * 
@@ -66,9 +66,13 @@ public abstract class BooleanExpression {
 
     @Override
     public String toString() {
-        return  opName() + "(" + Joiner.on( ", " ).join( children ) + ")";
+        return  opName() + "(" + String.join( ", ", childrenToString() ) + ")";
     }
 
+    protected Iterable<String> childrenToString() {
+        return  Sequence.of( children ).transform( BooleanExpression::toString ).asIterable();
+    }
+    
     /**
      * The name of this operator. Used by {@link #toString()}
      */

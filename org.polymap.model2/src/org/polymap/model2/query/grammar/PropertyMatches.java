@@ -14,8 +14,6 @@
  */
 package org.polymap.model2.query.grammar;
 
-import org.apache.commons.io.FilenameUtils;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.engine.TemplateProperty;
 
@@ -41,10 +39,13 @@ public class PropertyMatches<T>
 
     @Override
     public boolean evaluate( Composite target ) {
-        Object propValue = propValue( target, prop );
-        return propValue != null 
-                ? FilenameUtils.wildcardMatch( propValue.toString(), value.toString() )
-                : false;
+        throw new UnsupportedOperationException( "wildcard match not supported" );
+        
+        // removed to get rid of commons.io
+//        Object propValue = propValue( target, prop );
+//        return propValue != null 
+//                ? FilenameUtils.wildcardMatch( propValue.toString(), value.toString() )
+//                : false;
     }
     
     protected String name() {

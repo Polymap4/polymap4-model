@@ -14,7 +14,8 @@
  */
 package org.polymap.model2.query;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
@@ -42,6 +43,7 @@ import org.polymap.model2.query.grammar.TheAssociationQuantifier;
 import org.polymap.model2.query.grammar.TheCompositeQuantifier;
 import org.polymap.model2.runtime.EntityRepository;
 
+import areca.common.Assert;
 import areca.common.reflect.ClassInfo;
 
 /**
@@ -66,19 +68,27 @@ public class Expressions {
     };
     
     public static Conjunction and( BooleanExpression first, BooleanExpression second, BooleanExpression... more ) {
-        return new Conjunction( Lists.asList( first, second, more ).toArray( new BooleanExpression[2+more.length] ) );                                                                               
+        ArrayList<BooleanExpression> children = new ArrayList<>();
+        children.add( Assert.notNull( first ) );
+        children.add( Assert.notNull( second ) );
+        children.addAll( Arrays.asList( more ) );
+        return new Conjunction( children.toArray( new BooleanExpression[ children.size() ] ) );                                                                               
     }
     
     public static Disjunction or( BooleanExpression first, BooleanExpression second, BooleanExpression... more) {
-        return new Disjunction( Lists.asList( first, second, more ).toArray( new BooleanExpression[2+more.length] ) );                                                                               
+        ArrayList<BooleanExpression> children = new ArrayList<>();
+        children.add( Assert.notNull( first ) );
+        children.add( Assert.notNull( second ) );
+        children.addAll( Arrays.asList( more ) );
+        return new Disjunction( children.toArray( new BooleanExpression[ children.size() ] ) );                                                                               
     }
     
     public static <T> PropertyEquals<T> eq( Property<T> prop, T value ) {
-        return new PropertyEquals( (TemplateProperty)prop, value );
+        return new PropertyEquals<T>( (TemplateProperty<T>)prop, value );
     }
 
     public static <T> PropertyNotEquals<T> notEq( Property<T> prop, T value ) {
-        return new PropertyNotEquals( (TemplateProperty)prop, value );
+        return new PropertyNotEquals<T>( (TemplateProperty<T>)prop, value );
     }
     
     public static <T> Negation not( BooleanExpression expression ) {
@@ -94,7 +104,7 @@ public class Expressions {
      * command lines. The check is case-sensitive always.
      */
     public static <T> PropertyMatches<T> matches( Property<T> prop, T value ) {
-        return new PropertyMatches( (TemplateProperty)prop, value );
+        return new PropertyMatches<T>( (TemplateProperty)prop, value );
     }
     
     public static <T> PropertyEqualsAny<T> eqAny( Property<T> prop, T... values ) {

@@ -17,15 +17,14 @@ package org.polymap.model2.engine;
 import java.util.AbstractCollection;
 import java.util.Iterator;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.StoreCollectionProperty;
+
+import areca.common.base.Sequence;
 
 /**
  * 
@@ -67,14 +66,11 @@ class ManyAssociationImpl<T extends Entity>
     @Override
     public Iterator<T> iterator() {
         UnitOfWork uow = context.getUnitOfWork();
-        Class<? extends Entity> entityType = info().getType();
+        Class<T> entityType = info().getType();
         
-        return Iterators.transform( storeProp.iterator(), new Function<Object,T>() {
-            @Override
-            public T apply( Object id ) {
-                return (T)uow.entity( entityType, id );
-            }
-        });
+        return Sequence.of( storeProp )
+                .transform( id -> uow.entity( entityType, id ) )
+                .asIterable().iterator();
     }
 
     @Override

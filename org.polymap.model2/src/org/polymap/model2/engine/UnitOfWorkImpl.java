@@ -14,24 +14,16 @@
  */
 package org.polymap.model2.engine;
 
-import static com.google.common.collect.Iterators.concat;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import java.io.IOException;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
@@ -53,6 +45,7 @@ import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.base.Sequence;
 import areca.common.base.log.LogFactory;
 import areca.common.base.log.LogFactory.Log;
 
@@ -175,8 +168,9 @@ public class UnitOfWorkImpl
 
 
     @Override
+    @SuppressWarnings( "unchecked" )
     public <T extends Entity> T entity( T entity ) {
-        return (T)entity( entity.getClass(), entity.id() );
+        return entity( (Class<T>)entity.getClass(), entity.id() );
     }
 
 
@@ -231,7 +225,7 @@ public class UnitOfWorkImpl
         assert entity != null : "entity must not be null.";
         checkOpen();
         
-        String key = Joiner.on( '_' ).join( entity.id().toString(), mixinClass.getName() );
+        String key = String.join( "_", entity.id().toString(), mixinClass.getName() );
         return (T)loadedMixins.computeIfAbsent( key, k -> {
             return repo.buildMixin( entity, mixinClass, UnitOfWorkImpl.this );
         });
@@ -261,40 +255,60 @@ public class UnitOfWorkImpl
                 // the ResultSet otherwise
 
                 // unmodified
-                final StoreResultSet rs = storeUow.executeQuery( this );
-                Iterator<T> results = transform( rs,
-                        ref -> entity( entityClass, ref.id(), ref ) );
-                Iterator<T> unmodifiedResults = filter( results,
-                        entity -> {
+                StoreResultSet rs = storeUow.executeQuery( this );
+                Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )
+                        .transform( ref -> entity( entityClass, ref.id(), ref ) )
+                        .filter( entity -> {
+                            log.info( "query(): " + entity.status() );
                             EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-                            assert status != EntityStatus.CREATED; 
-                            return status == EntityStatus.LOADED;                            
+                            Assert.that( status != EntityStatus.CREATED ); 
+                            return status == EntityStatus.LOADED;                                                        
                         });
-
+                
                 // modified
                 // XXX not cached, done for every call to iterator()
                 assert expression instanceof BooleanExpression;
-                Iterator<T> modifiedResults = (Iterator<T>)filter( modified.values().iterator(),
-                        entity -> entity.getClass().equals( entityClass ) 
-                                    && (entity.status() == CREATED || entity.status() == MODIFIED )
-                                    && expression.evaluate( entity ) );
+                @SuppressWarnings( "unchecked" )
+                Sequence<T,RuntimeException> modifiedResults = Sequence.of( RuntimeException.class, modified.values() )
+                        .filter( entity -> {
+                            return entity.getClass().equals( entityClass ) 
+                                    && (entity.status() == CREATED || entity.status() == MODIFIED)
+                                    && expression.evaluate( entity );
+                        })
+                        .transform( entity -> (T)entity );
 
+//                // ResultSet
+//                return new ResultSet<T>() {
+//                    Sequence<T,RuntimeException> results = unmodifiedResults.concat( modifiedResults );
+//                    @Override
+//                    public Iterator<T> iterator() {
+//                        return results.asIterable().iterator();
+//                    }
+//                    @Override
+//                    public int size() {
+//                        return modified.isEmpty() ? rs.size() : results.count(); 
+//                    }
+//                    @Override
+//                    public void close() {
+//                        rs.close();
+//                    }
+//                };
+                
                 // ResultSet, caching the ids for subsequent runs
-                return new CachingResultSet<T>( concat( unmodifiedResults, modifiedResults ) ) {
+                Iterable<T> allResults = unmodifiedResults.concat( modifiedResults ).asIterable();
+                return new CachingResultSet<T>( allResults.iterator() ) {
                     @Override
                     protected T entity( Object id ) {
                         return UnitOfWorkImpl.this.entity( entityClass, id, null );
                     }
                     @Override
                     public int size() {
-                        if (cachedSize == -1) {
-                            cachedSize = delegate == null
+                        return cachedSize.supply( () ->
+                                delegate == null
                                     ? cachedIds.size()
                                     : modified.isEmpty() 
                                             ? rs.size()
-                                            : Iterators.size( iterator() );
-                        }
-                        return cachedSize;
+                                            : Sequence.of( iterator() ).count() );
                     }
                     @Override
                     public void close() {

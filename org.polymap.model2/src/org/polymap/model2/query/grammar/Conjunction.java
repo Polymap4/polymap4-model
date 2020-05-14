@@ -14,8 +14,6 @@
  */
 package org.polymap.model2.query.grammar;
 
-import com.google.common.base.Joiner;
-
 import org.polymap.model2.Composite;
 
 /**
@@ -45,7 +43,7 @@ public class Conjunction
 
     @Override
     public String toString() {
-        return "(" + Joiner.on( " " + opName() + " " ).join( children ) + ")";
+        return "(" + String.join( " " + opName() + " ", childrenToString() ) + ")";
     }
 
     @Override

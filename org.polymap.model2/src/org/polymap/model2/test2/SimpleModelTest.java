@@ -23,6 +23,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
+import areca.common.base.Sequence;
 import areca.common.base.log.LogFactory;
 import areca.common.base.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -95,13 +96,13 @@ public class SimpleModelTest {
         log.info( "Person2: " + p2 );
         Assert.isNull( p2 );
         
-        // commit
-        uow.commit();
-
-        uow2 = repo.newUnitOfWork();
-        p2 = uow2.entity( Person.class, person.id() );
-        log.info( "Person2: " + p2 );
-        //Assert.notNull( p2 );
+//        // commit
+//        uow.commit();
+//
+//        uow2 = repo.newUnitOfWork();
+//        p2 = uow2.entity( Person.class, person.id() );
+//        log.info( "Person2: " + p2 );
+//        Assert.notNull( p2 );
 
 //        // re-read
 //        log.info( "Employee: id=" + person.id() );
@@ -130,9 +131,13 @@ public class SimpleModelTest {
         ResultSet<Person> rs = uow.query( Person.class ).execute();
         log.info( "size=" + rs.size() );
         
+        int count = 0;
         for (Person person : rs) {
-            log.info( "RS: " + person.id() + ", name=" + person.name.get() );
+            log.info( "RS: " + ++count + ": " + person.id() + ", name=" + person.name.get() );
         }
+        log.info( "count=" + count );
+        Assert.isEqual( rs.size(), count );
+        Assert.isEqual( rs.size(), Sequence.of( rs ).count() );
     }
     
     

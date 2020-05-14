@@ -29,7 +29,7 @@ import org.polymap.model2.Entity;
 public interface ResultSet<T extends Entity>
         extends Iterable<T>, AutoCloseable {
 
-    public static final ResultSet EMPTY = new ResultSet() {
+    public static final ResultSet<?> EMPTY = new ResultSet() {
         @Override
         public Iterator iterator() {
             return Collections.emptyIterator();
@@ -41,10 +41,6 @@ public interface ResultSet<T extends Entity>
         @Override
         public void close() {
         }
-        @Override
-        public Stream stream() {
-            return StreamSupport.stream( spliterator(), false );
-        }
     };
     
     // ****************************************************
@@ -54,6 +50,9 @@ public interface ResultSet<T extends Entity>
     @Override
     public void close();
     
-    public Stream<T> stream();
-    
+    public default Stream<T> stream() {
+        // XXX use cachedIds.size() if available
+        return StreamSupport.stream( spliterator(), false );
+    }
+
 }

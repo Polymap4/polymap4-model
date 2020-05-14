@@ -18,14 +18,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import com.google.common.collect.Iterators;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.ResultSet;
 
+import areca.common.base.Lazy;
+import areca.common.base.Sequence;
 import areca.common.base.log.LogFactory;
 import areca.common.base.log.LogFactory.Log;
 
@@ -37,15 +35,15 @@ import areca.common.base.log.LogFactory.Log;
 public abstract class CachingResultSet<T extends Entity>
         implements ResultSet<T> {
 
-    private static Log log = LogFactory.getLog( CachingResultSet.class );
+    private static final Log log = LogFactory.getLog( CachingResultSet.class );
 
     /** null after one full run */
     protected Iterator<T>   delegate;
     
-    protected List<Object>  cachedIds = new ArrayList( 1024 );
+    protected List<Object>  cachedIds = new ArrayList<>( 128 );
     
     /** The cached cachedSize; not synchronized */
-    protected int           cachedSize = -1;
+    protected Lazy<Integer,RuntimeException> cachedSize = new Lazy<>();
 
     
     public CachingResultSet( Iterator<T> delegate ) {
@@ -84,10 +82,12 @@ public abstract class CachingResultSet<T extends Entity>
                     throw new NoSuchElementException( "index = " + index );
                 }
                 if (++index < cachedIds.size()) {
+                    log.info( "next(): index=" + index + ", cached" );
                     return entity( cachedIds.get( index ) );
                 }
                 else {
-                    assert index == cachedIds.size() : "index == cachedIds.size(): " +  index + ", " + cachedIds.size();
+                    log.info( "next(): index=" + index + ", delegate" );
+                    //assert index == cachedIds.size() : "index == cachedIds.size(): " +  index + ", " + cachedIds.size();
                     T result = delegate.next();
                     cachedIds.add( result.id() );
                     return result;
@@ -99,20 +99,12 @@ public abstract class CachingResultSet<T extends Entity>
     
     @Override
     public int size() {
-        if (cachedSize == -1) {
-            cachedSize = delegate == null ? cachedIds.size() : Iterators.size( iterator() );
-        }
-        return cachedSize;
+        return cachedSize.supply( () -> delegate == null 
+                ? cachedIds.size() 
+                : Sequence.of( iterator() ).count() );
     }
     
-    
-    @Override
-    public Stream<T> stream() {
-        // XXX use cachedIds.size() if available
-        return StreamSupport.stream( spliterator(), false );
-    }
-
-    
+        
     @Override
     public void close() {
         delegate = null;

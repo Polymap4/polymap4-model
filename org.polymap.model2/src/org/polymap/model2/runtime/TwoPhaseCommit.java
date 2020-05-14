@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
 import areca.common.base.log.LogFactory;
 import areca.common.base.log.LogFactory.Log;
 
@@ -94,7 +92,7 @@ public class TwoPhaseCommit {
     // instance *******************************************
     
     /** Sequence of resources in order of calling {@link #register(TransactionAware)}. */
-    private List<TransactionAware>      resources = new ArrayList();
+    private List<TransactionAware>      resources = new ArrayList<>();
     
     private boolean                     commitStarted = false;
     
@@ -197,10 +195,12 @@ public class TwoPhaseCommit {
     }
     
     protected void doRollback() {
-        List<Exception> excs = new ArrayList();
+        List<Exception> excs = new ArrayList<>();
         
         // reverse resources to handle parent/nested UnitOfWork properly
-        for (TransactionAware r : Lists.reverse( resources )) {
+        List<TransactionAware> reverse = new ArrayList<>( resources );
+        Collections.reverse( reverse );
+        for (TransactionAware r : reverse) {
             try {
                 r.rollback();
             }

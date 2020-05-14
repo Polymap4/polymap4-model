@@ -14,7 +14,7 @@
  */
 package org.polymap.model2.runtime;
 
-import com.google.common.base.Function;
+import java.util.function.Function;
 
 import org.polymap.model2.Entity;
 

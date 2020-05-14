@@ -19,8 +19,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.Iterators;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.ModelRuntimeException;
@@ -120,7 +118,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
     @Override
     public Iterator<T> iterator() {
         // FIXME remove not supported yet
-        return Iterators.unmodifiableIterator( checkInitCache().iterator() );
+        return /*Iterators.unmodifiableIterator(*/ checkInitCache().iterator();
         
 //        return new Iterator<T>() {
 //            private Iterator        storeIt = storeProp.iterator();
