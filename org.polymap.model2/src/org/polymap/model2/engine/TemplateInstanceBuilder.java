@@ -72,8 +72,10 @@ public final class TemplateInstanceBuilder {
             T instance = (T)entityClassInfo.newInstance();
             
             // set context
-            FieldInfo contextField = entityClassInfo.fields().stream().filter( f -> f.name().equals( "context" ) ).findAny().get();
-            contextField.set( instance, new TemplateEntityRuntimeContext() );
+            // XXX
+//            FieldInfo contextField = entityClassInfo.fields().stream().filter( f -> f.name().equals( "context" ) ).findAny().get();
+//            contextField.set( instance, new TemplateEntityRuntimeContext() );
+            instance.context = new TemplateEntityRuntimeContext();
             
             // properties
             initProperties( instance, entityClassInfo );

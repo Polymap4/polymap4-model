@@ -15,6 +15,8 @@
 package org.polymap.model2.test2;
 
 import java.util.Arrays;
+
+import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
@@ -138,6 +140,16 @@ public class SimpleModelTest {
         log.info( "count=" + count );
         Assert.isEqual( rs.size(), count );
         Assert.isEqual( rs.size(), Sequence.of( rs ).count() );
+    }
+    
+    
+    @Test
+    public void testQueryName() {
+        ResultSet<Person> rs = uow.query( Person.class )
+                .where( Expressions.eq( Expressions.template( Person.class, repo ).name, "Philipp" ) )
+                .execute();
+        Assert.isEqual( 34, rs.size() );
+        Assert.isEqual( 34, Sequence.of( rs ).count() );
     }
     
     

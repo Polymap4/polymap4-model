@@ -30,7 +30,6 @@ import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.ResultSet;
-import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.ConcurrentEntityModificationException;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.Lifecycle;
@@ -259,15 +258,17 @@ public class UnitOfWorkImpl
                 Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )
                         .transform( ref -> entity( entityClass, ref.id(), ref ) )
                         .filter( entity -> {
-                            log.info( "query(): " + entity.status() );
                             EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
                             Assert.that( status != EntityStatus.CREATED ); 
                             return status == EntityStatus.LOADED;                                                        
+                        })
+                        // XXX remove when IDBStore supports indexed
+                        .filter( entity -> {
+                            return expression.evaluate( entity );
                         });
                 
                 // modified
                 // XXX not cached, done for every call to iterator()
-                assert expression instanceof BooleanExpression;
                 @SuppressWarnings( "unchecked" )
                 Sequence<T,RuntimeException> modifiedResults = Sequence.of( RuntimeException.class, modified.values() )
                         .filter( entity -> {

@@ -82,11 +82,9 @@ public abstract class CachingResultSet<T extends Entity>
                     throw new NoSuchElementException( "index = " + index );
                 }
                 if (++index < cachedIds.size()) {
-                    log.info( "next(): index=" + index + ", cached" );
                     return entity( cachedIds.get( index ) );
                 }
                 else {
-                    log.info( "next(): index=" + index + ", delegate" );
                     //assert index == cachedIds.size() : "index == cachedIds.size(): " +  index + ", " + cachedIds.size();
                     T result = delegate.next();
                     cachedIds.add( result.id() );
