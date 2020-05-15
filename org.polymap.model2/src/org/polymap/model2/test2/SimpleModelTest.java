@@ -26,8 +26,8 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.base.Sequence;
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
 import areca.common.testrunner.After;
 import areca.common.testrunner.Before;

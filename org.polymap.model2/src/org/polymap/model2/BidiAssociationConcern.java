@@ -16,8 +16,8 @@ package org.polymap.model2;
 
 import static org.polymap.model2.BidiBackAssociationFinder.findBackAssociation;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * This {@link Association} concern maintains the back reference of a bidirectional

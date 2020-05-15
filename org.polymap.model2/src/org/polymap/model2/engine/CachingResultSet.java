@@ -24,8 +24,8 @@ import org.polymap.model2.query.ResultSet;
 
 import areca.common.base.Lazy;
 import areca.common.base.Sequence;
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 

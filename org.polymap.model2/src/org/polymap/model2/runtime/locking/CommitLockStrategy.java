@@ -15,8 +15,9 @@
 package org.polymap.model2.runtime.locking;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 

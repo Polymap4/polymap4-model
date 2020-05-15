@@ -24,8 +24,8 @@ import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * Provides a computed back reference of a bidirectional {@link ManyAssociation}.

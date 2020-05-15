@@ -35,8 +35,8 @@ import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * This {@link StoreDecorator} provides a simple check for concurrent modifications

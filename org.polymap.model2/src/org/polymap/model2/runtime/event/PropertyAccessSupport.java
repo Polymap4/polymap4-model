@@ -22,9 +22,9 @@ import org.polymap.model2.PropertyConcernBase;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.ValueInitializer;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
 import areca.common.event.EventManager;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * Fires a {@link PropertyAccessEvent} via {@link EventManager} when a

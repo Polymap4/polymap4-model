@@ -36,8 +36,8 @@ import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
 import areca.common.reflect.FieldInfo;
 

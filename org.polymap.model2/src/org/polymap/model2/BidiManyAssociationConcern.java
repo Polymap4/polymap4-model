@@ -18,8 +18,8 @@ import static org.polymap.model2.BidiBackAssociationFinder.findBackAssociation;
 
 import org.polymap.model2.runtime.ValueInitializer;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * This {@link ManyAssociation} concern maintains the back reference of a

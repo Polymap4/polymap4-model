@@ -19,8 +19,8 @@ import java.util.Date;
 import org.polymap.model2.DefaultValue;
 import org.polymap.model2.Defaults;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * Provides runtime support for property default values. 

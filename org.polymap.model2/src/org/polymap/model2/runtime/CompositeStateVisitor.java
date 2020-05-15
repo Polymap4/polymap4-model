@@ -26,8 +26,8 @@ import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
 import org.polymap.model2.engine.PropertyInterceptorBase;
 
-import areca.common.base.log.LogFactory;
-import areca.common.base.log.LogFactory.Log;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * Allows to visit the entire hierachy of properties of the given {@link Composite}
