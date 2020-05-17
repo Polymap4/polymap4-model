@@ -44,7 +44,6 @@ public class IDBCompositeState
         this.entityClass = Assert.notNull( entityClass );
         this.jsObject = JSStateObject.create();
         this.jsObject.set( "id", IDBStore.id( Assert.notNull( id ) ) );
-        LOG.info( "jsObject created: " + id() );
     }
     
     

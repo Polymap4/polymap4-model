@@ -15,7 +15,6 @@
 package org.polymap.model2.store.tidbstore;
 
 import java.util.Arrays;
-import java.util.logging.Logger;
 
 import org.teavm.jso.core.JSString;
 import org.teavm.jso.dom.events.Event;
@@ -34,6 +33,8 @@ import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.Assert;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
 
 /**
@@ -44,8 +45,8 @@ import areca.common.reflect.ClassInfo;
 public class IDBStore
         implements StoreSPI {
 
-    private static final Logger LOG = Logger.getLogger( IDBStore.class.getName() );
-    
+    private static final Log LOG = LogFactory.getLog( IDBStore.class );
+
     public enum TxMode {
         READWRITE, READONLY
     }
@@ -72,14 +73,14 @@ public class IDBStore
         this.dbVersion = dbVersion;
         
         onErrorHandler = (Event ev) -> { 
-            LOG.warning( "IDB: error during request: " + ev.getType() );
+            LOG.warn( "error during request: " + ev.getType() );
             //throw new RuntimeException( "Error during IndexedDB request." );
         };
         onSuccessHandler = (Event ev) -> {
-            LOG.info( "IDB: request successfully completed: '" + ev.getType() + "'" );
+            LOG.info( "request successfully completed: '" + ev.getType() + "'" );
         };
         onBlockedHandler = (Event ev) -> {
-            LOG.info( "IDB: request blocked" );
+            LOG.info( "request blocked" );
         };
     }
 
@@ -87,7 +88,6 @@ public class IDBStore
     @Override
     public void init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
         this.context = context;
-        LOG.info( "IDB: " + IDBFactory.isSupported() );
         IDBFactory factory = IDBFactory.getInstance();
         IDBOpenDBRequest request = factory.open( dbName, dbVersion );
         request.setOnError( onErrorHandler );
@@ -118,11 +118,11 @@ public class IDBStore
 
 
     IDBTransaction transaction( TxMode mode, String... storeNames ) {
-        LOG.info( "IDB: creating " + mode + " TX for " + Arrays.asList( storeNames ) );
+        LOG.info( "TX: " + mode + " for " + Arrays.asList( storeNames ) );
         IDBTransaction tx = db.transaction( storeNames, mode.name().toLowerCase() );
         tx.setOnError( onErrorHandler );
         tx.setOnComplete( (Event ev) -> {
-            LOG.info( "IDB: TX completed" );
+            LOG.info( "TX: completed" );
         });
         return tx;
     }
@@ -143,7 +143,6 @@ public class IDBStore
             Long monitor = System.currentTimeMillis();
             EventListener<Event> listener = (Event ev) -> {
                 synchronized (monitor) {
-                    //LOG.info( "IDB: " + ev.getType() + ". notifyAll()..." );
                     monitor.notifyAll();
                 }
             };
@@ -152,14 +151,13 @@ public class IDBStore
 
             while (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
                 try {
-                    //LOG.info( "IDB: waiting... (" + request.getReadyState() + ")" );
                     synchronized (monitor) {
                         monitor.wait( 500 );
                     }
                 } 
                 catch (InterruptedException e) {}
             }
-            LOG.info( "IDB: request ready. (" + (System.currentTimeMillis()-monitor) + "ms)" );
+            LOG.debug( "request ready. (" + (System.currentTimeMillis()-monitor) + "ms)" );
         }
         return request;
     }

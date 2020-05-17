@@ -17,7 +17,6 @@ package org.polymap.model2.store.tidbstore;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.teavm.jso.JSObject;
@@ -38,9 +37,10 @@ import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
-import areca.common.Assert;
 import areca.common.base.Function;
 import areca.common.base.Sequence;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 
@@ -50,7 +50,7 @@ import areca.common.base.Sequence;
 public class IDBUnitOfWork
         implements StoreUnitOfWork {
     
-    private static final Logger LOG = Logger.getLogger( IDBUnitOfWork.class.getName() );
+    private static final Log LOG = LogFactory.getLog( IDBUnitOfWork.class );
     
     protected IDBStore          store;
     
@@ -88,7 +88,7 @@ public class IDBUnitOfWork
     
     @Override
     public <T extends Entity> CompositeState newEntityState( Object id, Class<T> entityClass ) {
-        LOG.info( "SUOW: newEntityState() ..." );
+        LOG.info( "newEntityState() ..." );
         return new IDBCompositeState( id, entityClass );
     }
 
@@ -96,7 +96,7 @@ public class IDBUnitOfWork
     @Override
     public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
         CompositeInfo<T> entityInfo = store.infoOf( entityClass );
-        LOG.info( "SUOW: loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
+        LOG.info( "loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
         return doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
                 os -> {
                     return os.get( IDBStore.id( id ) );
@@ -119,14 +119,14 @@ public class IDBUnitOfWork
     @Override
     public <T extends Entity> StoreResultSet executeQuery( Query<T> query ) {
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
-        LOG.info( "SUOW: executeQuery(): " + entityInfo.getNameInStore() + " / " + query.expression );
+        LOG.info( "executeQuery(): " + entityInfo.getNameInStore() + " where " + query.expression );
         
         return new StoreResultSet() {
             String                              storeName = entityInfo.getNameInStore();
             List<CompositeStateReference>       results = new ArrayList<>( 128 );
             Iterator<CompositeStateReference>   resultsIt; 
             {
-                LOG.info( "SUOW: StoreResultSet init..." );
+                LOG.info( "StoreResultSet init..." );
                 doRequest( TxMode.READONLY, storeName, 
                         os -> os.openCursor(), 
                         request -> {
@@ -134,7 +134,6 @@ public class IDBUnitOfWork
                             if (!cursor.isNull()) {
                                 JSObject jsObject = cursor.getValue();
                                 IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
-                                LOG.info( "SUOW: id=" + state.id() );
                                 //if (query.expression.evaluate( state )
                                 results.add( CompositeStateReference.create( state.id(), state ) );
                                 cursor.doContinue();
@@ -168,13 +167,12 @@ public class IDBUnitOfWork
         List<String> storeNames = Sequence.of( modified )
                 .transform( entity -> entity.info().getNameInStore() )
                 .collect( Collectors.toList() );
-        Assert.isEqual( 1, storeNames.size() );
 
         for (Entity entity : modified) {
-            // FIXME separated transactions
+            // FIXME separated transactions!
             doRequest( TxMode.READWRITE, storeNames.get( 0 ),
                     os -> {
-                        LOG.info( "SUOW: " + entity.status() + " entity: " + entity );
+                        LOG.info( entity.status() + " entity: " + entity );
                         if (entity.status() == EntityStatus.CREATED) {
                             return os.add( (JSObject)entity.state() );
                         }

@@ -100,7 +100,7 @@ public class SimpleModelTest {
         
 //        // commit
 //        uow.commit();
-//
+
 //        uow2 = repo.newUnitOfWork();
 //        p2 = uow2.entity( Person.class, person.id() );
 //        log.info( "Person2: " + p2 );
@@ -140,6 +140,23 @@ public class SimpleModelTest {
         log.info( "count=" + count );
         Assert.isEqual( rs.size(), count );
         Assert.isEqual( rs.size(), Sequence.of( rs ).count() );
+    }
+    
+
+    @Test
+    public void testQueryPerformance() {
+        for (int i=0; i<20; i++) {
+            UnitOfWork uow2 = repo.newUnitOfWork();
+            ResultSet<Person> rs = uow2.query( Person.class ).execute();
+            long start = System.currentTimeMillis();
+            log.info( "" + Sequence.of( rs ).count() + " " + (System.currentTimeMillis()-start) + "ms" );
+            uow.close();
+        }
+        
+//        int count = 0;
+//        for (Person person : rs) {
+//            count ++;
+//        }
     }
     
     

@@ -68,9 +68,9 @@ public class UnitOfWorkImpl
     protected StoreUnitOfWork               storeUow;
     
     /** id -> entity */
-    protected Map<Object,Entity>   loaded;
+    protected Map<Object,Entity>            loaded;
     
-    protected Map<String,Composite> loadedMixins;
+    protected Map<String,Composite>         loadedMixins;
     
     /** Strong reference to Entities that must not be GCed from {@link #loaded} cache. */
     protected Map<Object,Entity>            modified;
@@ -135,7 +135,6 @@ public class UnitOfWorkImpl
 
         CompositeState state = storeUow.newEntityState( id, entityClass );
         Assert.that( id == null || state.id().equals( id ) );
-        log.info( "state = " + state );
         
         T result = repo.buildEntity( state, entityClass, this );
         repo.contextOf( result ).raiseStatus( EntityStatus.CREATED );
@@ -348,11 +347,7 @@ public class UnitOfWorkImpl
             lifecycle( State.AFTER_PREPARE );
             prepareResult = PREPARED;
         }
-        catch (ModelRuntimeException e) {
-            prepareResult = e;
-            throw e;
-        }
-        catch (IOException e) {
+        catch (ModelRuntimeException|IOException e) {
             prepareResult = e;
             throw e;
         }
@@ -377,11 +372,11 @@ public class UnitOfWorkImpl
             catch (Exception e) {
                 throw new ModelRuntimeException( e );
             }
-            finally {
-                if (prepareResult != PREPARED) {
-                    rollback();
-                }
-            }
+//            finally {
+//                if (prepareResult != PREPARED) {
+//                    rollback();
+//                }
+//            }
         }
         if (prepareResult != PREPARED) {
             throw new ModelRuntimeException( "UnitOfWork is not prepared successfully for commit." );
