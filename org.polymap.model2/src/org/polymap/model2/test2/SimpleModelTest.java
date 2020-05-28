@@ -31,6 +31,7 @@ import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
 import areca.common.testrunner.After;
 import areca.common.testrunner.Before;
+import areca.common.testrunner.Skip;
 import areca.common.testrunner.Test;
 
 /**
@@ -161,6 +162,7 @@ public class SimpleModelTest {
     
     
     @Test
+    @Skip
     public void testQueryName() {
         ResultSet<Person> rs = uow.query( Person.class )
                 .where( Expressions.eq( Expressions.template( Person.class, repo ).name, "Philipp" ) )

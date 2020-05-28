@@ -22,6 +22,7 @@ import org.polymap.model2.Description;
 import org.polymap.model2.Entity;
 import org.polymap.model2.Nullable;
 import org.polymap.model2.Property;
+import org.polymap.model2.Queryable;
 
 /**
  * 
@@ -39,7 +40,8 @@ public /*abstract*/ class Person
     //public static Person TYPE;
     
     @Nullable
-    @Concerns( InvocationCountConcern.class )
+    @Queryable
+    @Concerns( {InvocationCountConcern.class} )
     public Property<String>         name;
 
     /** Defaults to "Ulli". Not Nullable. */
