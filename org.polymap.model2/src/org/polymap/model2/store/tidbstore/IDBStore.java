@@ -57,6 +57,8 @@ public class IDBStore
     
     private int                     dbVersion;
     
+    private boolean                 deleteOnStartup;
+
     private StoreRuntimeContext     context;
 
     IDBDatabase                     db;
@@ -67,10 +69,11 @@ public class IDBStore
     
     EventHandler            onBlockedHandler;
 
-    
-    public IDBStore( String dbName, int dbVersion ) {
+
+    public IDBStore( String dbName, int dbVersion, boolean deleteOnStartup ) {
         this.dbName = Assert.notNull( dbName );
         this.dbVersion = dbVersion;
+        this.deleteOnStartup = deleteOnStartup;
         
         onErrorHandler = (Event ev) -> { 
             LOG.warn( "error during request: " + ev.getType() );
@@ -89,6 +92,11 @@ public class IDBStore
     public void init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
         this.context = context;
         IDBFactory factory = IDBFactory.getInstance();
+     
+        if (deleteOnStartup) {
+            LOG.info( "Deleting database: " + dbName + " ..." );
+            waitFor( factory.deleteDatabase( dbName ) );
+        }
         IDBOpenDBRequest request = factory.open( dbName, dbVersion );
         request.setOnError( onErrorHandler );
         request.setOnSuccess( onSuccessHandler );
@@ -132,7 +140,7 @@ public class IDBStore
      * Wair for the given request to become ready.
      * <p>
      * XXX This is probably a bad solution. But model2 does not currently have an
-     * async API so I'm going with this to make any progress and learn about IDB.
+     * async API so I'm going with this to make some progress and learn about IDB.
      * Later I maybe I will think about async API in model2. 
      *
      * @return The completed request.
@@ -140,6 +148,7 @@ public class IDBStore
     <R extends IDBRequest> R waitFor( R request ) {
         if (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
             
+            // XXX check if we are inside a javascript callback
             Long monitor = System.currentTimeMillis();
             EventListener<Event> listener = (Event ev) -> {
                 synchronized (monitor) {

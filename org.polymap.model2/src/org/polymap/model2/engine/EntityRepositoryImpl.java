@@ -67,7 +67,7 @@ public class EntityRepositoryImpl
         while (!queue.isEmpty()) {
             ClassInfo<? extends Composite> typeInfo = queue.poll();
             if (!infos.containsKey( typeInfo )) {
-                log.debug( "    Composite type: " + typeInfo );
+                log.debug( "    " + typeInfo.simpleName() );
                 CompositeInfoImpl<?> info = new CompositeInfoImpl<>( typeInfo );
                 if (infos.put( typeInfo, info ) != null) {
                     throw new ModelRuntimeException( "CompositeInfo already registered for: " + typeInfo );

@@ -38,7 +38,7 @@ public class ObjectStoreBuilder {
     
     private IDBStore        store;
 
-    private IDBDatabase db;
+    private IDBDatabase     db;
 
     
     public ObjectStoreBuilder( IDBStore store ) {

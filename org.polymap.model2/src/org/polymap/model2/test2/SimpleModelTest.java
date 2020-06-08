@@ -55,7 +55,7 @@ public class SimpleModelTest {
         //log.info( "" + InvocationCountConcern.info );
         repo = EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "test2", 3 ) )
+                .store.set( new IDBStore( "test2", 3, false ) )
                 .create();
         log.info( "MAIN: repo created" );    
     }
