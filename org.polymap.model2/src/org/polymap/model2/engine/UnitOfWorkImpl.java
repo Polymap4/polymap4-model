@@ -353,7 +353,7 @@ public class UnitOfWorkImpl
         }
         catch (Exception e) {
             prepareResult = e;
-            throw new ModelRuntimeException( e );
+            throw (ModelRuntimeException)e;
         }
     }
 
@@ -370,7 +370,8 @@ public class UnitOfWorkImpl
                 throw e;
             }
             catch (Exception e) {
-                throw new ModelRuntimeException( e );
+                e.printStackTrace();
+                throw (ModelRuntimeException)e;
             }
 //            finally {
 //                if (prepareResult != PREPARED) {

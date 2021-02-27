@@ -19,18 +19,18 @@ import java.util.Arrays;
 import org.teavm.jso.core.JSString;
 import org.teavm.jso.dom.events.Event;
 import org.teavm.jso.dom.events.EventListener;
+import org.teavm.jso.indexeddb.EventHandler;
+import org.teavm.jso.indexeddb.IDBDatabase;
+import org.teavm.jso.indexeddb.IDBFactory;
+import org.teavm.jso.indexeddb.IDBOpenDBRequest;
+import org.teavm.jso.indexeddb.IDBRequest;
+import org.teavm.jso.indexeddb.IDBTransaction;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
-import org.polymap.model2.store.tidbstore.indexeddb.EventHandler;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBDatabase;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBFactory;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBOpenDBRequest;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.Assert;
 import areca.common.log.LogFactory;

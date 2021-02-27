@@ -65,7 +65,7 @@ public abstract class SimpleModelTest
     }
 
 
-    public void testProperties() throws Exception {    
+    public void testProperties() throws Exception {
         Employee employee = uow.createEntity( Employee.class, null );
         log.info( "Employee: id=" + employee.id() );
 //        assertEquals( employee.id(), "employee1" );

@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.teavm.jso.JSObject;
+import org.teavm.jso.indexeddb.IDBCursor;
+import org.teavm.jso.indexeddb.IDBObjectStore;
+import org.teavm.jso.indexeddb.IDBRequest;
+import org.teavm.jso.indexeddb.IDBTransaction;
 
 import org.apache.commons.lang3.mutable.MutableObject;
 
@@ -32,10 +36,6 @@ import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBCursor;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.base.Function;
 import areca.common.base.Sequence;

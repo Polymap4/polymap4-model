@@ -19,11 +19,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import org.teavm.jso.indexeddb.IDBDatabase;
+import org.teavm.jso.indexeddb.IDBObjectStoreParameters;
+
 import org.polymap.model2.Entity;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBDatabase;
-import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStoreParameters;
 
 import areca.common.reflect.ClassInfo;
 

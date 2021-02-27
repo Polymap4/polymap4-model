@@ -29,35 +29,14 @@
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>areca</groupId> <!-- TIndexedDbStore -->
-            <artifactId>areca.rt.teavm</artifactId>
+            <groupId>areca</groupId>
+            <artifactId>areca.rt.teavm</artifactId>  <!-- TIndexedDbStore -->
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 <!--         <dependency> -->
-<!--             <groupId>commons-io</groupId> -->
-<!--             <artifactId>commons-io</artifactId> -->
-<!--             <version>2.4</version> -->
-<!--         </dependency> -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.3.2</version>
-        </dependency>
-<!--         <dependency> -->
-<!--             <groupId>com.google.guava</groupId> -->
-<!--             <artifactId>guava</artifactId> -->
-<!--             <version>18.0</version> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>javax.cache</groupId> -->
-<!--             <artifactId>cache-api</artifactId> -->
-<!--             <version>1.0.0</version> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>junit</groupId> -->
-<!--             <artifactId>junit</artifactId> -->
-<!--             <version>4.12</version> -->
-<!--            <scope>test</scope> -->
+<!--             <groupId>org.apache.commons</groupId> -->
+<!--             <artifactId>commons-lang3</artifactId> -->
+<!--             <version>3.3.2</version> -->
 <!--         </dependency> -->
     </dependencies>
 
@@ -83,6 +62,9 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
+                            <excludes>
+                                <exclude>/org/polymap/model2/store/tidbstore/indexeddb/**</exclude>
+                            </excludes>
                             <annotationProcessors>
                                 <annotationProcessor>areca.common.reflect.ReflectAnnotationProcessor</annotationProcessor>
                             </annotationProcessors>
@@ -109,8 +91,14 @@
                     <attach>true</attach>
                 </configuration>
             </plugin>
-            
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>bintray-model2</id>
+            <url>https://api.bintray.com/maven/fb71/model2/model2-dev/;publish=1</url>
+        </repository>
+    </distributionManagement>
     
 </project>

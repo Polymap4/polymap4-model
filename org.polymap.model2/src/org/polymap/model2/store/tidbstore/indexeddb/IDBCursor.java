@@ -57,6 +57,6 @@ public abstract class IDBCursor implements JSObject {
     /** XXX falko: check after {@link #doContinue()} */
     @NoSideEffects
     @JSBody(script = "return this === null;")
-    public native boolean isNull();
+    public abstract boolean isNull();
 
 }
