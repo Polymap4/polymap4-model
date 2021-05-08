@@ -269,7 +269,7 @@ public class UnitOfWorkImpl
                 // modified
                 // XXX not cached, done for every call to iterator()
                 @SuppressWarnings( "unchecked" )
-                Sequence<T,RuntimeException> modifiedResults = Sequence.of( RuntimeException.class, modified.values() )
+                Sequence<T,RuntimeException> modifiedResults = Sequence.of( modified.values(), RuntimeException.class )
                         .filter( entity -> {
                             return entity.getClass().equals( entityClass ) 
                                     && (entity.status() == CREATED || entity.status() == MODIFIED)
