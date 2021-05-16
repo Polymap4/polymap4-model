@@ -16,6 +16,8 @@ package org.polymap.model2.store;
 
 import java.beans.PropertyDescriptor;
 
+import areca.common.Promise;
+
 /**
  * 
  *
@@ -23,7 +25,7 @@ import java.beans.PropertyDescriptor;
  */
 public interface StoreSPI {
 
-    public void init( StoreRuntimeContext context );
+    public Promise<Void> init( StoreRuntimeContext context );
     
     public void close();
 

@@ -14,9 +14,13 @@
  */
 package org.polymap.model2.store;
 
+import java.util.Collection;
+
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
+import org.polymap.model2.runtime.UnitOfWork.Submitted;
 
+import areca.common.Promise;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -73,11 +77,7 @@ public abstract class StoreDecorator
             this.suow = suow;
         }
 
-        public void prepareCommit( Iterable<Entity> modified ) throws Exception {
-            suow.prepareCommit( modified );
-        }
-
-        public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
+        public <T extends Entity> Promise<CompositeState> loadEntityState( Object id, Class<T> entityClass ) {
             return suow.loadEntityState( id, entityClass );
         }
 
@@ -89,22 +89,21 @@ public abstract class StoreDecorator
             return suow.newEntityState( id, entityClass );
         }
 
-        public StoreResultSet executeQuery( Query query ) {
+        public <T extends Entity> Promise<CompositeStateReference> executeQuery( Query<T> query ) {
             return suow.executeQuery( query );
         }
 
-        public void commit() {
-            suow.commit();
-        }
-
-        public void close() {
-            suow.close();
+        public Promise<Submitted> submit( Collection<Entity> modified ) {
+            return suow.submit( modified );
         }
 
         public void rollback( Iterable<Entity> modified ) {
             suow.rollback( modified );
         }
-        
+
+        public void close() {
+            suow.close();
+        }
     }
 
     

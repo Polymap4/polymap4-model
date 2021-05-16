@@ -14,9 +14,14 @@
  */
 package org.polymap.model2.store;
 
+import java.util.Collection;
+
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.UnitOfWork;
+import org.polymap.model2.runtime.UnitOfWork.Submitted;
+
+import areca.common.Promise;
 
 /**
  * Represents the store interface provided by an underlying store to be
@@ -38,7 +43,7 @@ public interface StoreUnitOfWork {
      * @return The {@link CompositeState}, or null if no entity exists for the given
      *         identifier.
      */
-    public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass );
+    public <T extends Entity> Promise<CompositeState> loadEntityState( Object id, Class<T> entityClass );
 
     public <T extends Entity> CompositeState adoptEntityState( Object state, Class<T> entityClass );
 
@@ -55,11 +60,11 @@ public interface StoreUnitOfWork {
     /**
      * 
      */
-    public <T extends Entity> StoreResultSet executeQuery( Query<T> query );
+    public <T extends Entity> Promise<CompositeStateReference> executeQuery( Query<T> query );
     
-    public void prepareCommit( Iterable<Entity> modified ) throws Exception;
+    public Promise<Submitted> submit( Collection<Entity> modified );
     
-    public void commit();
+    // public void commit();
     
     public void rollback( Iterable<Entity> modified );
 

@@ -14,19 +14,16 @@
  */
 package org.polymap.model2.store.tidbstore;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import org.teavm.jso.indexeddb.IDBDatabase;
 import org.teavm.jso.indexeddb.IDBObjectStoreParameters;
 
-import org.polymap.model2.Entity;
-import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
 
-import areca.common.reflect.ClassInfo;
+import areca.common.base.Sequence;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 
@@ -35,7 +32,7 @@ import areca.common.reflect.ClassInfo;
  */
 public class ObjectStoreBuilder {
 
-    private static final Logger LOG = Logger.getLogger( IDBStore.class.getName() );
+    private static final Log LOG = LogFactory.getLog( ObjectStoreBuilder.class );
     
     private IDBStore        store;
 
@@ -47,21 +44,23 @@ public class ObjectStoreBuilder {
     }
 
 
-    public void checkSchemas( EntityRepository repo, IDBDatabase db ) {
+    public void checkSchemas( EntityRepository repo, @SuppressWarnings("hiding") IDBDatabase db, boolean clear ) {
         this.db = db;
-        Set<String> objectStoreNames = new HashSet<>( Arrays.asList( db.getObjectStoreNames() ) );
+        Set<String> objectStoreNames = Sequence.of( db.getObjectStoreNames() ).toSet();
         
-        for (ClassInfo<? extends Entity> entityClassInfo : repo.getConfig().entities.get()) {
-            CompositeInfo<? extends Entity> info = repo.infoOf( entityClassInfo );
-            if (!objectStoreNames.contains( info.getNameInStore() )) {
-                createSchema( info ); 
+        for (var entityClassInfo : repo.getConfig().entities.get()) {
+            var info = repo.infoOf( entityClassInfo );
+            String name = info.getNameInStore();
+
+            if (objectStoreNames.contains( name ) && clear) {
+                LOG.debug( "Deleting schema: %s ...", name );
+                db.deleteObjectStore( name );                
+            }
+            
+            if (!objectStoreNames.contains( name ) || clear) {
+                LOG.debug( "Creating schema: %s ...", name );
+                db.createObjectStore( name, IDBObjectStoreParameters.create()/*.keyPath( "id" )*/ ); 
             }
         }
-    }
-
-
-    protected void createSchema( CompositeInfo<? extends Entity> info ) {
-        LOG.info( "Creating schema: " + info + " ..." );
-        db.createObjectStore( info.getNameInStore(), IDBObjectStoreParameters.create().keyPath( "id" ) );
     }
 }

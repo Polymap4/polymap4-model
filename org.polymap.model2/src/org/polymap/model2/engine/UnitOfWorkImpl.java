@@ -14,23 +14,15 @@
  */
 package org.polymap.model2.engine;
 
-import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
-import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-import java.io.IOException;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.query.Query;
-import org.polymap.model2.query.ResultSet;
-import org.polymap.model2.runtime.ConcurrentEntityModificationException;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.Lifecycle;
 import org.polymap.model2.runtime.Lifecycle.State;
@@ -38,12 +30,12 @@ import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.runtime.locking.CommitLockStrategy;
-import org.polymap.model2.store.CloneCompositeStateSupport;
 import org.polymap.model2.store.CompositeState;
-import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Promise;
+import areca.common.base.Opt;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -56,9 +48,9 @@ import areca.common.log.LogFactory.Log;
 public class UnitOfWorkImpl
         implements UnitOfWork {
 
-    private static final Log log = LogFactory.getLog( UnitOfWorkImpl.class );
+    private static final Log LOG = LogFactory.getLog( UnitOfWorkImpl.class );
 
-    protected static final Exception        PREPARED = new Exception( "Successfully prepared for commit." );
+//    protected static final Exception        PREPARED = new Exception( "Successfully prepared for commit." );
     
     private static AtomicInteger            idCount = new AtomicInteger( (int)Math.abs( System.currentTimeMillis() ) );
     
@@ -67,15 +59,13 @@ public class UnitOfWorkImpl
     /** Only set if this is the root UnitOfwork, or null if this is a nested instance. */
     protected StoreUnitOfWork               storeUow;
     
-    /** id -> entity */
+    /** Cache of all loaded entities: id -> entity */
     protected Map<Object,Entity>            loaded;
     
     protected Map<String,Composite>         loadedMixins;
     
     /** Strong reference to Entities that must not be GCed from {@link #loaded} cache. */
     protected Map<Object,Entity>            modified;
-    
-    protected volatile Exception            prepareResult;
     
     protected CommitLockStrategy            commitLock;
 
@@ -131,7 +121,7 @@ public class UnitOfWorkImpl
         
         // build id; don't depend on store's ability to deliver id for newly created state
         id = id != null ? id : entityClass.getSimpleName() + "." + idCount.getAndIncrement();
-        log.info( "id = " + id );
+        LOG.debug( "id = " + id );
 
         CompositeState state = storeUow.newEntityState( id, entityClass );
         Assert.that( id == null || state.id().equals( id ) );
@@ -160,41 +150,26 @@ public class UnitOfWorkImpl
 
 
     @Override
-    public <T extends Entity> T entity( final Class<T> entityClass, final Object id ) {
-        return entity( entityClass, id, null );
-    }
-
-
-    @Override
-    @SuppressWarnings( "unchecked" )
-    public <T extends Entity> T entity( T entity ) {
-        return entity( (Class<T>)entity.getClass(), entity.id() );
-    }
-
-
-    /**
-     * 
-     *
-     * @param entityClass
-     * @param id
-     * @param preloaded Optional supplier of an already loaded CompositeState.
-     * @return
-     */
-    protected <T extends Entity> T entity( 
-            final Class<T> entityClass,
-            final Object id, 
-            final Supplier<CompositeState> preloaded ) {
-        
-        assert entityClass != null : "Given entity Class is null.";
-        assert id != null : "Given Id is null.";
+    @SuppressWarnings("unchecked")
+    public <T extends Entity> Promise<T> entity( final Class<T> entityClass, final Object id ) {
+        Assert.notNull( entityClass, "Given entity Class is null." );
+        Assert.notNull( id, "Given Id is null." );
         checkOpen();
-        @SuppressWarnings( "unchecked" )
-        T result = (T)loaded.computeIfAbsent( id, key -> {
-                CompositeState state = preloaded != null ? preloaded.get() : null;
-                state = state != null ? state : storeUow.loadEntityState( id, entityClass );
-                return state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
-        });
-        return result != null && result.status() != EntityStatus.REMOVED ? result : null;
+
+        Promise.Completable<T> result = new Promise.Completable<>();
+        if (loaded.containsKey( id )) {
+            LOG.debug( "entity(): CACHED" );
+            result.complete( (T)loaded.get( id ) );
+        }
+        else {
+            storeUow.loadEntityState( id, entityClass ).onSuccess( state -> {
+                LOG.debug( "entity(): LOADED: %s", state );
+                T entity = state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
+                loaded.put( id, entity );
+                result.complete( entity != null && entity.status() != EntityStatus.REMOVED ? entity : null );
+            });
+        }
+        return result;
     }
 
 
@@ -243,7 +218,7 @@ public class UnitOfWorkImpl
         checkOpen();
         return new Query<T>( entityClass ) {
             @Override
-            public ResultSet<T> execute() {
+            public Promise<Opt<T>> execute() {
                 // the preloaded entity from the CompositeStateReference is used to build the
                 // entity; but we are not keeping a strong ref to it in order to allow the cache to
                 // evict the entity state; 
@@ -252,53 +227,76 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
-                // unmodified
-                StoreResultSet rs = storeUow.executeQuery( this );
-                Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )
-                        .transform( ref -> entity( entityClass, ref.id(), ref ) )
-                        .filter( entity -> {
-                            EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-                            Assert.that( status != EntityStatus.CREATED ); 
-                            return status == EntityStatus.LOADED;                                                        
-                        })
-                        // XXX remove when IDBStore supports indexed
-                        .filter( entity -> {
-                            return expression.evaluate( entity );
+                var promise = new Promise.Completable<Opt<T>>();
+                storeUow.executeQuery( this ).onSuccess( ref -> {
+                    if (ref == null) {
+                        promise.complete( Opt.absent() );
+                    }
+                    else {
+                        @SuppressWarnings( "unchecked" )
+                        T entity = (T)loaded.computeIfAbsent( ref.id(), key -> {
+                            CompositeState state = ref.get();
+                            return repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
                         });
-                
-                // modified
-                // XXX not cached, done for every call to iterator()
-                @SuppressWarnings( "unchecked" )
-                Sequence<T,RuntimeException> modifiedResults = Sequence.of( modified.values(), RuntimeException.class )
-                        .filter( entity -> {
-                            return entity.getClass().equals( entityClass ) 
-                                    && (entity.status() == CREATED || entity.status() == MODIFIED)
-                                    && expression.evaluate( entity );
-                        })
-                        .transform( entity -> (T)entity );
+                        EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
+                        Assert.that( status != EntityStatus.CREATED );
+                        Assert.that( status != EntityStatus.MODIFIED, "Not yet ..." );
 
-                // ResultSet, caching the ids for subsequent runs
-                Iterable<T> allResults = unmodifiedResults.concat( modifiedResults ).asIterable();
-                return new CachingResultSet<T>( allResults.iterator() ) {
-                    @Override
-                    protected T entity( Object id ) {
-                        return UnitOfWorkImpl.this.entity( entityClass, id, null );
+                        // XXX remove when IDBStore supports indexed
+                        if (expression.evaluate( entity )) {
+                            promise.consumeResult( Opt.of( entity ) );
+                        }
                     }
-                    @Override
-                    public int size() {
-                        return cachedSize.supply( () ->
-                                delegate == null
-                                    ? cachedIds.size()
-                                    : modified.isEmpty() 
-                                            ? rs.size()
-                                            : Sequence.of( iterator() ).count() );
-                    }
-                    @Override
-                    public void close() {
-                        rs.close();
-                        super.close();
-                    }
-                };
+                });
+                return promise;
+                
+                
+                
+//                Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )
+//                        .transform( ref -> entity( entityClass, ref.id(), ref ) )
+//                        .filter( entity -> {
+//                            EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
+//                            Assert.that( status != EntityStatus.CREATED ); 
+//                            return status == EntityStatus.LOADED;                                                        
+//                        })
+//                        // XXX remove when IDBStore supports indexed
+//                        .filter( entity -> {
+//                            return expression.evaluate( entity );
+//                        });
+//                
+//                // modified
+//                // XXX not cached, done for every call to iterator()
+//                @SuppressWarnings( "unchecked" )
+//                Sequence<T,RuntimeException> modifiedResults = Sequence.of( modified.values(), RuntimeException.class )
+//                        .filter( entity -> {
+//                            return entity.getClass().equals( entityClass ) 
+//                                    && (entity.status() == CREATED || entity.status() == MODIFIED)
+//                                    && expression.evaluate( entity );
+//                        })
+//                        .transform( entity -> (T)entity );
+//
+//                // ResultSet, caching the ids for subsequent runs
+//                Iterable<T> allResults = unmodifiedResults.concat( modifiedResults ).asIterable();
+//                return new CachingResultSet<T>( allResults.iterator() ) {
+//                    @Override
+//                    protected T entity( Object id ) {
+//                        return UnitOfWorkImpl.this.entity( entityClass, id, null );
+//                    }
+//                    @Override
+//                    public int size() {
+//                        return cachedSize.supply( () ->
+//                                delegate == null
+//                                    ? cachedIds.size()
+//                                    : modified.isEmpty() 
+//                                            ? rs.size()
+//                                            : Sequence.of( iterator() ).count() );
+//                    }
+//                    @Override
+//                    public void close() {
+//                        rs.close();
+//                        super.close();
+//                    }
+//                };
             }
         };
     }
@@ -307,12 +305,13 @@ public class UnitOfWorkImpl
     @Override
     public UnitOfWork newUnitOfWork() {
         checkOpen();
-        if (storeUow instanceof CloneCompositeStateSupport) {
-            return new UnitOfWorkNested( repo, (CloneCompositeStateSupport)storeUow, this );
-        }
-        else {
-            throw new UnsupportedOperationException( "The current store backend does not support cloning states (nested UnitOfWork): " + storeUow );
-        }
+        throw new UnsupportedOperationException( "Not implemented: nested UnitOfWork" );
+//        if (storeUow instanceof CloneCompositeStateSupport) {
+//            return new UnitOfWorkNested( repo, (CloneCompositeStateSupport)storeUow, this );
+//        }
+//        else {
+//            throw new UnsupportedOperationException( "The current store backend does not support cloning states (nested UnitOfWork): " + storeUow );
+//        }
     }
 
 
@@ -329,7 +328,7 @@ public class UnitOfWorkImpl
                     ((Lifecycle)entity).onLifecycleChange( state );
                 }
                 catch (Throwable e) {
-                    log.warn( "Error while calling onLifecycleChange()", e );
+                    LOG.warn( "Error while calling onLifecycleChange()", e );
                 }
             }
         }
@@ -337,64 +336,25 @@ public class UnitOfWorkImpl
     
     
     @Override
-    public void prepare() throws IOException, ConcurrentEntityModificationException {
+    public Promise<Submitted> submit() {
         checkOpen();
-        commitLock.lock();
-        try {
-            prepareResult = null;
-            lifecycle( State.BEFORE_PREPARE );
-            storeUow.prepareCommit( modified.values() );
-            lifecycle( State.AFTER_PREPARE );
-            prepareResult = PREPARED;
-        }
-        catch (ModelRuntimeException|IOException e) {
-            prepareResult = e;
-            throw e;
-        }
-        catch (Exception e) {
-            prepareResult = e;
-            throw (ModelRuntimeException)e;
-        }
+        //commitLock.lock();
+
+        lifecycle( State.BEFORE_PREPARE );
+        return storeUow.submit( modified.values() ).onSuccess( submitted -> {
+            lifecycle( State.AFTER_PREPARE );            
+
+            // commit store
+            lifecycle( State.BEFORE_COMMIT );
+            resetStatusLoaded();
+            lifecycle( State.AFTER_COMMIT );
+            
+            modified.clear();
+            commitLock.unlock( true );
+        });        
     }
 
 
-    @Override
-    public void commit() throws ModelRuntimeException {
-        checkOpen();
-        // prepare if not yet done
-        if (prepareResult == null) {
-            try {
-                prepare();
-            }
-            catch (ModelRuntimeException e) {
-                throw e;
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                throw (ModelRuntimeException)e;
-            }
-//            finally {
-//                if (prepareResult != PREPARED) {
-//                    rollback();
-//                }
-//            }
-        }
-        if (prepareResult != PREPARED) {
-            throw new ModelRuntimeException( "UnitOfWork is not prepared successfully for commit." );
-        }
-        // commit store
-        lifecycle( State.BEFORE_COMMIT );
-        storeUow.commit();
-        prepareResult = null;
-        
-        resetStatusLoaded();
-        lifecycle( State.AFTER_COMMIT );
-        
-        modified.clear();
-        commitLock.unlock( true );
-    }
-
-    
     /** 
      * Reset status of all {@link #modified} entities (after {@link #commit()}).
      */
@@ -409,12 +369,12 @@ public class UnitOfWorkImpl
         }
         
         // all Entities in loaded have LOADED state?
-        Assert.that( loaded.values().stream().allMatch( e -> e.status() == EntityStatus.LOADED ) );
+        Assert.that( Sequence.of( loaded.values() ).allMatch( e -> e.status() == EntityStatus.LOADED ) );
     }
 
     
     @Override
-    public void rollback() throws ModelRuntimeException {
+    public void reset() throws ModelRuntimeException {
         checkOpen();
         lifecycle( State.BEFORE_ROLLBACK );
         
@@ -439,7 +399,6 @@ public class UnitOfWorkImpl
         lifecycle( State.AFTER_ROLLBACK );
 
         modified.clear();        
-        prepareResult = null;        
         commitLock.unlock( true );
     }
 

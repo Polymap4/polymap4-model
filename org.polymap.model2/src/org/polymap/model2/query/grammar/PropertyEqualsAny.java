@@ -14,6 +14,10 @@
  */
 package org.polymap.model2.query.grammar;
 
+import java.util.Arrays;
+
+import org.apache.commons.lang3.StringUtils;
+
 import org.polymap.model2.Composite;
 import org.polymap.model2.Property;
 import org.polymap.model2.engine.TemplateProperty;
@@ -49,4 +53,10 @@ public class PropertyEqualsAny<T>
         return false;
     }
     
+    @Override
+    public String toString() {
+        return  String.join( " ", prop.info().getName(), opName(), 
+                StringUtils.abbreviate( Arrays.asList( values ).toString(), 80 ) );
+    }
+
 }

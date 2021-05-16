@@ -16,14 +16,14 @@ package org.polymap.model2.store.tidbstore;
 
 import java.util.Arrays;
 
+import java.io.IOException;
+
 import org.teavm.jso.core.JSString;
 import org.teavm.jso.dom.events.Event;
-import org.teavm.jso.dom.events.EventListener;
 import org.teavm.jso.indexeddb.EventHandler;
 import org.teavm.jso.indexeddb.IDBDatabase;
 import org.teavm.jso.indexeddb.IDBFactory;
 import org.teavm.jso.indexeddb.IDBOpenDBRequest;
-import org.teavm.jso.indexeddb.IDBRequest;
 import org.teavm.jso.indexeddb.IDBTransaction;
 
 import org.polymap.model2.Composite;
@@ -33,6 +33,7 @@ import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Promise;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -80,32 +81,33 @@ public class IDBStore
             //throw new RuntimeException( "Error during IndexedDB request." );
         };
         onSuccessHandler = (Event ev) -> {
-            LOG.info( "request successfully completed: '" + ev.getType() + "'" );
+            LOG.debug( "request successfully completed: '" + ev.getType() + "'" );
         };
         onBlockedHandler = (Event ev) -> {
-            LOG.info( "request blocked" );
+            LOG.info( "request is BLOCKED..." );
         };
     }
 
 
     @Override
-    public void init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
+    public Promise<Void> init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
         this.context = context;
         IDBFactory factory = IDBFactory.getInstance();
      
-        if (deleteOnStartup) {
-            LOG.info( "Deleting database: " + dbName + " ..." );
-            waitFor( factory.deleteDatabase( dbName ) );
-        }
+        var promise = new Promise.Completable<Void>();
         IDBOpenDBRequest request = factory.open( dbName, dbVersion );
-        request.setOnError( onErrorHandler );
-        request.setOnSuccess( onSuccessHandler );
+        request.setOnError( ev -> {
+            promise.completeWithError( new IOException( "Unable to init IDBStore: " + ev ) );
+        });
+        request.setOnSuccess( ev -> {
+            db = request.getResult();
+            promise.complete( null );
+        });
         request.setOnBlocked( onBlockedHandler );
         request.setOnUpgradeNeeded( ev -> {
-            new ObjectStoreBuilder( this ).checkSchemas( context.getRepository(), request.getResult() );            
+            new ObjectStoreBuilder( this ).checkSchemas( context.getRepository(), request.getResult(), deleteOnStartup );            
         });
-        
-        db = waitFor( request ).getResult();
+        return promise;
     }
 
     
@@ -126,50 +128,50 @@ public class IDBStore
 
 
     IDBTransaction transaction( TxMode mode, String... storeNames ) {
-        LOG.info( "TX: " + mode + " for " + Arrays.asList( storeNames ) );
+        LOG.debug( "TX: " + mode + " for " + Arrays.asList( storeNames ) );
         IDBTransaction tx = db.transaction( storeNames, mode.name().toLowerCase() );
         tx.setOnError( onErrorHandler );
         tx.setOnComplete( (Event ev) -> {
-            LOG.info( "TX: completed" );
+            LOG.debug( "TX: completed" );
         });
         return tx;
     }
 
     
-    /**
-     * Wair for the given request to become ready.
-     * <p>
-     * XXX This is probably a bad solution. But model2 does not currently have an
-     * async API so I'm going with this to make some progress and learn about IDB.
-     * Later I maybe I will think about async API in model2. 
-     *
-     * @return The completed request.
-     */
-    <R extends IDBRequest> R waitFor( R request ) {
-        if (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
-            
-            // XXX check if we are inside a javascript callback
-            Long monitor = System.currentTimeMillis();
-            EventListener<Event> listener = (Event ev) -> {
-                synchronized (monitor) {
-                    monitor.notifyAll();
-                }
-            };
-            request.addEventListener( "success", listener );
-            request.addEventListener( "error", listener );
-
-            while (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
-                try {
-                    synchronized (monitor) {
-                        monitor.wait( 500 );
-                    }
-                } 
-                catch (InterruptedException e) {}
-            }
-            LOG.debug( "request ready. (" + (System.currentTimeMillis()-monitor) + "ms)" );
-        }
-        return request;
-    }
+//    /**
+//     * Wait for the given request to become ready.
+//     * <p>
+//     * XXX This is probably a bad solution. But model2 does not currently have an
+//     * async API so I'm going with this to make some progress and learn about IDB.
+//     * Later I maybe I will think about async API in model2. 
+//     *
+//     * @return The completed request.
+//     */
+//    <R extends IDBRequest> R waitFor( R request ) {
+//        if (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
+//            
+//            // XXX check if we are inside a javascript callback
+//            Long monitor = System.currentTimeMillis();
+//            EventListener<Event> listener = (Event ev) -> {
+//                synchronized (monitor) {
+//                    monitor.notifyAll();
+//                }
+//            };
+//            request.addEventListener( "success", listener );
+//            request.addEventListener( "error", listener );
+//
+//            while (request.getReadyState().equals( IDBRequest.STATE_PENDING )) {
+//                try {
+//                    synchronized (monitor) {
+//                        monitor.wait( 500 );
+//                    }
+//                } 
+//                catch (InterruptedException e) {}
+//            }
+//            LOG.debug( "request ready. (" + (System.currentTimeMillis()-monitor) + "ms)" );
+//        }
+//        return request;
+//    }
 
     
     @Override

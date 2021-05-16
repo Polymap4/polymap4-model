@@ -21,11 +21,15 @@ import java.io.IOException;
 import org.polymap.model2.Entity;
 import org.polymap.model2.Nullable;
 import org.polymap.model2.query.Query;
-import org.polymap.model2.query.ResultSet;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.locking.OptimisticLocking;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreSPI;
+
+import areca.common.Assert;
+import areca.common.Promise;
+import areca.common.base.Consumer;
+import areca.common.base.Function;
 
 /**
  * A UnitOfWork is the only way to actually <b>access</b> Entities and to work with
@@ -71,7 +75,7 @@ public interface UnitOfWork
      *         Also returns null if the Entity was {@link #removeEntity(Entity)
      *         removed} for this UnitOfWork.
      */
-    public <T extends Entity> T entity( Class<T> entityClass, Object id );
+    public <T extends Entity> Promise<T> entity( Class<T> entityClass, Object id );
 
     /**
      * 
@@ -83,7 +87,10 @@ public interface UnitOfWork
      *         Also returns null if the Entity was {@link #removeEntity(Entity)
      *         removed} for this UnitOfWork.
      */
-    public <T extends Entity> T entity( T entity );
+    @SuppressWarnings( "unchecked" )
+    public default <T extends Entity> Promise<T> entity( T entity ) {
+        return entity( (Class<T>)entity.getClass(), entity.id() );
+    }
 
 //    public <T extends Composite> T mixin( Class<T> entityClass, Entity entity );
 
@@ -105,8 +112,22 @@ public interface UnitOfWork
     public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer );
 
     
-    public default <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
-        return createEntity( entityClass, id, null );
+    public default <T extends Entity,E extends Exception> T createEntity( Class<T> entityClass, Consumer<T,E> initializer ) throws E {
+        Assert.notNull( initializer, "Initializer must not be null." );
+        return createEntity( entityClass, null, proto -> {
+            initializer.accept( proto );
+            return proto;
+        });
+    }
+
+    
+//    public default <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
+//        return createEntity( entityClass, id, null );
+//    }
+
+    
+    public default <T extends Entity> T createEntity( Class<T> entityClass ) {
+        return createEntity( entityClass, null, null );
     }
 
 
@@ -143,19 +164,22 @@ public interface UnitOfWork
      *         properly.
      * @throws ConcurrentEntityModificationException
      */
-    public void prepare() throws IOException, ConcurrentEntityModificationException;
+    public Promise<Submitted> submit(); // throws IOException, ConcurrentEntityModificationException;
 
+    public interface Submitted {
+        
+    }
 
-    /**
-     * Persistently stores all modifications that were made within this UnitOfWork.
-     * If {@link #prepare()} has not been called yet then it is done by this method.
-     * <p/>
-     * This does not close this {@link UnitOfWork} but may flush internal caches.
-     * 
-     * @throws ModelRuntimeException If {@link #prepare()} was called by this method
-     *         and a exception occured.
-     */
-    public void commit() throws ModelRuntimeException;
+//    /**
+//     * Persistently stores all modifications that were made within this UnitOfWork.
+//     * If {@link #prepare()} has not been called yet then it is done by this method.
+//     * <p/>
+//     * This does not close this {@link UnitOfWork} but may flush internal caches.
+//     * 
+//     * @throws ModelRuntimeException If {@link #prepare()} was called by this method
+//     *         and a exception occured.
+//     */
+//    public void commit() throws ModelRuntimeException;
 
     
     /**
@@ -173,12 +197,12 @@ public interface UnitOfWork
      * 
      * @throws ModelRuntimeException
      */
-    public void rollback() throws ModelRuntimeException;
+    public void reset() throws ModelRuntimeException;
 
 
     /**
      * Reload the state of the given {@link Entity} from backend store no matter what
-     * the current {@link EntityStatus} is. This is kind of a forced {@link #rollback()}
+     * the current {@link EntityStatus} is. This is kind of a forced {@link #reset()}
      * for the given entity.
      *
      * @param entity The {@link Entity} to reload.
@@ -231,11 +255,11 @@ public interface UnitOfWork
      * underlying store. Until prepare/commit the parent UnitOfWork does not see any
      * modification done in the nested instance.
      * <p/>
-     * {@link #rollback()} resets the states of the entities of the nested UnitOfWork
+     * {@link #reset()} resets the states of the entities of the nested UnitOfWork
      * to the state of the parent. Care must be taken after {@link #prepare()} has
      * been called (and it maybe failed). After {@link #prepare()} the parent
      * contains (some) modifications. So the parent <b>MUST</b> be
-     * {@link #rollback()}ed <b>before</b> the nested UnitOfWork can be rolled back.
+     * {@link #reset()}ed <b>before</b> the nested UnitOfWork can be rolled back.
      * <p/>
      * There is <b>no check for concurrent modifications</b> between the nested
      * instances! Client code has to make sure that the parent UnitOfWork is not
@@ -254,5 +278,26 @@ public interface UnitOfWork
      * {@link #newUnitOfWork()}.
      */
     public Optional<UnitOfWork> parent();
+
+
+    public default <E extends Exception> UnitOfWork submitAndClose( Consumer<UnitOfWork,E> task ) throws E {
+        try {
+            task.accept( this );
+            return this;
+        }
+        finally {
+            close();
+        }
+    }
+    
+
+    public default <R,E extends Exception> R runAndClose( Function<UnitOfWork,R,E> task ) throws E {
+        try {
+            return task.apply( this );
+        }
+        finally {
+            close();
+        }
+    }
     
 }

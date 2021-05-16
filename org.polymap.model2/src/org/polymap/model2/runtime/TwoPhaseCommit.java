@@ -60,17 +60,17 @@ public class TwoPhaseCommit {
 
         @Override
         public void prepare() throws Exception {
-            uow.prepare();
+            throw new UnsupportedOperationException("not implemented: two-phase commit");
         }
 
         @Override
         public void commit() {
-            uow.commit();
+            throw new UnsupportedOperationException("not implemented: two-phase commit");
         }
 
         @Override
         public void rollback() {
-            uow.rollback();
+            uow.reset();
         }
 
         @Override

@@ -14,10 +14,10 @@
  */
 package org.polymap.model2.store.tidbstore;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import java.io.IOException;
 
 import org.teavm.jso.JSObject;
 import org.teavm.jso.indexeddb.IDBCursor;
@@ -25,19 +25,20 @@ import org.teavm.jso.indexeddb.IDBObjectStore;
 import org.teavm.jso.indexeddb.IDBRequest;
 import org.teavm.jso.indexeddb.IDBTransaction;
 
-import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.CompositeInfo;
-import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
+import org.polymap.model2.runtime.UnitOfWork.Submitted;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.CompositeStateReference;
-import org.polymap.model2.store.StoreResultSet;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
 
-import areca.common.base.Function;
+import areca.common.Promise;
+import areca.common.base.Consumer.RConsumer;
+import areca.common.base.Function.RFunction;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -68,44 +69,58 @@ public class IDBUnitOfWork
 //        action.accept( objectStores );
 //    }
 
-    protected <RE extends IDBRequest,R> R doRequest( TxMode mode, String storeName, 
-            Function<IDBObjectStore,RE,RuntimeException> doRequest, 
-            Function<RE,R,RuntimeException> doAction ) { 
+    /**
+     * 
+     *
+     * @param <RE> The type of the {@link IDBRequest}.
+     * @param <R> The type of the result value.
+     * @param mode
+     * @param storeName
+     * @param createRequest
+     * @param handleResult
+     */
+    protected <RE extends IDBRequest,R> void doRequest( TxMode mode, String storeName, 
+            RFunction<IDBObjectStore,RE> createRequest, 
+            RConsumer<RE> handleResult,
+            RConsumer<Throwable> handleError) { 
         
         IDBTransaction tx = store.transaction( mode, storeName );
         IDBObjectStore os = tx.objectStore( storeName );
-        RE request = doRequest.apply( os );
+        RE request = createRequest.apply( os );
         
-        MutableObject<R> result = new MutableObject<>();
-        request.setOnError( store.onErrorHandler );
-        request.setOnSuccess( ev -> {
-            result.setValue( doAction.apply( request ) );
+        request.setOnError( ev -> {
+            handleError.accept( new IOException( "Event: " + ev.getType() ) );
         });
-        store.waitFor( request );
-        return result.getValue();
+        request.setOnSuccess( ev -> {
+            handleResult.accept( request );
+        });
+        //store.waitFor( request );
     }
     
     
     @Override
     public <T extends Entity> CompositeState newEntityState( Object id, Class<T> entityClass ) {
-        LOG.info( "newEntityState() ..." );
+        LOG.debug( "newEntityState() ..." );
         return new IDBCompositeState( id, entityClass );
     }
 
 
     @Override
-    public <T extends Entity> CompositeState loadEntityState( Object id, Class<T> entityClass ) {
+    public <T extends Entity> Promise<CompositeState> loadEntityState( Object id, Class<T> entityClass ) {
         CompositeInfo<T> entityInfo = store.infoOf( entityClass );
-        LOG.info( "loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
-        return doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
-                os -> {
-                    return os.get( IDBStore.id( id ) );
-                },
+        LOG.debug( "loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
+        
+        var promise = new Promise.Completable<CompositeState>();
+        doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
+                os -> os.get( IDBStore.id( id ) ),
                 request -> {
-                    JSStateObject jsObject = (JSStateObject)request.getResult();
-                    return jsObject.isUndefined() ? null : new IDBCompositeState( entityClass, jsObject );
-                }
-        );
+                    JSStateObject jso = (JSStateObject)request.getResult();
+                    LOG.debug( "    : %s", jso.isUndefined() );
+                    var result = jso.isUndefined() ? null : new IDBCompositeState( entityClass, jso );
+                    promise.complete( result );
+                },
+                error -> promise.completeWithError( error ) );
+        return promise;
     }
 
     
@@ -117,77 +132,67 @@ public class IDBUnitOfWork
 
 
     @Override
-    public <T extends Entity> StoreResultSet executeQuery( Query<T> query ) {
+    public <T extends Entity> Promise<CompositeStateReference> executeQuery( Query<T> query ) {
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
-        LOG.info( "executeQuery(): " + entityInfo.getNameInStore() + " where " + query.expression );
+        LOG.debug( "executeQuery(): %s where %s", entityInfo.getNameInStore(), query.expression );
         
-        return new StoreResultSet() {
-            String                              storeName = entityInfo.getNameInStore();
-            List<CompositeStateReference>       results = new ArrayList<>( 128 );
-            Iterator<CompositeStateReference>   resultsIt; 
-            {
-                LOG.info( "StoreResultSet init..." );
-                doRequest( TxMode.READONLY, storeName, 
-                        os -> os.openCursor(), 
-                        request -> {
-                            IDBCursor cursor = request.getResult();
-                            if (!cursor.isNull()) {
-                                JSObject jsObject = cursor.getValue();
-                                IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
-                                //if (query.expression.evaluate( state )
-                                results.add( CompositeStateReference.create( state.id(), state ) );
-                                cursor.doContinue();
-                            }
-                            return null;
-                        });
-                resultsIt = results.iterator();
-            }
-            @Override 
-            public boolean hasNext() {
-                return resultsIt.hasNext();
-            }
-            @Override 
-            public CompositeStateReference next() {
-                return resultsIt.next();
-            }
-            @Override 
-            public int size() {
-                return results.size();
-                //return doRequest( TxMode.READONLY, storeName, os -> os.count(), request -> request.getResult() );
-            }
-            @Override 
-            public void close() {
-            }
-        };
+        var promise = new Promise.Completable<CompositeStateReference>();
+        doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
+                os -> os.openCursor(), 
+                request -> {
+                    if (!promise.isCanceled()) {
+                        IDBCursor cursor = request.getResult();
+                        if (!cursor.isNull()) {
+                            JSObject jsObject = cursor.getValue();
+                            IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
+                            promise.consumeResult( CompositeStateReference.create( state.id(), state ) );
+                            cursor.doContinue();
+                        }
+                        else {
+                            // FIXME signal end
+                            promise.complete( null );
+                        }
+                    }
+                },
+                error -> promise.completeWithError( error ) );
+        return promise;
     }
 
 
     @Override
-    public void prepareCommit( Iterable<Entity> modified ) throws Exception {
+    public Promise<Submitted> submit( Collection<Entity> modified ) {
         List<String> storeNames = Sequence.of( modified )
-                .transform( entity -> entity.info().getNameInStore() )
-                .collect( Collectors.toList() );
+                .map( entity -> entity.info().getNameInStore() )
+                .toList();
 
+        var promise = new Promise.Completable<Submitted>();
+        var submitted = new Submitted() {};
+        var count = new MutableInt( modified.size() );
         for (Entity entity : modified) {
             // FIXME separated transactions!
             doRequest( TxMode.READWRITE, storeNames.get( 0 ),
                     os -> {
-                        LOG.info( entity.status() + " entity: " + entity );
-                        if (entity.status() == EntityStatus.CREATED) {
-                            return os.add( (JSObject)entity.state() );
-                        }
-                        else if (entity.status() == EntityStatus.MODIFIED) {
-                            return os.put( (JSObject)entity.state() );
-                        }
-                        else if (entity.status() == EntityStatus.REMOVED) {
-                            return os.delete( IDBStore.id( entity.id() ) );
-                        }
-                        else {
-                            throw new IllegalStateException( "Status: " + entity.status() );
+                        LOG.debug( "submit(): " + entity );
+                        switch (entity.status()) {
+                            case CREATED: 
+                                return os.add( (JSObject)entity.state(), IDBStore.id( entity.id() ) );
+                            case MODIFIED:
+                                return os.put( (JSObject)entity.state(), IDBStore.id( entity.id() ) );
+                            case REMOVED:
+                                return os.delete( IDBStore.id( entity.id() ) );
+                            default: 
+                                throw new IllegalStateException( "Status: " + entity.status() );
                         }
                     },
-                    request -> null );
+                    request -> {
+                        if (count.decrementAndGet() == 0) {
+                            LOG.debug( "submit(): completed." );
+                            promise.complete( submitted );
+                        }
+                    },
+                    error -> promise.completeWithError( error ) );
         }
+        return promise;
         
 //        tx = store.transaction( TxMode.READWRITE, storeNames );
 //        
@@ -210,11 +215,11 @@ public class IDBUnitOfWork
     }
 
 
-    @Override
-    public void commit() {
-        // FIXME
-        //tx.commit();
-    }
+//    @Override
+//    public void commit() {
+//        // FIXME
+//        //tx.commit();
+//    }
 
 
     @Override

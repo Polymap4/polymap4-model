@@ -22,6 +22,7 @@ import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.StoreProperty;
 
+import areca.common.Promise;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -59,9 +60,15 @@ class AssociationImpl<T extends Entity>
     
     
     @Override
-    public T get() {
+    @SuppressWarnings("unchecked")
+    public Promise<T> get() {
         Object id = storeProp.get();
-        return id != null ? (T)context.getUnitOfWork().entity( info().getType(), id ) : null;
+        if (id != null) { 
+            return context.getUnitOfWork().entity( info().getType(), id );
+        }
+        else {
+            throw new UnsupportedOperationException( "Not implemented" );
+        }
     }
 
     

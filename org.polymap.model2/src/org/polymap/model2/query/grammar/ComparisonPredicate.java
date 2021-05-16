@@ -36,7 +36,7 @@ public abstract class ComparisonPredicate<T>
 
     @Override
     public String toString() {
-        return  String.join( " ", prop.info().getName(), opName(), value.toString() );
+        return  String.join( " ", prop.info().getName(), opName(), value != null ? value.toString() : "[null]" );
     }
 
 }

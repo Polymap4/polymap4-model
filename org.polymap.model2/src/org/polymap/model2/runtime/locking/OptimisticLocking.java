@@ -41,7 +41,7 @@ import areca.common.log.LogFactory.Log;
 /**
  * This {@link StoreDecorator} provides a simple check for concurrent modifications
  * from different UnitOfWork instances in this JVM. The check fails on
- * {@link StoreUnitOfWork#prepareCommit(Iterable)}.
+ * {@link StoreUnitOfWork#submit(Iterable)}.
  * <p/>
  * This implementation holds all versions in memory and never checks the underlying
  * store for concurrent modifications. So the check is fast but the table of versions
@@ -119,7 +119,7 @@ public class OptimisticLocking
             }
 
             // delegate
-            suow.prepareCommit( modified );
+            suow.submit( modified );
         }
 
         

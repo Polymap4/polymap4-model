@@ -36,6 +36,8 @@ import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Promise;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -50,7 +52,7 @@ public class EntityRepositoryImpl
 
     private static final Log log = LogFactory.getLog( EntityRepositoryImpl.class );
 
-    private Configuration               config;
+    private Configuration config;
     
     /** Infos of Entities, Mixins, Composite properties. */
     private Map<ClassInfo<? extends Composite>,CompositeInfo<?>> infos = new HashMap<>();
@@ -58,7 +60,10 @@ public class EntityRepositoryImpl
     
     public EntityRepositoryImpl( final Configuration config ) {
         this.config = config;
-        
+    }
+
+    
+    public Promise<EntityRepository> init() {
         // init infos
         log.debug( "Initialializing Composite types:" );
         Queue<ClassInfo<? extends Composite>> queue = new LinkedList<>();
@@ -75,8 +80,7 @@ public class EntityRepositoryImpl
 
                 // init static TYPE variable
                 try {
-                    FieldInfo field = typeInfo.fields().stream().filter( f -> f.name().equals( "TYPE" ) )
-                            .findAny().orElse( null );
+                    FieldInfo field = Sequence.of( typeInfo.fields() ).first( f -> f.name().equals( "TYPE" ) ).orElse( null );
                     
                     if (field != null) {
                         //assert field.get( null ) != null : "Entity class is already connected to an other repository.";
@@ -92,7 +96,7 @@ public class EntityRepositoryImpl
                 }
                 
                 // mixins
-                info.getMixins().stream().map( m -> ClassInfo.of( m ) ).forEach( m -> queue.offer( m ) );
+                info.getMixins().forEach( m -> queue.offer( ClassInfo.of( m ) ) );
 
                 // Composite properties
                 for (PropertyInfo<?> propInfo : info.getProperties()) {
@@ -106,15 +110,16 @@ public class EntityRepositoryImpl
 //        log.debug( "done" );
         
         // init store
-        getStore().init( new StoreRuntimeContextImpl() );
+        return getStore().init( new StoreRuntimeContextImpl() ).map( v -> {
+            return EntityRepositoryImpl.this;
+        });        
     }
-
+    
     
     public StoreSPI getStore() {
         checkOpen();
         return config.store.get();
     }
-
     
     public Configuration getConfig() {
         checkOpen();
@@ -158,6 +163,7 @@ public class EntityRepositoryImpl
         }
         return Assert.notNull( result );
     }
+    
     
     @Override    
     public UnitOfWork newUnitOfWork() {

@@ -14,11 +14,15 @@
  */
 package org.polymap.model2.query;
 
+import static areca.common.Assert.notNull;
 import static org.polymap.model2.query.Expressions.and;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.UnitOfWork;
+
+import areca.common.Promise;
+import areca.common.base.Opt;
 
 /**
  * Represents a query for the given {@link Entity} type.  
@@ -45,13 +49,13 @@ public abstract class Query<T extends Entity> {
      * Executes the query with its current settings. Once executed the contents of
      * the resulting {@link ResultSet} does not reflect modifications of the
      * underlying store or other {@link UnitOfWork} instances. However, modifications
-     * from within the same {@link UnitOfWork} <b>are</b> refelected, <b>until</b> a
+     * from within the same {@link UnitOfWork} <b>are</b> reflected, <b>until</b> a
      * referenced Entity was first returned from any Iterator of the ResultSet.
      * 
      * @see UnitOfWork#query(Class)
      * @return Newly created {@link ResultSet}.
      */
-    public abstract ResultSet<T> execute();
+    public abstract Promise<Opt<T>> execute();
     
     
     /**
@@ -74,8 +78,7 @@ public abstract class Query<T extends Entity> {
      * @return this
      */
     public Query<T> where( @SuppressWarnings("hiding") BooleanExpression expression ) {
-        assert expression != null : "Null expression is not (no longer) allowed.";
-        this.expression = expression;
+        this.expression = notNull( expression, "Null expression is not (no longer) allowed." );
         return this;
     }
     
