@@ -20,6 +20,8 @@ import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 
+import areca.common.Promise;
+
 /**
  *
  * 
@@ -40,25 +42,25 @@ final class ConstraintsAssociationInterceptor<T extends Entity>
 
     
     @Override
-    public T get() {
+    public Promise<T> fetch() {
         context.checkState();
-        T value = delegate().get();
-        // check Nullable
-        if (value == null && !isNullable) {
-            throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
-        }
-        return value;
+        return delegate().fetch().onSuccess( value -> {
+            context.checkState();
+            if (value == null && !isNullable) {
+                throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
+            }            
+        });
     }
 
-    
+
     @Override
     public void set( T value ) {
         context.checkState();
         
         // XXX this should always fail outside a ValueInitializer
-        if (isImmutable && delegate().get() != null) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-        }
+//        if (isImmutable && delegate().get() != null) {
+//            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
+//        }
         if (!isNullable && value == null) {
             throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
         }

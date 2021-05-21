@@ -25,7 +25,7 @@ import areca.common.Promise;
 public interface Association<T extends Entity>
         extends PropertyBase<T> {
 
-    public Promise<T> get();
+    public Promise<T> fetch();
 
     public void set( T value );
 
@@ -40,8 +40,8 @@ public interface Association<T extends Entity>
      * @param consumer block to be executed if a value is present
      * @throws NullPointerException if value is present and {@code consumer} is null
      */
-    public default void ifPresent( Consumer<? super T> consumer ) {
-        get().onSuccess( value -> {
+    public default Promise<T> ifPresent( Consumer<? super T> consumer ) {
+        return fetch().onSuccess( value -> {
             if (value != null) {
                 consumer.accept( value );
             }

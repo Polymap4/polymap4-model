@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2014-2021, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -23,8 +23,6 @@ import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.StoreProperty;
 
 import areca.common.Promise;
-import areca.common.log.LogFactory;
-import areca.common.log.LogFactory.Log;
 
 /**
  * 
@@ -34,12 +32,10 @@ import areca.common.log.LogFactory.Log;
 class AssociationImpl<T extends Entity>
         implements Association<T> {
 
-    private static Log log = LogFactory.getLog( AssociationImpl.class );
-    
-    private EntityRuntimeContext        context;
+    private EntityRuntimeContext    context;
     
     /** Holding the id of the associated Entity. */
-    private StoreProperty<Object>       storeProp;
+    private StoreProperty<?>        storeProp;
     
     
     /**
@@ -47,7 +43,7 @@ class AssociationImpl<T extends Entity>
      * @param context
      * @param storeProp Holding the id of the associated Entity.
      */
-    public AssociationImpl( EntityRuntimeContext context, StoreProperty storeProp ) {
+    public AssociationImpl( EntityRuntimeContext context, StoreProperty<?> storeProp ) {
         this.context = context;
         this.storeProp = storeProp;
     }
@@ -61,7 +57,7 @@ class AssociationImpl<T extends Entity>
     
     @Override
     @SuppressWarnings("unchecked")
-    public Promise<T> get() {
+    public Promise<T> fetch() {
         Object id = storeProp.get();
         if (id != null) { 
             return context.getUnitOfWork().entity( info().getType(), id );

@@ -14,13 +14,22 @@
  */
 package org.polymap.model2.store.tidbstore;
 
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.logging.Logger;
 
 import org.teavm.jso.JSObject;
+import org.teavm.jso.core.JSArray;
+import org.teavm.jso.core.JSDate;
+import org.teavm.jso.core.JSNumber;
+import org.teavm.jso.core.JSObjects;
 import org.teavm.jso.core.JSString;
+
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.CompositeState;
+import org.polymap.model2.store.StoreCollectionProperty;
 import org.polymap.model2.store.StoreProperty;
 
 import areca.common.Assert;
@@ -68,35 +77,19 @@ public class IDBCompositeState
 
     @Override
     public StoreProperty<?> loadProperty( PropertyInfo info ) {
-        Assert.that( !info.isAssociation() && info.getMaxOccurs() == 1 );
-        return new StoreProperty<Object>() {
-            @Override
-            public Object get() {
-                JSObject result = jsObject.get( info().getNameInStore() );
-                if (JSStateObject.isUndefined( result )) {
-                    return null;
-                }
-                else if (JSString.isInstance( result )) {
-                    return ((JSString)result).stringValue();
-                }
-                else {
-                    throw new UnsupportedOperationException( "Unhandled type: " + info.getName() );
-                }
-            }
-            @Override
-            public void set( Object value ) {
-                jsObject.set( info().getNameInStore(), JSString.valueOf( (String)value ) );
-            }
-            @Override
-            public Object createValue( Class actualType ) {
-                // XXX Auto-generated method stub
-                throw new RuntimeException( "not yet implemented." );
-            }
-            @Override
-            public PropertyInfo info() {
-                return info;
-            }
-        };
+        // Assert.that( !info.isAssociation() && info.getMaxOccurs() == 1 );
+        if (info.getMaxOccurs() > 1) {
+            return new StoreCollectionPropertyImpl() {
+                @Override public PropertyInfo info() { return info; }
+                @Override public Object get() { throw new RuntimeException( "..." ); }
+                @Override public void set( Object value ) { throw new RuntimeException( "..." ); }
+            };             
+        }
+        else {
+            return new StorePropertyImpl() {
+                @Override public PropertyInfo info() { return info; }
+            };
+        }
     }
 
 
@@ -105,4 +98,114 @@ public class IDBCompositeState
         return jsObject;
     }
     
+    
+    protected JSObject jsValueOf( Object value ) {
+        if (value instanceof String) {
+            return JSString.valueOf( (String)value );
+        }
+        else if (value instanceof Integer) {
+            return JSNumber.valueOf( ((Integer)value).intValue() );
+        }
+        else if (value instanceof Date) {
+            return JSDate.create( ((Date)value).getTime() );
+        }
+        else {
+            throw new UnsupportedOperationException( "Unhandled: " + value );
+        }
+    }
+    
+    
+    protected Object javaValueOf( JSObject value, PropertyInfo<?> info ) {
+        if (JSStateObject.isUndefined( value )) {
+            return null;
+        }
+        else if (JSString.isInstance( value )) {
+            return ((JSString)value).stringValue();
+        }
+        else {
+            throw new UnsupportedOperationException( "Unhandled type: " + info.getName() );
+        }
+        
+    }
+    
+    
+    /**
+     * 
+     */
+    protected abstract class StorePropertyImpl
+            implements StoreProperty<Object> {
+        
+        @Override
+        public Object get() {
+            return javaValueOf( jsObject.get( info().getNameInStore() ), info() );
+        }
+        
+        @Override
+        public void set( Object value ) {
+            jsObject.set( info().getNameInStore(), jsValueOf( value ) );
+        }
+        
+        @Override
+        public Object createValue( Class actualType ) {
+            // XXX Auto-generated method stub
+            throw new RuntimeException( "not yet implemented." );
+        }
+    };
+
+    
+    /**
+     * 
+     */
+    protected abstract class StoreCollectionPropertyImpl
+            implements StoreCollectionProperty<Object>, StoreProperty<Object> {
+
+        @Override
+        public int size() {
+            JSArray<?> array = (JSArray<?>)jsObject.get( info().getNameInStore() );
+            return JSObjects.isUndefined( array ) ? 0 : array.getLength();
+        }
+
+        @Override
+        public Iterator<Object> iterator() {
+            JSArray<?> array = (JSArray<?>)jsObject.get( info().getNameInStore() );
+            if (!JSObjects.isUndefined( array )) {
+                return new Iterator<Object>() {
+                    int index = 0;
+                    @Override
+                    public boolean hasNext() {
+                        return index < array.getLength();
+                    }
+                    @Override
+                    public Object next() {
+                        return javaValueOf( array.get( index++ ), info() );
+                    }
+                };
+            }
+            else {
+                return Collections.emptyIterator();
+            }
+        }
+
+        @Override
+        public boolean add( Object elm ) {
+            @SuppressWarnings("unchecked")
+            JSArray<JSObject> array = (JSArray<JSObject>)jsObject.get( info().getNameInStore() );
+            if (JSObjects.isUndefined( array )) {
+                array = JSArray.create();                
+                jsObject.set( info().getNameInStore(), array );
+            }
+            array.push( jsValueOf( elm ) );
+            return true;
+        }
+
+        @Override
+        public Object createValue( Class actualType ) {
+            throw new RuntimeException( "not yet implemented." );
+        }
+
+        @Override
+        public void clear() {
+            throw new RuntimeException( "not yet implemented." );
+        }
+    }
 }

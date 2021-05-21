@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2020, the @authors. All rights reserved.
+ * Copyright (C) 2021, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -14,17 +14,21 @@
  */
 package org.polymap.model2.test2;
 
-import areca.common.reflect.ClassInfo;
+import org.polymap.model2.Association;
+import org.polymap.model2.Entity;
+import org.polymap.model2.ManyAssociation;
 
-/**
- * 
- */
-public class Tests {
+import areca.common.reflect.RuntimeInfo;
 
-    public static ClassInfo<?>[] all() {
-        return new ClassInfo[] {
-                SimpleModelTest.info,
-                AssociationsModelTest.info
-        };
-    }
+@RuntimeInfo
+public class Company
+        extends Entity {
+
+    public static final CompanyClassInfo info = CompanyClassInfo.instance();
+
+    // public static Person TYPE;
+
+    public Association<Person>          chief;
+    
+    public ManyAssociation<Person>      employees;
 }

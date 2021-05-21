@@ -14,7 +14,7 @@
  */
 package org.polymap.model2;
 
-import java.util.Collection;
+import areca.common.Promise;
 
 /**
  * A multi-value association to an {@link Entity}.
@@ -22,6 +22,12 @@ import java.util.Collection;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 public interface ManyAssociation<T extends Entity>
-        extends PropertyBase<T>, Collection<T> {
+        extends PropertyBase<T> {
+
+    public Promise<T> fetch();
+    
+    public boolean add( T elm );
+
+    public int size();
 
 }

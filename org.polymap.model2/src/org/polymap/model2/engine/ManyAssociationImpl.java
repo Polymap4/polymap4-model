@@ -14,9 +14,6 @@
  */
 package org.polymap.model2.engine;
 
-import java.util.AbstractCollection;
-import java.util.Iterator;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.runtime.EntityRuntimeContext;
@@ -24,7 +21,7 @@ import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.StoreCollectionProperty;
 
-import areca.common.base.Sequence;
+import areca.common.Promise;
 
 /**
  * 
@@ -32,16 +29,15 @@ import areca.common.base.Sequence;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 class ManyAssociationImpl<T extends Entity>
-        extends AbstractCollection<T>
         implements ManyAssociation<T> {
 
-    private EntityRuntimeContext            context;
+    private EntityRuntimeContext        context;
 
     /** Holding the ids of the associated Entities. */
-    private StoreCollectionProperty<Object> storeProp;
+    private StoreCollectionProperty     storeProp;
     
 
-    public ManyAssociationImpl( EntityRuntimeContext context, StoreCollectionProperty storeProp ) {
+    public ManyAssociationImpl( EntityRuntimeContext context, StoreCollectionProperty<?> storeProp ) {
         this.context = context;
         this.storeProp = storeProp;
     }
@@ -63,14 +59,14 @@ class ManyAssociationImpl<T extends Entity>
         return storeProp.size();
     }
 
+    
     @Override
-    public Iterator<T> iterator() {
+    public Promise<T> fetch() {
         UnitOfWork uow = context.getUnitOfWork();
         Class<T> entityType = info().getType();
         
-        return Sequence.of( storeProp )
-                .transform( id -> uow.entity( entityType, id ) )
-                .asIterable().iterator();
+        var ids = storeProp.iterator();
+        return Promise.joined( size(), i -> uow.entity( entityType, ids.next() ) );
     }
 
     @Override
@@ -78,7 +74,7 @@ class ManyAssociationImpl<T extends Entity>
         assert elm != null;
         // make sure that elm belongs to my UoW; it would not break here but
         // on BidiAssociationConcern and/or maybe elsewhere that depends on Entity.equals()
-        assert elm == context.getUnitOfWork().entity( elm ) : "Entity does no belong to this UnitOfWork.";
+//        assert elm == context.getUnitOfWork().entity( elm ) : "Entity does no belong to this UnitOfWork.";
         
         return storeProp.add( elm.id() );
     }

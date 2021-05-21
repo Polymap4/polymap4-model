@@ -93,11 +93,11 @@ public class IDBStore
     public Promise<Void> init( @SuppressWarnings( "hiding" ) StoreRuntimeContext context ) {
         this.context = context;
         IDBFactory factory = IDBFactory.getInstance();
-     
+
         var promise = new Promise.Completable<Void>();
         IDBOpenDBRequest request = factory.open( dbName, dbVersion );
         request.setOnError( ev -> {
-            promise.completeWithError( new IOException( "Unable to init IDBStore: " + ev ) );
+            promise.completeWithError( new IOException( "Unable to init IDBStore: " + ev.getType() ) );
         });
         request.setOnSuccess( ev -> {
             db = request.getResult();

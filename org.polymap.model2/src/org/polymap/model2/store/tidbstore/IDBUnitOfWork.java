@@ -15,8 +15,6 @@
 package org.polymap.model2.store.tidbstore;
 
 import java.util.Collection;
-import java.util.List;
-
 import java.io.IOException;
 
 import org.teavm.jso.JSObject;
@@ -39,7 +37,6 @@ import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
 import areca.common.Promise;
 import areca.common.base.Consumer.RConsumer;
 import areca.common.base.Function.RFunction;
-import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -161,16 +158,12 @@ public class IDBUnitOfWork
 
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
-        List<String> storeNames = Sequence.of( modified )
-                .map( entity -> entity.info().getNameInStore() )
-                .toList();
-
         var promise = new Promise.Completable<Submitted>();
         var submitted = new Submitted() {};
         var count = new MutableInt( modified.size() );
         for (Entity entity : modified) {
             // FIXME separated transactions!
-            doRequest( TxMode.READWRITE, storeNames.get( 0 ),
+            doRequest( TxMode.READWRITE, entity.info().getNameInStore(),
                     os -> {
                         LOG.debug( "submit(): " + entity );
                         switch (entity.status()) {

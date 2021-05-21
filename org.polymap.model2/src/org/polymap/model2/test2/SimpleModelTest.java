@@ -16,6 +16,7 @@ package org.polymap.model2.test2;
 
 import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.template;
+import static org.polymap.model2.test2.AssociationsModelTest.nextDbVersion;
 
 import java.util.Arrays;
 
@@ -59,7 +60,7 @@ public class SimpleModelTest {
     protected Promise<EntityRepository> initRepo() {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "SimpleModelTest-" + dbCount++, (int)System.currentTimeMillis(), true ) )
+                .store.set( new IDBStore( "SimpleModelTest-" + dbCount++, nextDbVersion(), true ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -103,7 +104,7 @@ public class SimpleModelTest {
 
                     person.name.set( "Philipp" );
                     Assert.isEqual( person.name.get(), "Philipp" );
-
+ 
                     UnitOfWork uow2 = repo.newUnitOfWork();
                     uow2.entity( Person.class, person.id() ).onSuccess( p -> {
                         LOG.debug( "Uncommited: %s", Assert.isNull( p ) );
@@ -175,7 +176,7 @@ public class SimpleModelTest {
                         _repo.newUnitOfWork()
                                 .entity( Person.class, p.id() )
                                 .onSuccess( loaded -> {
-                                    LOG.info( "loaded: %s", Assert.notNull( loaded ) );
+                                    LOG.debug( "loaded: %s", Assert.notNull( loaded ) );
                                 });
                         count.increment();
                         LOG.debug( "count = " + count );

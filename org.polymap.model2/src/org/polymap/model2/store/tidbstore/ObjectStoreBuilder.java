@@ -58,7 +58,7 @@ public class ObjectStoreBuilder {
             }
             
             if (!objectStoreNames.contains( name ) || clear) {
-                LOG.debug( "Creating schema: %s ...", name );
+                LOG.info( "Creating schema: %s ...", name );
                 db.createObjectStore( name, IDBObjectStoreParameters.create()/*.keyPath( "id" )*/ ); 
             }
         }

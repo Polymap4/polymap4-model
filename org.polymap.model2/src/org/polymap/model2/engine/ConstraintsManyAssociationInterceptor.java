@@ -14,15 +14,13 @@
  */
 package org.polymap.model2.engine;
 
-import java.util.Collection;
-import java.util.Iterator;
-
-import org.polymap.model2.CollectionProperty;
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
+
+import areca.common.Promise;
 
 /**
  * 
@@ -36,31 +34,32 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
         super( delegate, context );
     }
 
-    protected ManyAssociation<T> coll() {
+    public ManyAssociation<T> delegate() {
         return (ManyAssociation<T>)delegate;
     }
 
     @Override
     public boolean equals( Object o ) {
-        if (o instanceof CollectionProperty) {
-            return info() == ((CollectionProperty)o).info();
-        }
-        else if (o instanceof Collection) {
-            return ((Collection)o).containsAll( coll() );
-        }
-        else {
-            return false;
-        }
+        throw new UnsupportedOperationException("...");
+//        if (o instanceof CollectionProperty) {
+//            return info() == ((CollectionProperty)o).info();
+//        }
+//        else if (o instanceof Collection) {
+//            return ((Collection)o).containsAll( delegate() );
+//        }
+//        else {
+//            return false;
+//        }
     }
 
     @Override
     public int hashCode() {
-        return coll().hashCode();
+        return delegate().hashCode();
     }
 
     @Override
     public String toString() {
-        return coll().toString();
+        return delegate().toString();
     }
 
 
@@ -72,7 +71,7 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
         if (isImmutable) {
             throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
         }
-        if (coll().add( e )) {
+        if (delegate().add( e )) {
             context.raiseStatus( EntityStatus.MODIFIED );
             return true;
         }
@@ -82,132 +81,17 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
     }
 
     @Override
-    public boolean addAll( Collection<? extends T> c ) {
+    public Promise<T> fetch() {
         context.checkState();
-        if (isImmutable) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-        }
-        if (coll().addAll( c )) {
-            context.raiseStatus( EntityStatus.MODIFIED );
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean remove( Object o ) {
-        context.checkState();
-        if (isImmutable) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-        }
-        if (coll().remove( o )) {
-            context.raiseStatus( EntityStatus.MODIFIED );
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean removeAll( Collection<?> c ) {
-        context.checkState();
-        if (isImmutable) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-        }
-        if (coll().removeAll( c )) {
-            context.raiseStatus( EntityStatus.MODIFIED );
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean retainAll( Collection<?> c ) {
-        context.checkState();
-        if (isImmutable) {
-            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-        }
-        if (coll().retainAll( c )) {
-            context.raiseStatus( EntityStatus.MODIFIED );
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    @Override
-    public void clear() {
-        context.checkState();
-        coll().clear();
-        context.raiseStatus( EntityStatus.MODIFIED );
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-        context.checkState();
-        if (!isImmutable) {
-            return coll().iterator();
-        }
-        else {
-            return new Iterator<T>() {
-                private Iterator<T> it = coll().iterator();
-                @Override
-                public boolean hasNext() {
-                    return it.hasNext();
-                }
-                @Override
-                public T next() {
-                    context.checkState();
-                    return it.next();
-                }
-                @Override
-                public void remove() {
-                    throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
-                }
-            };
-        }
+        return delegate().fetch().onSuccess( value -> {
+            context.checkState();            
+        });
     }
 
     @Override
     public int size() {
         context.checkState();
-        return coll().size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        context.checkState();
-        return coll().isEmpty();
-    }
-
-    @Override
-    public boolean contains( Object o ) {
-        context.checkState();
-        return coll().contains( o );
-    }
-
-    @Override
-    public Object[] toArray() {
-        context.checkState();
-        return coll().toArray();
-    }
-
-    @Override
-    public <V> V[] toArray( V[] a ) {
-        context.checkState();
-        return coll().toArray( a );
-    }
-
-    @Override
-    public boolean containsAll( Collection<?> c ) {
-        context.checkState();
-        return coll().containsAll( c );
+        return delegate().size();
     }
 
 }
