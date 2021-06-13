@@ -91,7 +91,6 @@ public class IDBUnitOfWork
         request.setOnSuccess( ev -> {
             handleResult.accept( request );
         });
-        //store.waitFor( request );
     }
     
     

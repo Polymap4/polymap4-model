@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.test2;
 
+import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
+
 import java.util.Arrays;
 
 import org.polymap.model2.runtime.EntityRepository;
@@ -40,15 +42,6 @@ public class AssociationsModelTest {
 
     public static final ClassInfo<AssociationsModelTest> info = AssociationsModelTestClassInfo.instance();
 
-    public static int nextDbVersion() {
-        int dbVersion = (int)System.currentTimeMillis();
-        dbVersion = dbVersion << 1 >> 1;
-        LOG.info( "Version: %s", dbVersion );
-        return dbVersion;
-    }
-
-    // instance *******************************************
-    
     private static int          dbCount = 0;
     
     protected EntityRepository   _repo;

@@ -41,7 +41,6 @@ import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
-import areca.common.reflect.FieldInfo;
 
 /**
  * 
@@ -80,16 +79,15 @@ public class EntityRepositoryImpl
 
                 // init static TYPE variable
                 try {
-                    FieldInfo field = Sequence.of( typeInfo.fields() ).first( f -> f.name().equals( "TYPE" ) ).orElse( null );
-                    
-                    if (field != null) {
-                        //assert field.get( null ) != null : "Entity class is already connected to an other repository.";
-                        Composite current = (Composite)field.get( null );
-                        if (current != null) {
-                            log.warn( "Entity class is already connected to an other repository: " + typeInfo.name() );
-                        }
-                        field.set( null, Expressions.template( typeInfo.type(), this ) );
-                    }
+                    Sequence.of( typeInfo.fields() )
+                            .first( f -> f.name().equals( "TYPE" ) )
+                            .ifPresent( f -> {
+                                if (f.get( null ) != null) {
+                                    log.warn( "Entity class is already connected to an other repository: " + typeInfo.name() );
+                                }
+                                log.debug( "%s: TYPE initialized", typeInfo.simpleName() );
+                                f.set( null, Expressions.template( typeInfo.type(), this ) );
+                            });
                 }
                 catch (SecurityException e) {
                     throw new ModelRuntimeException( e );

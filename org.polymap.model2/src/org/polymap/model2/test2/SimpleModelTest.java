@@ -15,9 +15,7 @@
 package org.polymap.model2.test2;
 
 import static org.polymap.model2.query.Expressions.eq;
-import static org.polymap.model2.query.Expressions.template;
-import static org.polymap.model2.test2.AssociationsModelTest.nextDbVersion;
-
+import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -54,7 +52,7 @@ public class SimpleModelTest {
     
     protected EntityRepository   _repo;
 
-    protected UnitOfWork         uow;
+    protected UnitOfWork         uow; 
     
 
     protected Promise<EntityRepository> initRepo() {
@@ -87,6 +85,7 @@ public class SimpleModelTest {
 
             Assert.isEqual( "Person", personInfo.getName() );
             Assert.isEqual( "Person", personInfo.getNameInStore() );
+            Assert.notNull( Person.TYPE );
             return null;
         });
     }
@@ -218,15 +217,11 @@ public class SimpleModelTest {
                     return uow2.submit();
                 })
                 .then( submitted -> {
-                    MutableInt count = new MutableInt();
                     return uow.query( Person.class )
-                            .where( eq( template( Person.class, _repo ).name, "name-0" ) )
-                            .execute()
-                            .onSuccess( opt -> {
-                                opt.ifPresent( p -> {
-                                    count.increment();
-                                    Assert.isEqual( 1, count.intValue() );
-                                });
+                            .where( eq( Person.TYPE.name, "name-0" ) )
+                            .executeToList()
+                            .onSuccess( results -> {
+                                Assert.isEqual( 1, results.size() );
                             });
                 });
     }

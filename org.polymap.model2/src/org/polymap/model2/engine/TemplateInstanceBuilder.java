@@ -36,6 +36,7 @@ import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Promise;
 import areca.common.reflect.ClassInfo;
 import areca.common.reflect.FieldInfo;
 
@@ -202,6 +203,11 @@ public final class TemplateInstanceBuilder {
             Class<T> type = info.getType();
             return new TemplateInstanceBuilder( repo ).newComposite( ClassInfo.of( type ) );
         }
+
+        @Override
+        public Promise<T> fetch() {
+            throw new ModelRuntimeException( "Calling fetch() on a query template is not allowed." );
+        }
     }
 
 
@@ -273,6 +279,11 @@ public final class TemplateInstanceBuilder {
         @Override
         public int size() {
             throw new ModelRuntimeException( "Method is not allowed on query template" );
+        }
+        
+        @Override
+        public Promise<T> fetch() {
+            throw new ModelRuntimeException( "Calling fetch() on a query template is not allowed." );
         }
     }
 

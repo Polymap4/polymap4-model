@@ -100,7 +100,10 @@ public class IDBCompositeState
     
     
     protected JSObject jsValueOf( Object value ) {
-        if (value instanceof String) {
+        if (value == null) {
+            return null;
+        }
+        else if (value instanceof String) {
             return JSString.valueOf( (String)value );
         }
         else if (value instanceof Integer) {

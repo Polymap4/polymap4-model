@@ -37,7 +37,7 @@ public /*abstract*/ class Person
     
     public static final PersonClassInfo info = PersonClassInfo.instance();
     
-    //public static Person TYPE;
+    public static Person TYPE; 
     
     @Nullable
     @Queryable

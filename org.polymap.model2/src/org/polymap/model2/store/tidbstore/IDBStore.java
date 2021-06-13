@@ -48,6 +48,13 @@ public class IDBStore
 
     private static final Log LOG = LogFactory.getLog( IDBStore.class );
 
+    public static int nextDbVersion() {
+        int dbVersion = (int)System.currentTimeMillis();
+        dbVersion = dbVersion << 1 >> 1;
+        LOG.info( "Version: %s", dbVersion );
+        return dbVersion;
+    }
+    
     public enum TxMode {
         READWRITE, READONLY
     }

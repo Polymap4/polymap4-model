@@ -17,6 +17,10 @@ package org.polymap.model2.query;
 import static areca.common.Assert.notNull;
 import static org.polymap.model2.query.Expressions.and;
 
+import java.util.ArrayList;
+
+import java.sql.ResultSet;
+
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.UnitOfWork;
@@ -53,9 +57,15 @@ public abstract class Query<T extends Entity> {
      * referenced Entity was first returned from any Iterator of the ResultSet.
      * 
      * @see UnitOfWork#query(Class)
-     * @return Newly created {@link ResultSet}.
+     * @return A {@link Promise} for each resulting Entity. The last promise carries
+     *         a {@link Opt#absent()}.
      */
     public abstract Promise<Opt<T>> execute();
+    
+    
+    public Promise<ArrayList<T>> executeToList() {
+        return execute().reduce( new ArrayList<T>(), (r,opt) -> opt.ifPresent( entity -> r.add( entity ) ) );
+    }
     
     
     /**
