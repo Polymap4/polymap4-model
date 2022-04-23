@@ -22,7 +22,6 @@ import org.polymap.model2.Entity;
 import org.polymap.model2.Nullable;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
-import org.polymap.model2.runtime.locking.OptimisticLocking;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreSPI;
 

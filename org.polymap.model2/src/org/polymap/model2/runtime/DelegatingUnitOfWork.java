@@ -54,13 +54,14 @@ public abstract class DelegatingUnitOfWork
         return delegate.entity( entity );
     }
 
+    @Override
     public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer ) {
         return delegate.createEntity( entityClass, id, initializer );
     }
 
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
-        return delegate.createEntity( entityClass, id );
-    }
+//    public <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
+//        return delegate.createEntity( entityClass, id );
+//    }
 
     public void removeEntity( Entity entity ) {
         delegate.removeEntity( entity );

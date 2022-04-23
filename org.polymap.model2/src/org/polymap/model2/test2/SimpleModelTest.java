@@ -48,17 +48,15 @@ public class SimpleModelTest {
 
     public static final ClassInfo<SimpleModelTest> info = SimpleModelTestClassInfo.instance();
 
-    private static int          dbCount = 0;
-    
     protected EntityRepository   _repo;
 
     protected UnitOfWork         uow; 
     
 
-    protected Promise<EntityRepository> initRepo() {
+    protected Promise<EntityRepository> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "SimpleModelTest-" + dbCount++, nextDbVersion(), true ) )
+                .store.set( new IDBStore( "SimpleModelTest-" + testName, nextDbVersion(), true ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -78,7 +76,7 @@ public class SimpleModelTest {
     
     @Test
     public Promise<?> testEntityInfo() throws Exception {
-        return initRepo().map( repo -> {
+        return initRepo( "entityInfo" ).map( repo -> {
             CompositeInfo<Person> personInfo = repo.infoOf( Person.info );
             Person person = uow.createEntity( Person.class );
             Assert.isSame( personInfo, person.info() );
@@ -93,7 +91,7 @@ public class SimpleModelTest {
     
     @Test
     public Promise<?> testProperties() throws Exception {
-        return initRepo()
+        return initRepo( "properties" )
                 .then( repo -> {
                     Person person = uow.createEntity( Person.class );
                     LOG.debug( "Person: id=" + person.id() );
@@ -155,7 +153,7 @@ public class SimpleModelTest {
     @Test
     public Promise<?> testQueryIterate() {
         MutableInt count = new MutableInt();
-        return initRepo()
+        return initRepo( "queryIterate" )
                 // create data
                 .then( repo -> {
                     var uow2 = repo.newUnitOfWork();
@@ -208,7 +206,7 @@ public class SimpleModelTest {
     
     @Test
     public Promise<?> testQueryName() {
-        return initRepo()
+        return initRepo( "queryName" )
                 .then( repo -> {
                     var uow2 = repo.newUnitOfWork();
                     Sequence.ofInts( 0, 9 ).forEach( i -> {
@@ -347,7 +345,7 @@ public class SimpleModelTest {
     
     @Test
     public Promise<?> testConcern() throws Exception {
-        return initRepo()
+        return initRepo( "concern" )
                 .map( repo -> {
                     Person person = uow.createEntity( Person.class );
 
@@ -381,7 +379,7 @@ public class SimpleModelTest {
     
     @Test( expected = ModelRuntimeException.class )
     public Promise<?> testDetached() {
-        return initRepo().map( repo -> {
+        return initRepo( "detached" ).map( repo -> {
             UnitOfWork uow2 = repo.newUnitOfWork();
             //_testDetached( uow2.newUnitOfWork() );
             _testDetached( uow2 );

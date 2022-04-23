@@ -47,14 +47,14 @@ import areca.common.log.LogFactory.Log;
  * 
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
-public abstract class PessimisticLocking
-        extends PropertyConcernBase
-        implements PropertyConcern, ManyAssociation/*, Association*/ {
+public abstract class PessimisticLocking<T extends Entity>
+        extends PropertyConcernBase<T>
+        implements PropertyConcern<T>, ManyAssociation<T>/*, Association*/ {
 
     private static final Log log = LogFactory.getLog( PessimisticLocking.class );
 
     // XXX memory sensitive cache?
-    private static ConcurrentMap<EntityKey,EntityLock>  locks = new ConcurrentHashMap( 256, 0.75f, 4);
+    private static ConcurrentMap<EntityKey,EntityLock>  locks = new ConcurrentHashMap<>( 256, 0.75f, 4);
     
     /**
      * 
@@ -74,30 +74,30 @@ public abstract class PessimisticLocking
     // instance *******************************************
     
     @Override
-    public Object get() {
+    public T get() {
         lock( AccessMode.READ );
-        return ((Property)delegate).get();
+        return ((Property<T>)delegate).get();
     }
 
     
     @Override
-    public Object createValue( ValueInitializer initializer ) {
+    public <U extends T> U createValue( ValueInitializer<U> initializer ) {
         lock( AccessMode.WRITE );
-        return ((Property)delegate).createValue( initializer );
+        return ((Property<T>)delegate).createValue( initializer );
     }
 
     
     @Override
-    public void set( Object value ) {
+    public void set( T value ) {
         lock( AccessMode.WRITE );
-        ((Property)delegate).set( value );
+        ((Property<T>)delegate).set( value );
     }
 
     
     @Override
-    public boolean add( Object elm ) {
+    public boolean add( T elm ) {
        lock( AccessMode.WRITE );
-       return ((ManyAssociation)delegate).add( elm );
+       return ((ManyAssociation<T>)delegate).add( elm );
     }
 
     
@@ -120,7 +120,7 @@ public abstract class PessimisticLocking
     /**
      * 
      */
-    protected abstract class EntityLock {
+    protected static abstract class EntityLock {
 
         /**
          * 
@@ -148,29 +148,32 @@ public abstract class PessimisticLocking
          * @param entity The actual Entity instance from within the given UnitOfWork.
          */
         protected void await( Supplier<Boolean> condition, AccessMode mode, UnitOfWork uow, Entity entity ) {
-            // XXX polling! wait that GC reclaimed readers and writer
-            // a writer has read lock too, so we avoid writer check
-            boolean firstLoop = true;
-            while (!condition.get()) {
-                if (firstLoop) {
-                    log.debug( logPrefix() + "await lock: " + mode + " on: " + context.getEntity().id() );
-                    firstLoop = false;
-                }
-                try { 
-                    wait( 100 );
-                    cleanStaleHolders();    
-                } 
-                catch (InterruptedException e) {
-                    log.warn( logPrefix() + "Interrupted!" );
-                }
-            }
-            if (!firstLoop) {
-                log.debug( logPrefix() + "got lock on: " + context.getEntity().id() );
-                // now we have the lock; the other UnitOfWork might have modified
-                // the Entity state, so we have to reload; the client code has not seen
-                // any properties of the entity yet
-                uow.reload( entity );
-            }
+            // TODO
+            throw new RuntimeException( "context field is not accessible");
+            
+//            // XXX polling! wait that GC reclaimed readers and writer
+//            // a writer has read lock too, so we avoid writer check
+//            boolean firstLoop = true;
+//            while (!condition.get()) {
+//                if (firstLoop) {
+//                    log.debug( logPrefix() + "await lock: " + mode + " on: " + context.getEntity().id() );
+//                    firstLoop = false;
+//                }
+//                try { 
+//                    wait( 100 );
+//                    cleanStaleHolders();    
+//                } 
+//                catch (InterruptedException e) {
+//                    log.warn( logPrefix() + "Interrupted!" );
+//                }
+//            }
+//            if (!firstLoop) {
+//                log.debug( logPrefix() + "got lock on: " + context.getEntity().id() );
+//                // now we have the lock; the other UnitOfWork might have modified
+//                // the Entity state, so we have to reload; the client code has not seen
+//                // any properties of the entity yet
+//                uow.reload( entity );
+//            }
         }
         
         protected String logPrefix() {
@@ -186,7 +189,7 @@ public abstract class PessimisticLocking
      * 
      */
     protected static class EntityKey
-            implements Comparable {
+            implements Comparable<Object> {
         
         private String      key; 
     

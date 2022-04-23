@@ -17,7 +17,6 @@ package org.polymap.model2.query.grammar;
 import org.polymap.model2.Association;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
-import org.polymap.model2.engine.TemplateProperty;
 
 /**
  * 
@@ -34,10 +33,11 @@ public class TheAssociationQuantifier<T extends Entity>
     
     @Override
     public boolean evaluate( Composite target ) {
-        Association<T> targetProp = targetProp( target, (TemplateProperty<T>)prop );
-        T composite = targetProp.get();
-
-        return composite != null ? subExp().evaluate( composite ) : false;
+        throw new RuntimeException( "not compiling after API changes!" );
+//        Association<T> targetProp = targetProp( target, (TemplateProperty<T>)prop );
+//        T composite = targetProp.get();
+//
+//        return composite != null ? subExp().evaluate( composite ) : false;
     }
 
 }

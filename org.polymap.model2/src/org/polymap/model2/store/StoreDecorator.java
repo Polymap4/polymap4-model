@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2014-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -21,8 +21,6 @@ import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.UnitOfWork.Submitted;
 
 import areca.common.Promise;
-import areca.common.log.LogFactory;
-import areca.common.log.LogFactory.Log;
 
 /**
  * Provides a no-op decorator for an underlying store.
@@ -35,8 +33,6 @@ import areca.common.log.LogFactory.Log;
 public abstract class StoreDecorator
         implements StoreSPI {
 
-    private static Log log = LogFactory.getLog( StoreDecorator.class );
-    
     protected StoreSPI                  store;
 
     
@@ -45,8 +41,8 @@ public abstract class StoreDecorator
     }
 
     @Override
-    public void init( StoreRuntimeContext context ) {
-        store.init( context );
+    public Promise<Void> init( StoreRuntimeContext context ) {
+        return store.init( context );
     }
 
     @Override

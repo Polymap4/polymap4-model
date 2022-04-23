@@ -17,7 +17,7 @@
 
     <!-- Properties -->
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>13</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -63,7 +63,18 @@
                         </goals>
                         <configuration>
                             <excludes>
-                                <exclude>/org/polymap/model2/store/tidbstore/indexeddb/**</exclude>
+                                <exclude>**/store/tidbstore/indexeddb/**</exclude>
+                                <exclude>**/runtime/event/**</exclude>
+                                <exclude>**/runtime/locking/PessimisticLocking.java</exclude>
+                                <exclude>**/runtime/locking/MrowPessimisticLocking.java</exclude>
+                                <exclude>**/runtime/locking/OneReaderPessimisticLocking.java</exclude>
+                                <exclude>**/runtime/locking/OptimisticLocking.java</exclude>
+                                <exclude>**/BidiAssociationConcern.java</exclude>
+                                <exclude>**/BidiManyAssociationConcern.java</exclude>
+                                <exclude>**/ComputedAssociation.java</exclude>
+                                <exclude>**/ComputedBidiAssocation.java</exclude>
+                                <exclude>**/ComputedBidiManyAssocation.java</exclude>
+                                <exclude>**/ComputedManyAssociation.java</exclude>
                             </excludes>
                             <annotationProcessors>
                                 <annotationProcessor>areca.common.reflect.ReflectAnnotationProcessor</annotationProcessor>

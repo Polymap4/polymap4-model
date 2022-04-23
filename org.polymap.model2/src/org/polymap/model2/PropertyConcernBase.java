@@ -54,17 +54,17 @@ public abstract class PropertyConcernBase<T>
 
     @Override
     public Iterator<T> iterator() {
-        return ((Collection)delegate).iterator();
+        return ((Collection<T>)delegate).iterator();
     }
 
     @Override
     public int size() {
-        return ((Collection)delegate).size();
+        return ((Collection<?>)delegate).size();
     }
 
     @Override
     public boolean add( T e ) {
-        return ((Collection)delegate).add( e );
+        return ((Collection<T>)delegate).add( e );
     }    
     
 }

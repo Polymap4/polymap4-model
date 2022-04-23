@@ -17,7 +17,6 @@ package org.polymap.model2.query.grammar;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
-import org.polymap.model2.runtime.PropertyInfo;
 
 /**
  * 
@@ -34,22 +33,23 @@ public class ManyAssociationQuantifier<T extends Entity>
     
     @Override
     public boolean evaluate( Composite target ) {
-        String propName = prop.info().getName();
-        PropertyInfo propInfo = target.info().getProperty( propName );
-        ManyAssociation<T> targetProp = (ManyAssociation<T>)propInfo.get( target );
-
-        for (T composite : targetProp) {
-
-            boolean subResult = subExp().evaluate( composite );
-            
-            if (type == Type.ANY && subResult) {
-                return true;
-            }
-            else if (type == Type.ALL && !subResult) {
-                return false;
-            }
-        }
-        return type == Type.ANY ? false : true;
+        throw new RuntimeException( "not compiling after API changes!" );
+//        String propName = prop.info().getName();
+//        PropertyInfo propInfo = target.info().getProperty( propName );
+//        ManyAssociation<T> targetProp = (ManyAssociation<T>)propInfo.get( target );
+//
+//        for (T composite : targetProp) {
+//
+//            boolean subResult = subExp().evaluate( composite );
+//            
+//            if (type == Type.ANY && subResult) {
+//                return true;
+//            }
+//            else if (type == Type.ALL && !subResult) {
+//                return false;
+//            }
+//        }
+//        return type == Type.ANY ? false : true;
     }
 
 }

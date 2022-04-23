@@ -14,8 +14,6 @@
  */
 package org.polymap.model2.store.tidbstore;
 
-import java.util.Arrays;
-
 import java.io.IOException;
 
 import org.teavm.jso.core.JSString;
@@ -49,10 +47,11 @@ public class IDBStore
     private static final Log LOG = LogFactory.getLog( IDBStore.class );
 
     public static int nextDbVersion() {
-        int dbVersion = (int)System.currentTimeMillis();
-        dbVersion = dbVersion << 1 >> 1;
-        LOG.info( "Version: %s", dbVersion );
-        return dbVersion;
+        long dbVersion = System.currentTimeMillis();
+        // LOG.info( "timeMillis: %s", dbVersion );
+        dbVersion = dbVersion >> 10; // roughly secconds
+        // LOG.info( ">> 10: %s", dbVersion );
+        return (int)dbVersion;
     }
     
     public enum TxMode {
@@ -135,7 +134,7 @@ public class IDBStore
 
 
     IDBTransaction transaction( TxMode mode, String... storeNames ) {
-        LOG.debug( "TX: " + mode + " for " + Arrays.asList( storeNames ) );
+        LOG.debug( "TX: " + mode + " for ???" ); // + Arrays.asList( storeNames ) );
         IDBTransaction tx = db.transaction( storeNames, mode.name().toLowerCase() );
         tx.setOnError( onErrorHandler );
         tx.setOnComplete( (Event ev) -> {

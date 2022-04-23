@@ -14,72 +14,63 @@
  */
 package org.polymap.model2.runtime;
 
-import org.polymap.model2.Association;
-import org.polymap.model2.CollectionProperty;
-import org.polymap.model2.Composite;
-import org.polymap.model2.ManyAssociation;
-import org.polymap.model2.Property;
-
-import areca.common.log.LogFactory;
-import areca.common.log.LogFactory.Log;
-
-/**
- * Copies the entire hierarchy of properties.
- *
- * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
- */
-public class CopyCompositeState<C extends Composite>
-        extends CompositeStateVisitor<RuntimeException> {
-
-    private static Log log = LogFactory.getLog( CopyCompositeState.class );
-    
-    public static <T extends Composite> CopyCompositeState<T> from( T from ) {
-        return new CopyCompositeState( from );
-    }
-
-    // instance *******************************************
-    
-    protected C             from;
-    
-    protected C             to;
-    
-    public CopyCompositeState( C from ) {
-        this.from = from;
-    }
-    
-    public void to( @SuppressWarnings("hiding") C to ) {
-        this.to = to;
-        process( from );
-    }
-
-    @Override
-    protected void visitProperty( Property prop ) {
-        ((Property)prop.info().get( to )).set( prop.get() );
-    }
-
-    @Override
-    protected void visitAssociation( Association prop ) {
-        ((Association)prop.info().get( to )).set( prop.get() );
-    }
-
-    @Override
-    protected void visitManyAssociation( ManyAssociation prop ) {
-        throw new RuntimeException( "not yet implemented." );
-    }
-
-    @Override
-    protected boolean visitCompositeProperty( Property prop ) {
-        throw new RuntimeException( "not yet implemented." );
-    }
-
-    @Override
-    protected void visitCollectionProperty( CollectionProperty prop ) {
-        throw new RuntimeException( "not yet implemented." );
-    }
-
-    @Override
-    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) {
-        throw new RuntimeException( "not yet implemented." );
-    }
-    
-}
+///**
+// * Copies the entire hierarchy of properties.
+// *
+// * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
+// */
+//public class CopyCompositeState<C extends Composite>
+//        extends CompositeStateVisitor<RuntimeException> {
+//
+//    private static Log log = LogFactory.getLog( CopyCompositeState.class );
+//    
+//    public static <T extends Composite> CopyCompositeState<T> from( T from ) {
+//        return new CopyCompositeState( from );
+//    }
+//
+//    // instance *******************************************
+//    
+//    protected C             from;
+//    
+//    protected C             to;
+//    
+//    public CopyCompositeState( C from ) {
+//        this.from = from;
+//    }
+//    
+//    public void to( @SuppressWarnings("hiding") C to ) {
+//        this.to = to;
+//        process( from );
+//    }
+//
+//    @Override
+//    protected void visitProperty( Property prop ) {
+//        ((Property)prop.info().get( to )).set( prop.get() );
+//    }
+//
+//    @Override
+//    protected void visitAssociation( Association prop ) {
+//        ((Association)prop.info().get( to )).set( prop.get() );
+//    }
+//
+//    @Override
+//    protected void visitManyAssociation( ManyAssociation prop ) {
+//        throw new RuntimeException( "not yet implemented." );
+//    }
+//
+//    @Override
+//    protected boolean visitCompositeProperty( Property prop ) {
+//        throw new RuntimeException( "not yet implemented." );
+//    }
+//
+//    @Override
+//    protected void visitCollectionProperty( CollectionProperty prop ) {
+//        throw new RuntimeException( "not yet implemented." );
+//    }
+//
+//    @Override
+//    protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) {
+//        throw new RuntimeException( "not yet implemented." );
+//    }
+//    
+//}
