@@ -34,7 +34,7 @@ import areca.common.reflect.RuntimeInfo;
 @RuntimeInfo
 public class Configuration {
 
-    public static final ClassInfo<Configuration> info = ConfigurationClassInfo.instance();
+    public static final ClassInfo<Configuration> info = ConfigurationClassInfo.instance(); 
 
     @Mandatory
     public Property<Configuration,StoreSPI>     store;

@@ -86,7 +86,7 @@ public class IDBUnitOfWork
         RE request = createRequest.apply( os );
         
         request.setOnError( ev -> {
-            handleError.accept( new IOException( "Event: " + ev.getType() ) );
+            handleError.accept( new IOException( "Event: " + ev.getType() + ", Error: " + request.getError().getName() ) );
         });
         request.setOnSuccess( ev -> {
             handleResult.accept( request );
@@ -157,8 +157,7 @@ public class IDBUnitOfWork
 
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
-        var promise = new Promise.Completable<Submitted>();
-        var submitted = new Submitted() {};
+        var promise = new Promise.Completable<Entity>();
         var count = new MutableInt( modified.size() );
         for (Entity entity : modified) {
             // FIXME separated transactions!
@@ -178,32 +177,14 @@ public class IDBUnitOfWork
                     },
                     request -> {
                         if (count.decrementAndGet() == 0) {
-                            LOG.debug( "submit(): completed." );
-                            promise.complete( submitted );
+                            promise.complete( entity );
+                        } else {
+                            promise.consumeResult( entity );
                         }
                     },
                     error -> promise.completeWithError( error ) );
         }
-        return promise;
-        
-//        tx = store.transaction( TxMode.READWRITE, storeNames );
-//        
-//        for (Entity entity : modified) {
-//            IDBObjectStore os = tx.objectStore( entity.info().getNameInStore() );
-//            if (entity.status() == EntityStatus.CREATED) {
-//                LOG.info( "IDB: ADDING entity: " + entity );
-//                store.waitFor( os.add( (JSObject)entity.state() ) );
-//            }
-//            else if (entity.status() == EntityStatus.MODIFIED) {
-//                os.put( (JSObject)entity.state() );
-//            }
-//            else if (entity.status() == EntityStatus.REMOVED) {
-//                os.delete( IDBStore.id( entity.id() ) );
-//            }
-//            else {
-//                throw new IllegalStateException( "Status: " + entity.status() );
-//            }
-//        }
+        return promise.reduce( new Submitted() {}, (r,entity) -> {} );
     }
 
 

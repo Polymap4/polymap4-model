@@ -341,17 +341,20 @@ public class UnitOfWorkImpl
         //commitLock.lock();
 
         lifecycle( State.BEFORE_PREPARE );
-        return storeUow.submit( modified.values() ).onSuccess( submitted -> {
-            lifecycle( State.AFTER_PREPARE );            
+        return storeUow
+                .submit( modified.values() )
+                .onSuccess( submitted -> {
+                    lifecycle( State.AFTER_PREPARE );            
 
-            // commit store
-            lifecycle( State.BEFORE_COMMIT );
-            resetStatusLoaded();
-            lifecycle( State.AFTER_COMMIT );
-            
-            modified.clear();
-            commitLock.unlock( true );
-        });        
+                    // commit store
+                    lifecycle( State.BEFORE_COMMIT );
+                    resetStatusLoaded();
+                    lifecycle( State.AFTER_COMMIT );
+
+                    LOG.debug( "onSuccess: clearing modified" );
+                    modified.clear();
+                    //commitLock.unlock( true );
+                });
     }
 
 

@@ -19,8 +19,6 @@ import static org.polymap.model2.query.Expressions.and;
 
 import java.util.ArrayList;
 
-import java.sql.ResultSet;
-
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.UnitOfWork;
@@ -51,10 +49,10 @@ public abstract class Query<T extends Entity> {
 
     /**
      * Executes the query with its current settings. Once executed the contents of
-     * the resulting {@link ResultSet} does not reflect modifications of the
-     * underlying store or other {@link UnitOfWork} instances. However, modifications
-     * from within the same {@link UnitOfWork} <b>are</b> reflected, <b>until</b> a
-     * referenced Entity was first returned from any Iterator of the ResultSet.
+     * the resulting result(s) does not reflect modifications of the underlying store
+     * or other {@link UnitOfWork} instances. However, modifications from within the
+     * same {@link UnitOfWork} <b>are</b> reflected, <b>until</b> a referenced Entity
+     * was first returned from any Iterator of the ResultSet.
      * 
      * @see UnitOfWork#query(Class)
      * @return A {@link Promise} for each resulting Entity. The last promise carries

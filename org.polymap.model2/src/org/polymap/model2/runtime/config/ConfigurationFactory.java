@@ -34,6 +34,10 @@ public class ConfigurationFactory {
             
             // init properties
             for (FieldInfo f : cl.fields()) {
+                // TODO static fields
+                if (f.name().equals( "info" )) {
+                    continue;
+                }
                 Property prop = new Property() {
 
                     private Object      value;
