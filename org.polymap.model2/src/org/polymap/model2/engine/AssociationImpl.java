@@ -59,12 +59,9 @@ class AssociationImpl<T extends Entity>
     @SuppressWarnings("unchecked")
     public Promise<T> fetch() {
         Object id = storeProp.get();
-        if (id != null) { 
-            return context.getUnitOfWork().entity( info().getType(), id );
-        }
-        else {
-            throw new UnsupportedOperationException( "Not implemented" );
-        }
+        return id != null 
+                ? context.getUnitOfWork().entity( info().getType(), id )
+                : Promise.completed( null );
     }
 
     

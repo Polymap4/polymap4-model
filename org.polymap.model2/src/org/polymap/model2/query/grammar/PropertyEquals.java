@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.query.grammar;
 
+import java.util.Objects;
+
 import org.polymap.model2.Composite;
 import org.polymap.model2.Property;
 import org.polymap.model2.engine.TemplateProperty;
@@ -33,7 +35,7 @@ public class PropertyEquals<T>
     @Override
     public boolean evaluate( Composite target ) {
         Property<T> targetProp = targetProp( target, prop );
-        return value.equals( targetProp.get() );
+        return Objects.equals( value, targetProp.get() );
     }
 
     protected String name() {

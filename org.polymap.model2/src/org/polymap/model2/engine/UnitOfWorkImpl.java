@@ -156,20 +156,18 @@ public class UnitOfWorkImpl
         Assert.notNull( id, "Given Id is null." );
         checkOpen();
 
-        Promise.Completable<T> result = new Promise.Completable<>();
         if (loaded.containsKey( id )) {
             LOG.debug( "entity(): CACHED" );
-            result.complete( (T)loaded.get( id ) );
+            return Promise.completed( (T)loaded.get( id ) );
         }
         else {
-            storeUow.loadEntityState( id, entityClass ).onSuccess( state -> {
+            return storeUow.loadEntityState( id, entityClass ).map( state -> {
                 LOG.debug( "entity(): LOADED: %s", state );
                 T entity = state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
                 loaded.put( id, entity );
-                result.complete( entity != null && entity.status() != EntityStatus.REMOVED ? entity : null );
+                return entity != null && entity.status() != EntityStatus.REMOVED ? entity : null;
             });
         }
-        return result;
     }
 
 
@@ -227,6 +225,7 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
+                // FIXME executeQuery().map().filter() ?
                 var promise = new Promise.Completable<Opt<T>>();
                 storeUow.executeQuery( this ).onSuccess( ref -> {
                     if (ref == null) {
@@ -240,10 +239,10 @@ public class UnitOfWorkImpl
                         });
                         EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
                         Assert.that( status != EntityStatus.CREATED );
-                        Assert.that( status != EntityStatus.MODIFIED, "Not yet ..." );
 
                         // XXX remove when IDBStore supports indexed
                         if (expression.evaluate( entity )) {
+                            Assert.that( status != EntityStatus.MODIFIED, "Not yet ..." );
                             promise.consumeResult( Opt.of( entity ) );
                         }
                     }

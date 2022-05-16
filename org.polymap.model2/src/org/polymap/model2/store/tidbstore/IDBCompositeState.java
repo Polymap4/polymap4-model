@@ -126,7 +126,7 @@ public class IDBCompositeState
             return ((JSString)value).stringValue();
         }
         else {
-            throw new UnsupportedOperationException( "Unhandled type: " + info.getName() );
+            throw new UnsupportedOperationException( "Unhandled type of entity field: " + info.getName() );
         }
         
     }

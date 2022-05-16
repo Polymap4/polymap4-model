@@ -31,6 +31,10 @@ public abstract class JSStateObject
     @JSBody(params = "object", script = "return typeof object === 'undefined';")
     public static native boolean isUndefined( JSObject object );
 
+    @NoSideEffects
+    @JSBody(params = "obj", script = "return typeof obj === 'number';")
+    public static native boolean isNumber(JSObject obj);
+
     
     @JSBody( script = "return {};" )
     public static native JSStateObject create();
