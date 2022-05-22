@@ -16,6 +16,7 @@ package org.polymap.model2.engine;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,6 +35,7 @@ import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Platform;
 import areca.common.Promise;
 import areca.common.base.Opt;
 import areca.common.base.Sequence;
@@ -225,29 +227,51 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
-                // FIXME executeQuery().map().filter() ?
-                var promise = new Promise.Completable<Opt<T>>();
-                storeUow.executeQuery( this ).onSuccess( ref -> {
-                    if (ref == null) {
-                        promise.complete( Opt.absent() );
-                    }
-                    else {
-                        @SuppressWarnings( "unchecked" )
-                        T entity = (T)loaded.computeIfAbsent( ref.id(), key -> {
-                            CompositeState state = ref.get();
-                            return repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
-                        });
-                        EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-                        Assert.that( status != EntityStatus.CREATED );
-
-                        // XXX remove when IDBStore supports indexed
-                        if (expression.evaluate( entity )) {
-                            Assert.that( status != EntityStatus.MODIFIED, "Not yet ..." );
-                            promise.consumeResult( Opt.of( entity ) );
+                var result = new Promise.Completable<Opt<T>>();
+                var alreadySent = new HashSet<>();
+                
+                // evaluate loaded/modified
+                Platform.async( () -> {
+                    modified.values().forEach( entity -> {
+                        if (entity.getClass().equals( entityClass ) && expression.evaluate( entity )) {
+                            alreadySent.add( entity.id() );
+                            result.consumeResult( Opt.of( entityClass.cast( entity ) ) );
                         }
-                    }
+                    });
                 });
-                return promise;
+
+                // query
+                storeUow.executeQuery( this )
+                        .map( ref -> {
+                            if (ref == null) {
+                                return null;
+                            }
+                            else {
+                                @SuppressWarnings( "unchecked" )
+                                T entity = (T)loaded.computeIfAbsent( ref.id(), key -> {
+                                    CompositeState state = ref.get();
+                                    return repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
+                                });
+                                EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
+                                Assert.that( status != EntityStatus.CREATED );
+                                return entity;
+                            }
+                        })
+                        // evaluate modified
+                        .filter( entity -> {
+                            return entity != null // XXX && entity.status() == EntityStatus.MODIFIED
+                                    ? expression.evaluate( entity ) : true;
+                        })
+                        .onSuccess( entity -> {
+                            if (entity == null) {
+                                result.complete( Opt.absent() );
+                            }
+                            else if (!alreadySent.contains( entity.id() )) {
+                                result.consumeResult( Opt.of( entity ) );
+                            }
+                        });
+                
+                return result;
                 
                 
                 

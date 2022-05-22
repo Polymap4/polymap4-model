@@ -17,6 +17,8 @@ package org.polymap.model2.query.grammar;
 import org.polymap.model2.Composite;
 import org.polymap.model2.engine.TemplateProperty;
 
+import areca.common.Assert;
+
 /**
  * 
  *
@@ -39,13 +41,14 @@ public class PropertyMatches<T>
 
     @Override
     public boolean evaluate( Composite target ) {
-        throw new UnsupportedOperationException( "wildcard match not supported" );
+        Assert.that( !((String)value).contains( ".+[]()" ), "Regex special chars are not supported yet: " + value );
         
-        // removed to get rid of commons.io
-//        Object propValue = propValue( target, prop );
-//        return propValue != null 
-//                ? FilenameUtils.wildcardMatch( propValue.toString(), value.toString() )
-//                : false;
+        Object propValue = propValue( target, prop );
+        return propValue != null 
+                ? propValue.toString().matches( ((String)value)
+                        .replace( String.valueOf( multiWildcard ), ".*" )
+                        .replace( String.valueOf( singleWildcard ), "." ) )
+                : false;
     }
     
     protected String name() {

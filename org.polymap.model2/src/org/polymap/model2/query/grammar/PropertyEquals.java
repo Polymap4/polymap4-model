@@ -38,8 +38,9 @@ public class PropertyEquals<T>
         return Objects.equals( value, targetProp.get() );
     }
 
-    protected String name() {
+    
+    @Override
+    protected String opName() {
         return "==";
     }
-
 }
