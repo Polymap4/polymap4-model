@@ -17,15 +17,18 @@ package org.polymap.model2.runtime;
 import java.util.Optional;
 
 import java.io.IOException;
+import java.sql.ResultSet;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.Nullable;
 import org.polymap.model2.query.Query;
+import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreSPI;
 
 import areca.common.Assert;
+import areca.common.AssertionException;
 import areca.common.Promise;
 import areca.common.base.Consumer;
 import areca.common.base.Function;
@@ -127,6 +130,27 @@ public interface UnitOfWork
     
     public default <T extends Entity> T createEntity( Class<T> entityClass ) {
         return createEntity( entityClass, null, null );
+    }
+
+
+    /**
+     * Ensures that an Entity exists that matches the given condition.
+     *
+     * @return Whether found or newly created Entity.
+     * @throws {@link AssertionException} If more than one Entity exists for the given condition.
+     */
+    public default <T extends Entity,E extends Exception> Promise<T> ensureEntity( 
+            Class<T> type, BooleanExpression cond, Consumer<T,E> initializer ) throws E {
+        
+        return query( type ).where( cond ).executeCollect().map( rs -> {
+            if (rs.isEmpty()) {
+                return createEntity( type, initializer );
+            }
+            else {
+                Assert.isEqual( 1, rs.size() );
+                return rs.get( 0 );
+            }
+        });
     }
 
 

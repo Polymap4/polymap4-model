@@ -21,6 +21,7 @@ import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 
 import areca.common.Promise;
+import areca.common.base.Opt;
 
 /**
  * 
@@ -81,7 +82,7 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
     }
 
     @Override
-    public Promise<T> fetch() {
+    public Promise<Opt<T>> fetch() {
         context.checkState();
         return delegate().fetch().onSuccess( value -> {
             context.checkState();            

@@ -14,9 +14,11 @@
  */
 package org.polymap.model2.engine;
 
+import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
+import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.LOADED;
+
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,11 +34,12 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.runtime.locking.CommitLockStrategy;
 import org.polymap.model2.store.CompositeState;
+import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
-import areca.common.Platform;
 import areca.common.Promise;
+import areca.common.Promise.Completable;
 import areca.common.base.Opt;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
@@ -227,52 +230,45 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
-                var result = new Promise.Completable<Opt<T>>();
-                var alreadySent = new HashSet<>();
-                
-                // evaluate loaded/modified
-                Platform.async( () -> {
-                    modified.values().forEach( entity -> {
-                        if (entity.getClass().equals( entityClass ) && expression.evaluate( entity )) {
-                            alreadySent.add( entity.id() );
-                            result.consumeResult( Opt.of( entityClass.cast( entity ) ) );
-                        }
-                    });
-                });
-
-                // query
-                storeUow.executeQuery( this )
-                        .map( ref -> {
-                            if (ref == null) {
-                                return null;
-                            }
-                            else {
+                return storeUow.executeQuery( this )
+                        // query
+                        .map( (CompositeStateReference ref, Completable<T> next) -> {
+                            // database results (just un-modified)
+                            if (ref != null) {
                                 @SuppressWarnings( "unchecked" )
                                 T entity = (T)loaded.computeIfAbsent( ref.id(), key -> {
                                     CompositeState state = ref.get();
                                     return repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
                                 });
-                                EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-                                Assert.that( status != EntityStatus.CREATED );
-                                return entity;
+                                Assert.that( entity.status() != CREATED );
+                                if (entity.status() == LOADED) {
+                                    next.consumeResult( entity );
+                                } else {
+                                    Assert.that( modified.containsKey( entity.id() ) );
+                                }
+                            }
+                            // send modified (potentially matching) Entities of query type
+                            // !AFTER db results! in order to minimize race cond
+                            else {
+                                modified.values().forEach( entity -> {
+                                    Assert.that( entity.status().status > LOADED.status );
+                                    if (entity.getClass().equals( entityClass )) {
+                                        next.consumeResult( entityClass.cast( entity ) );
+                                    }
+                                });
+                                next.complete( null );
                             }
                         })
-                        // evaluate modified
-                        .filter( entity -> {
+
+//                        // distinct results
+//                        .filter( (T entity) -> alreadySent.add( entity ) )
+                        
+                        // evaluate all modified (from DB and modified)
+                        .filter( (T entity) -> {
                             return entity != null // XXX && entity.status() == EntityStatus.MODIFIED
                                     ? expression.evaluate( entity ) : true;
                         })
-                        .onSuccess( entity -> {
-                            if (entity == null) {
-                                result.complete( Opt.absent() );
-                            }
-                            else if (!alreadySent.contains( entity.id() )) {
-                                result.consumeResult( Opt.of( entity ) );
-                            }
-                        });
-                
-                return result;
-                
+                        .map( entity -> Opt.of( entity ) );
                 
                 
 //                Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )

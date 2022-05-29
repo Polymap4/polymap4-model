@@ -217,7 +217,7 @@ public class SimpleModelTest {
                 .then( submitted -> {
                     return uow.query( Person.class )
                             .where( eq( Person.TYPE.name, "name-0" ) )
-                            .executeToList()
+                            .executeCollect()
                             .onSuccess( results -> {
                                 Assert.isEqual( 1, results.size() );
                             });

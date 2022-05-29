@@ -28,7 +28,7 @@ public abstract class JSStateObject
         implements JSObject {
 
     @NoSideEffects
-    @JSBody(params = "object", script = "return typeof object === 'undefined';")
+    @JSBody(params = "object", script = "return object === null || typeof object === 'undefined';")
     public static native boolean isUndefined( JSObject object );
 
     @NoSideEffects

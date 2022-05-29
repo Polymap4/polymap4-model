@@ -145,7 +145,7 @@ public class IDBUnitOfWork
                             cursor.doContinue();
                         }
                         else {
-                            // FIXME signal end
+                            // XXX signal end
                             promise.complete( null );
                         }
                     }

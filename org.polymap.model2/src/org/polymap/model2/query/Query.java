@@ -61,8 +61,8 @@ public abstract class Query<T extends Entity> {
     public abstract Promise<Opt<T>> execute();
     
     
-    public Promise<ArrayList<T>> executeToList() {
-        return execute().reduce( new ArrayList<T>(), (r,opt) -> opt.ifPresent( entity -> r.add( entity ) ) );
+    public Promise<ArrayList<T>> executeCollect() {
+        return execute().reduce( new ArrayList<T>(), (l,result) -> result.ifPresent( entity -> l.add( entity ) ) );
     }
     
     

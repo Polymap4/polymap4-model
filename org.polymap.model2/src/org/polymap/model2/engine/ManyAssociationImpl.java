@@ -22,6 +22,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.StoreCollectionProperty;
 
 import areca.common.Promise;
+import areca.common.base.Opt;
 
 /**
  * 
@@ -61,12 +62,14 @@ class ManyAssociationImpl<T extends Entity>
 
     
     @Override
-    public Promise<T> fetch() {
+    public Promise<Opt<T>> fetch() {
         UnitOfWork uow = context.getUnitOfWork();
         Class<T> entityType = info().getType();
         
         var ids = storeProp.iterator();
-        return Promise.joined( size(), i -> uow.entity( entityType, ids.next() ) );
+        return ids.hasNext() 
+                ? Promise.joined( size(), i -> uow.entity( entityType, ids.next() ) ).map( entity -> Opt.of( entity ) )
+                : Promise.absent();
     }
 
     @Override

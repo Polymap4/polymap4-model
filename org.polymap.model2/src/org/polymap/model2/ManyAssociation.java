@@ -14,7 +14,11 @@
  */
 package org.polymap.model2;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import areca.common.Promise;
+import areca.common.base.Opt;
 
 /**
  * A multi-value association to an {@link Entity}.
@@ -24,7 +28,11 @@ import areca.common.Promise;
 public interface ManyAssociation<T extends Entity>
         extends PropertyBase<T> {
 
-    public Promise<T> fetch();
+    public Promise<Opt<T>> fetch();
+    
+    public default Promise<List<T>> fetchCollect() {
+        return fetch().reduce( new ArrayList<>(), (l,entity) -> entity.ifPresent( present -> l.add( present ) ) );
+    }
     
     public boolean add( T elm );
 

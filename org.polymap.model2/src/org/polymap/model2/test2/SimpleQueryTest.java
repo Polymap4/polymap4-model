@@ -89,7 +89,7 @@ public class SimpleQueryTest {
     @Test
     protected Promise<?> allTest() {
         return initRepo( "all" )
-                .then( uow -> uow.query( Person.class ).executeToList() )
+                .then( uow -> uow.query( Person.class ).executeCollect() )
                 .onSuccess( rs -> {
                     Assert.isEqual( 2, rs.size() );
                 });
@@ -101,7 +101,7 @@ public class SimpleQueryTest {
         return initRepo( "eq" )
                 .then( uow -> uow.query( Person.class )
                         .where( eq( Person.TYPE.firstname, "Ulli" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> {
                     Assert.isEqual( 1, rs.size() );
                 });
@@ -113,13 +113,13 @@ public class SimpleQueryTest {
         return initRepo( "matches" )
                 .then( uow -> uow.query( Person.class )
                         .where( matches( Person.TYPE.firstname, "Ul*" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> {
                     Assert.isEqual( 1, rs.size() );
                 })
                 .then( rs -> _uow.query( Person.class )
                         .where( matches( Person.TYPE.firstname, "Ull?" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> {
                     Assert.isEqual( 1, rs.size() );
                 });
@@ -135,19 +135,19 @@ public class SimpleQueryTest {
                         proto.name.set( "Philipp" );
                     });
                 })
-                .then( __ -> _uow.query( Person.class ).executeToList() )
+                .then( __ -> _uow.query( Person.class ).executeCollect() )
                 .onSuccess( rs -> 
                         Assert.isEqual( 3, rs.size() ) )
                 
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.firstname, "neu" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> 
                         Assert.isEqual( 1, rs.size() ) )
                 
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.name, "Philipp" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> 
                         Assert.isEqual( 2, rs.size() ) );
     }
@@ -158,18 +158,18 @@ public class SimpleQueryTest {
         return initRepo( "readModified" )
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.firstname, "Ulli" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> rs.get( 0 ).firstname.set( "modified" ) )
                 
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.firstname, "modified" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> 
                         Assert.isEqual( 1, rs.size() ) )
                 
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.name, "Philipp" ) )
-                        .executeToList() )
+                        .executeCollect() )
                 .onSuccess( rs -> 
                         Assert.isEqual( 1, rs.size() ) );
     }

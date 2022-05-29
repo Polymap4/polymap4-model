@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSArray;
+import org.teavm.jso.core.JSBoolean;
 import org.teavm.jso.core.JSDate;
 import org.teavm.jso.core.JSNumber;
 import org.teavm.jso.core.JSObjects;
@@ -112,8 +113,11 @@ public class IDBCompositeState
         else if (value instanceof Date) {
             return JSDate.create( ((Date)value).getTime() );
         }
+        else if (value instanceof Boolean) {
+            return JSBoolean.valueOf( ((Boolean)value).booleanValue() );
+        }
         else {
-            throw new UnsupportedOperationException( "Unhandled: " + value );
+            throw new UnsupportedOperationException( "Unhandled Entity property type: " + value );
         }
     }
     
@@ -125,8 +129,14 @@ public class IDBCompositeState
         else if (JSString.isInstance( value )) {
             return ((JSString)value).stringValue();
         }
+        else if (info.getType().equals( Boolean.class )) {
+            return ((JSBoolean)value).booleanValue();
+        }
+        else if (info.getType().equals( Integer.class )) {
+            return ((JSNumber)value).intValue();
+        }
         else {
-            throw new UnsupportedOperationException( "Unhandled type of entity field: " + info.getName() );
+            throw new UnsupportedOperationException( "Unhandled Entity property type: " + info.getName() );
         }
         
     }
