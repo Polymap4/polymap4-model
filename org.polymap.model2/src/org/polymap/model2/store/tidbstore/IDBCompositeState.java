@@ -45,9 +45,9 @@ public class IDBCompositeState
 
     private static final Logger LOG = Logger.getLogger( IDBCompositeState.class.getName() );
     
-    private Class<? extends Composite>  entityClass;
+    protected Class<? extends Composite>    entityClass;
     
-    private JSStateObject               jsObject;
+    protected JSStateObject                 jsObject;
 
     
     public IDBCompositeState( Object id, Class<? extends Composite> entityClass ) {

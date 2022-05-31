@@ -70,7 +70,7 @@ public class TwoPhaseCommit {
 
         @Override
         public void rollback() {
-            uow.reset();
+            uow.discard();
         }
 
         @Override

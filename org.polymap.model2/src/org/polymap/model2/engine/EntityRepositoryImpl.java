@@ -318,12 +318,13 @@ public class EntityRepositoryImpl
         @Override
         public void raiseStatus( EntityStatus newStatus ) {
             checkState();
-            assert newStatus.status >= status.status;
+            Assert.that( newStatus.status >= status.status );
+            var old = status;
             // keep created if modified after creation
             if (status != EntityStatus.CREATED) {
                 status = newStatus;
             }
-            ((UnitOfWorkImpl)uow).raiseStatus( entity );
+            ((UnitOfWorkImpl)uow).raiseStatus( entity, old );
         }
 
         @Override

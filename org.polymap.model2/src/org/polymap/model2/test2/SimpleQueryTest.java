@@ -19,12 +19,15 @@ import static org.polymap.model2.query.Expressions.matches;
 
 import java.util.Arrays;
 
+import org.apache.commons.lang3.mutable.MutableInt;
+
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -173,6 +176,81 @@ public class SimpleQueryTest {
                 .onSuccess( rs -> 
                         Assert.isEqual( 1, rs.size() ) );
     }
+
+    @Test
+    public Promise<?> testQueryIterate() {
+        MutableInt count = new MutableInt();
+        return initRepo( "queryIterate" )
+                // create data
+                .then( __ -> {
+                    var uow2 = _repo.newUnitOfWork();
+                    Sequence.ofInts( 0, 9 ).forEach( i -> {
+                        uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );
+                    });
+                    return uow2.submit();
+                })
+                // query
+                .then( submitted -> {
+                    var uow = _repo.newUnitOfWork();
+                    return uow.query( Person.class ).execute();
+                })
+                // entity
+                .onSuccess( person -> {
+                    person.ifPresent( p -> {
+                        LOG.debug( "RS: " + count + ": " + p.id() + ", name=" + p.name.get() );
+                        _repo.newUnitOfWork()
+                                .entity( Person.class, p.id() )
+                                .onSuccess( loaded -> {
+                                    LOG.debug( "loaded: %s", Assert.notNull( loaded ) );
+                                });
+                        count.increment();
+                        LOG.debug( "count = " + count );
+                    });
+                });                    
+                
+    }
+
+    //    @Test
+    //    @Skip
+    //    public void testQueryPerformance() {
+    //        var uow2 = repo.newUnitOfWork();
+    //        for (int i=0; i<100; i++) {
+    //            var p = uow2.createEntity( Person.class, null );
+    //            p.name.set( "name-" + i );
+    //        }
+    //        uow2.submit().waitForResult();
+    //        
+    //        for (int i=0; i<20; i++) {
+    //            uow2 = repo.newUnitOfWork();
+    //            MutableInt count = new MutableInt();
+    //            uow2.query( Person.class ).execute()
+    //                    .onSuccess( p -> count.increment() )
+    //                    .waitForResult();
+    //            uow2.close();
+    //        }
+    //    }
+        
+        
+        @Test
+        public Promise<?> testQueryName() {
+            return initRepo( "queryName" )
+                    .then( __ -> {
+                        var uow2 = _repo.newUnitOfWork();
+                        Sequence.ofInts( 0, 9 ).forEach( i -> {
+                            uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );                        
+                        });
+                        return uow2.submit();
+                    })
+                    .then( submitted -> {
+                        var uow = _repo.newUnitOfWork();
+                        return uow.query( Person.class )
+                                .where( eq( Person.TYPE.name, "name-0" ) )
+                                .executeCollect()
+                                .onSuccess( results -> {
+                                    Assert.isEqual( 1, results.size() );
+                                });
+                    });
+        }
     
     
 //        Employee wanted = Expressions.template( Employee.class, repo );

@@ -164,19 +164,8 @@ public interface UnitOfWork
 
 
     /**
-     * This methods allows a UnitOfWork to take part on a 2-phase commit protocol.
-     * Calling this method sends all changes down to the underlying store but does
-     * not commit the transaction. Client code does not have to use this method but
-     * can call {@link #commit()} directly.
-     * <p/>
-     * Client code must not call any other method than {@link #commit()} or
-     * {@link #close()} after {@link #prepare()}.
-     * <p/>
-     * Backend stores probably open an external transaction between
-     * {@link #prepare()} and {@link #commit()}. This probably aquires resources and
-     * locks. It is important that {@link #commit()} and/or {@link #close()} is
-     * called with a reasonable timeframe. Consider using some kind of transaction
-     * monitor for this.
+     * Sends all modifications down to the underlying store but but does not
+     * close this {@link UnitOfWork}.
      * <p/>
      * If {@link #prepare()} fails and throws an exception then it has to clean any
      * transaction specific resources and locks before returning. Client code may use
@@ -189,43 +178,42 @@ public interface UnitOfWork
      */
     public Promise<Submitted> submit(); // throws IOException, ConcurrentEntityModificationException;
 
-    public interface Submitted {
-        
+    public interface Submitted {        
     }
-
-//    /**
-//     * Persistently stores all modifications that were made within this UnitOfWork.
-//     * If {@link #prepare()} has not been called yet then it is done by this method.
-//     * <p/>
-//     * This does not close this {@link UnitOfWork} but may flush internal caches.
-//     * 
-//     * @throws ModelRuntimeException If {@link #prepare()} was called by this method
-//     *         and a exception occured.
-//     */
-//    public void commit() throws ModelRuntimeException;
 
     
     /**
-     * Discards any uncommitted modifications but does not close this UnitOfWork.
-     * This method can be called before or after {@link #prepare()}. The states of
-     * all modified entities are reloaded from backend store. Newly created entities
-     * are in {@link EntityStatus#DETACHED} state afterwards.
+     * Discards any uncommitted modifications but does not close this UnitOfWork. The
+     * states of all modified entities are reloaded from backend store. Newly created
+     * entities are in {@link EntityStatus#DETACHED} state afterwards.
      * <p/>
-     * {@link OptimisticLocking}: after rollback() all locally modified entities are
-     * updated to the store state. In case of concurrent modifications that state
-     * might be <b>different</b> to the state first loaded in this UnitOfWork. In
-     * other words, rollback() can be used to incorporate changes from the store.
+     * {@link OptimisticLocking}: all locally modified entities are updated to the
+     * store state. In case of concurrent modifications that state might be
+     * *different* to the state first loaded in this UnitOfWork. In other words,
+     * discard() incorporates changes from the store for all LOCALLY MODIFIED
+     * Entities. Use {@link #refresh()} to do this for UNMODIFIED Entities as well.
      * <p/>
      * This may flush internal caches.
-     * 
+     *
+     * @see #refresh()
      * @throws ModelRuntimeException
      */
-    public void reset() throws ModelRuntimeException;
+    public Promise<Submitted> discard() throws ModelRuntimeException;
 
+    
+    /**
+     * Reload all UN-MODIFIED Entities from the backend store. This reads all
+     * submitted changes into this {@link UnitOfWork}. This DOES NOT change any
+     * Entity that has been modified within this {@link UnitOfWork}.
+     * 
+     * @see #discard()
+     */
+    public Promise<Submitted> refresh() throws ModelRuntimeException;
 
+    
     /**
      * Reload the state of the given {@link Entity} from backend store no matter what
-     * the current {@link EntityStatus} is. This is kind of a forced {@link #reset()}
+     * the current {@link EntityStatus} is. This is kind of a forced {@link #discard()}
      * for the given entity.
      *
      * @param entity The {@link Entity} to reload.
@@ -278,11 +266,11 @@ public interface UnitOfWork
      * underlying store. Until prepare/commit the parent UnitOfWork does not see any
      * modification done in the nested instance.
      * <p/>
-     * {@link #reset()} resets the states of the entities of the nested UnitOfWork
+     * {@link #discard()} resets the states of the entities of the nested UnitOfWork
      * to the state of the parent. Care must be taken after {@link #prepare()} has
      * been called (and it maybe failed). After {@link #prepare()} the parent
      * contains (some) modifications. So the parent <b>MUST</b> be
-     * {@link #reset()}ed <b>before</b> the nested UnitOfWork can be rolled back.
+     * {@link #discard()}ed <b>before</b> the nested UnitOfWork can be rolled back.
      * <p/>
      * There is <b>no check for concurrent modifications</b> between the nested
      * instances! Client code has to make sure that the parent UnitOfWork is not

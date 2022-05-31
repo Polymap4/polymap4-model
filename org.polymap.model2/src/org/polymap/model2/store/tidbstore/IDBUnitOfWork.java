@@ -15,6 +15,7 @@
 package org.polymap.model2.store.tidbstore;
 
 import java.util.Collection;
+
 import java.io.IOException;
 
 import org.teavm.jso.JSObject;
@@ -24,6 +25,7 @@ import org.teavm.jso.indexeddb.IDBRequest;
 import org.teavm.jso.indexeddb.IDBTransaction;
 
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.tuple.MutablePair;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
@@ -31,12 +33,14 @@ import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.UnitOfWork.Submitted;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.CompositeStateReference;
+import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
 
 import areca.common.Promise;
 import areca.common.base.Consumer.RConsumer;
 import areca.common.base.Function.RFunction;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -50,11 +54,14 @@ public class IDBUnitOfWork
     
     private static final Log LOG = LogFactory.getLog( IDBUnitOfWork.class );
     
-    protected IDBStore          store;
+    protected StoreRuntimeContext   context;
+    
+    protected IDBStore              store;
     
 
-    public IDBUnitOfWork( IDBStore store ) {
+    public IDBUnitOfWork( IDBStore store, StoreRuntimeContext context ) {
         this.store = store;
+        this.context = context;
     }
 
 
@@ -188,17 +195,26 @@ public class IDBUnitOfWork
     }
 
 
-//    @Override
-//    public void commit() {
-//        // FIXME
-//        //tx.commit();
-//    }
-
-
+    /**
+     * XXX This is a *refresh* impl. - change name!
+     */
     @Override
-    public void rollback( Iterable<Entity> modified ) {
-        // XXX Auto-generated method stub
-        throw new RuntimeException( "not yet implemented." );
+    public Promise<Submitted> rollback( Iterable<Entity> entities ) {
+        var l = Sequence.of( entities ).toList();
+        if (l.isEmpty()) {
+            return Promise.completed( new Submitted() {} );
+        }
+        return Promise.joined( l.size(), i -> {
+            var entity = l.get( i );
+            var state = (IDBCompositeState)context.contextOfEntity( entity ).getState();
+            return loadEntityState( state.id(), entity.getClass() )
+                    .map( newState -> MutablePair.of( state, (IDBCompositeState)newState ) );
+        })
+        .map( loaded -> {
+            loaded.left.jsObject = loaded.right.jsObject;
+            LOG.info( "ROLLED BACK: " + loaded.left.id() );
+            return new Submitted() {};
+        });
     }
 
 

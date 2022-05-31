@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2012-2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -14,11 +14,8 @@
  */
 package org.polymap.model2.test2;
 
-import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 import java.util.Arrays;
-
-import org.apache.commons.lang3.mutable.MutableInt;
 
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
@@ -28,7 +25,6 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
-import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -150,37 +146,7 @@ public class SimpleModelTest {
     }
     
     
-    @Test
-    public Promise<?> testQueryIterate() {
-        MutableInt count = new MutableInt();
-        return initRepo( "queryIterate" )
-                // create data
-                .then( repo -> {
-                    var uow2 = repo.newUnitOfWork();
-                    Sequence.ofInts( 0, 9 ).forEach( i -> {
-                        uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );                        
-                    });
-                    return uow2.submit();
-                })
-                // query
-                .then( submitted -> {
-                    return uow.query( Person.class ).execute();
-                })
-                // entity
-                .onSuccess( person -> {
-                    person.ifPresent( p -> {
-                        LOG.debug( "RS: " + count + ": " + p.id() + ", name=" + p.name.get() );
-                        _repo.newUnitOfWork()
-                                .entity( Person.class, p.id() )
-                                .onSuccess( loaded -> {
-                                    LOG.debug( "loaded: %s", Assert.notNull( loaded ) );
-                                });
-                        count.increment();
-                        LOG.debug( "count = " + count );
-                    });
-                });                    
-                
-    }
+    
     
 
 //    @Test
@@ -202,27 +168,6 @@ public class SimpleModelTest {
 //            uow2.close();
 //        }
 //    }
-    
-    
-    @Test
-    public Promise<?> testQueryName() {
-        return initRepo( "queryName" )
-                .then( repo -> {
-                    var uow2 = repo.newUnitOfWork();
-                    Sequence.ofInts( 0, 9 ).forEach( i -> {
-                        uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );                        
-                    });
-                    return uow2.submit();
-                })
-                .then( submitted -> {
-                    return uow.query( Person.class )
-                            .where( eq( Person.TYPE.name, "name-0" ) )
-                            .executeCollect()
-                            .onSuccess( results -> {
-                                Assert.isEqual( 1, results.size() );
-                            });
-                });
-    }
     
     
     @Test

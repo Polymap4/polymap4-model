@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2014-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -15,27 +15,28 @@
 package org.polymap.model2.runtime;
 
 import org.polymap.model2.Entity;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 
 /**
  * An {@link Entity} can implement this interface in order to get lifecycle events.
- * <p/>
- * EXPERIMENTAL: This is work in progress. Not well tested. API may change.
  * 
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 public interface Lifecycle {
 
     public enum State {
-        BEFORE_PREPARE,
-        AFTER_PREPARE,
-        BEFORE_COMMIT,
-        AFTER_COMMIT,
-        BEFORE_ROLLBACK,
-        AFTER_ROLLBACK,
-        /** @deprecated Yet to be supported by the engine. */
+        BEFORE_SUBMIT,
+        AFTER_SUBMIT,
+        BEFORE_DISCARD,
+        AFTER_DISCARD,
+        /** Fired when {@link UnitOfWork#refresh()} */
+        AFTER_REFRESH,
+        /** Fired when the Entity is first loaded into the cache. */
         AFTER_LOADED,
-        /** @deprecated Yet to be supported by the engine. */
+        /**  */
         AFTER_CREATED,
+        /** Fired when the {@link Entity#status()} switches from {@link EntityStatus#LOADED} to {@link EntityStatus#MODIFIED}. */
+        AFTER_MODIFIED,
         /** @deprecated Yet to be supported by the engine. */
         BEFORE_REMOVED
     }

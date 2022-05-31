@@ -66,7 +66,7 @@ public interface StoreUnitOfWork {
     
     // public void commit();
     
-    public void rollback( Iterable<Entity> modified );
+    public Promise<Submitted> rollback( Iterable<Entity> modified );
 
     public void close();
 

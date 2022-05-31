@@ -71,8 +71,8 @@ public abstract class DelegatingUnitOfWork
         return delegate.submit();
     }
 
-    public void reset() throws ModelRuntimeException {
-        delegate.reset();
+    public Promise<Submitted> discard() throws ModelRuntimeException {
+        return delegate.discard();
     }
 
     public void reload( Entity entity ) throws ModelRuntimeException {

@@ -93,8 +93,8 @@ public abstract class StoreDecorator
             return suow.submit( modified );
         }
 
-        public void rollback( Iterable<Entity> modified ) {
-            suow.rollback( modified );
+        public Promise<Submitted> rollback( Iterable<Entity> modified ) {
+            return suow.rollback( modified );
         }
 
         public void close() {

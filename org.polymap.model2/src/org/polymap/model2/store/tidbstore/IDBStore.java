@@ -129,7 +129,7 @@ public class IDBStore
     
     @Override
     public StoreUnitOfWork createUnitOfWork() {
-        return new IDBUnitOfWork( this );
+        return new IDBUnitOfWork( this, context );
     }
 
 

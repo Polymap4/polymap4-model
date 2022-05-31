@@ -14,9 +14,13 @@
  */
 package org.polymap.model2.engine;
 
+import static java.util.Collections.singleton;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.CREATED;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.LOADED;
+import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
+import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.REMOVED;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -111,12 +115,14 @@ public class UnitOfWorkImpl
     /**
      * Raises the status of the given Entity. Called by {@link ConstraintsPropertyInterceptor}.
      */
-    protected void raiseStatus( Entity entity) {
+    protected void raiseStatus( Entity entity, EntityStatus old) {
         checkOpen();
-        if (entity.status() == EntityStatus.MODIFIED
-                || entity.status() == EntityStatus.REMOVED) {
+        if (entity.status() == MODIFIED || entity.status() == REMOVED) {
             modified.putIfAbsent( entity.id(), entity );
-        }        
+        }
+        if (old == LOADED || entity.status() == MODIFIED) {
+            lifecycle( singleton( entity ), State.AFTER_MODIFIED );
+        }
     }
 
 
@@ -149,7 +155,7 @@ public class UnitOfWorkImpl
         catch (Exception e) {
             throw new IllegalStateException( "Error while initializing.", e );
         }
-        
+        lifecycle( singleton( result ), State.AFTER_CREATED );        
         return result;
     }
 
@@ -161,16 +167,26 @@ public class UnitOfWorkImpl
         Assert.notNull( id, "Given Id is null." );
         checkOpen();
 
+        // for preempt runtime this should be computeIfAbsent()
         if (loaded.containsKey( id )) {
             LOG.debug( "entity(): CACHED" );
-            return Promise.completed( (T)loaded.get( id ) );
+            T entity = (T)loaded.get( id );
+            entity = entity.status() != EntityStatus.REMOVED ? entity : null;
+            return Promise.completed( entity );
         }
         else {
             return storeUow.loadEntityState( id, entityClass ).map( state -> {
                 LOG.debug( "entity(): LOADED: %s", state );
-                T entity = state != null ? repo.buildEntity( state, entityClass, UnitOfWorkImpl.this ) : null;
-                loaded.put( id, entity );
-                return entity != null && entity.status() != EntityStatus.REMOVED ? entity : null;
+                if (state == null) {
+                    return null;
+                }
+                else {
+                    T entity = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
+                    loaded.put( id, entity );
+                    Assert.that( entity.status() != EntityStatus.REMOVED );
+                    lifecycle( singleton( entity ), State.AFTER_LOADED );        
+                    return entity;
+                }
             });
         }
     }
@@ -340,8 +356,8 @@ public class UnitOfWorkImpl
     }
 
 
-    protected void lifecycle( State state ) {
-        for (Entity entity : modified.values()) {
+    protected void lifecycle( Collection<Entity> entities, State state ) {
+        for (Entity entity : entities) {
             if (entity instanceof Lifecycle) {
                 try {
                     ((Lifecycle)entity).onLifecycleChange( state );
@@ -359,16 +375,13 @@ public class UnitOfWorkImpl
         checkOpen();
         //commitLock.lock();
 
-        lifecycle( State.BEFORE_PREPARE );
+        lifecycle( modified.values(), State.BEFORE_SUBMIT );
         return storeUow
                 .submit( modified.values() )
                 .onSuccess( submitted -> {
-                    lifecycle( State.AFTER_PREPARE );            
-
                     // commit store
-                    lifecycle( State.BEFORE_COMMIT );
                     resetStatusLoaded();
-                    lifecycle( State.AFTER_COMMIT );
+                    lifecycle( modified.values(), State.AFTER_SUBMIT );
 
                     LOG.debug( "onSuccess: clearing modified" );
                     modified.clear();
@@ -396,13 +409,10 @@ public class UnitOfWorkImpl
 
     
     @Override
-    public void reset() throws ModelRuntimeException {
+    public Promise<Submitted> discard() throws ModelRuntimeException {
         checkOpen();
-        lifecycle( State.BEFORE_ROLLBACK );
-        
-        // give all entities a new state
-        storeUow.rollback( modified.values() );
-        
+        lifecycle( modified.values(), State.BEFORE_DISCARD );
+
         // reset Entity internal caches
         for (Entity entity : modified.values()) {
             new ResetCachesVisitor().process( entity );            
@@ -410,18 +420,32 @@ public class UnitOfWorkImpl
         
         // reset status of modified entities
         for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
-            if (entry.getValue().status() == EntityStatus.CREATED) {
+            if (entry.getValue().status() == CREATED) {
                 InstanceBuilder.contextOf( entry.getValue() ).detach();
                 loaded.remove( entry.getKey() );
             }
             else {
-                repo.contextOf( entry.getValue() ).resetStatus( EntityStatus.LOADED );
+                repo.contextOf( entry.getValue() ).resetStatus( LOADED );
             }
         }
-        lifecycle( State.AFTER_ROLLBACK );
+        
+        // give entities a new state
+        var notCreated = Sequence.of( loaded.values() ).filter( e -> e.status() != CREATED ).asIterable();
+        return storeUow.rollback( notCreated )
+                .onSuccess( __ -> {
+                    lifecycle( modified.values(), State.AFTER_DISCARD );
+                    modified.clear();        
+                    commitLock.unlock( true );
+                });
+    }
 
-        modified.clear();        
-        commitLock.unlock( true );
+
+    @Override
+    public Promise<Submitted> refresh() throws ModelRuntimeException {
+        checkOpen();
+        var _loaded = Sequence.of( loaded.values() ).filter( entity -> entity.status() == LOADED ).toList();
+        return storeUow.rollback( _loaded )
+                .onSuccess( __ -> lifecycle( _loaded, State.AFTER_REFRESH ) );
     }
 
 
