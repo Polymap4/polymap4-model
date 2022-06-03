@@ -212,7 +212,7 @@ public class IDBUnitOfWork
         })
         .map( loaded -> {
             loaded.left.jsObject = loaded.right.jsObject;
-            LOG.info( "ROLLED BACK: " + loaded.left.id() );
+            LOG.debug( "ROLLED BACK: " + loaded.left.id() );
             return new Submitted() {};
         });
     }

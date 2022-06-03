@@ -110,6 +110,9 @@ public class IDBCompositeState
         else if (value instanceof Integer) {
             return JSNumber.valueOf( ((Integer)value).intValue() );
         }
+        else if (value instanceof Long) {
+            return JSNumber.valueOf( (double)((Long)value).longValue() );
+        }
         else if (value instanceof Date) {
             return JSDate.create( ((Date)value).getTime() );
         }
@@ -134,6 +137,12 @@ public class IDBCompositeState
         }
         else if (info.getType().equals( Integer.class )) {
             return ((JSNumber)value).intValue();
+        }
+        else if (info.getType().equals( Long.class )) {
+            return Long.valueOf( (long)((JSNumber)value).doubleValue() );
+        }
+        else if (info.getType().equals( Date.class )) {
+            return new Date( (long)((JSDate)value).getTime() );
         }
         else {
             throw new UnsupportedOperationException( "Unhandled Entity property type: " + info.getName() );

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
@@ -443,13 +444,27 @@ public class UnitOfWorkImpl
     @Override
     public Promise<Submitted> refresh() throws ModelRuntimeException {
         checkOpen();
-        var _loaded = Sequence.of( loaded.values() ).filter( entity -> entity.status() == LOADED ).toList();
+        var _loaded = Sequence.of( loaded.values() )
+                .filter( entity -> entity.status() == LOADED )
+                .toList();
         return storeUow.rollback( _loaded )
                 .onSuccess( __ -> lifecycle( _loaded, State.AFTER_REFRESH ) );
     }
 
 
     @Override
+    public Promise<Submitted> refresh( Set<?> ids ) throws ModelRuntimeException {
+        checkOpen();
+        // XXX check if entity is modified? 
+        var entities = Sequence.of( loaded.values() )
+                .filter( entity -> ids.contains( entity.id() ) )
+                .toList();
+        return storeUow.rollback( entities )
+                .onSuccess( __ -> lifecycle( entities, State.AFTER_REFRESH ) );
+    }
+
+
+    //@Override
     public void reload( Entity entity ) throws ModelRuntimeException {
         EntityRuntimeContextImpl context = repo.contextOf( entity );
         assert context.getUnitOfWork() == this;

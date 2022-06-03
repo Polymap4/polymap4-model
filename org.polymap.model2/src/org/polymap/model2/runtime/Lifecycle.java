@@ -25,7 +25,9 @@ import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 public interface Lifecycle {
 
     public enum State {
+        /** Fired (just) on created, modified or removed entities. */
         BEFORE_SUBMIT,
+        /** Fired (just) on created, modified or removed entities. */
         AFTER_SUBMIT,
         BEFORE_DISCARD,
         AFTER_DISCARD,

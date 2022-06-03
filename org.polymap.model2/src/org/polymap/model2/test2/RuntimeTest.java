@@ -97,7 +97,7 @@ public class RuntimeTest {
                 .then( entity -> { 
                     Assert.isEqual( "init", entity.name.get() );
                     
-                    var check = Platform.schedule( 100, () -> Assert.isEqual( "init", entity.name.get() ) )
+                    var check = Platform.schedule( 200, () -> Assert.isEqual( "init", entity.name.get() ) )
                             .then( __ -> uow.refresh() )
                             .onSuccess( __ -> Assert.isEqual( "modified", entity.name.get() ) );
                     

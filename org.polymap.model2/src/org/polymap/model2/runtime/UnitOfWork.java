@@ -15,6 +15,7 @@
 package org.polymap.model2.runtime;
 
 import java.util.Optional;
+import java.util.Set;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -202,7 +203,7 @@ public interface UnitOfWork
 
     
     /**
-     * Reload all UN-MODIFIED Entities from the backend store. This reads all
+     * Reload all locally *unmodified* Entities from the backend store. This reads all
      * submitted changes into this {@link UnitOfWork}. This DOES NOT change any
      * Entity that has been modified within this {@link UnitOfWork}.
      * 
@@ -210,16 +211,18 @@ public interface UnitOfWork
      */
     public Promise<Submitted> refresh() throws ModelRuntimeException;
 
+    public Promise<Submitted> refresh( Set<?> ids ) throws ModelRuntimeException;
+
     
-    /**
-     * Reload the state of the given {@link Entity} from backend store no matter what
-     * the current {@link EntityStatus} is. This is kind of a forced {@link #discard()}
-     * for the given entity.
-     *
-     * @param entity The {@link Entity} to reload.
-     * @throws ModelRuntimeException
-     */
-    public void reload( Entity entity ) throws ModelRuntimeException;
+//    /**
+//     * Reload the state of the given {@link Entity} from backend store no matter what
+//     * the current {@link EntityStatus} is. This is kind of a forced {@link #discard()}
+//     * for the given entity.
+//     *
+//     * @param entity The {@link Entity} to reload.
+//     * @throws ModelRuntimeException
+//     */
+//    public void reload( Entity entity ) throws ModelRuntimeException;
     
     
     /**

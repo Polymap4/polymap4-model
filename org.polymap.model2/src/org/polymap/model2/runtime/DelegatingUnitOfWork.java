@@ -75,9 +75,9 @@ public abstract class DelegatingUnitOfWork
         return delegate.discard();
     }
 
-    public void reload( Entity entity ) throws ModelRuntimeException {
-        delegate.reload( entity );
-    }
+//    public void reload( Entity entity ) throws ModelRuntimeException {
+//        delegate.reload( entity );
+//    }
 
     public void close() {
         delegate.close();
