@@ -17,6 +17,7 @@ package org.polymap.model2.engine;
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
+import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 
@@ -87,6 +88,12 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
         return delegate().fetch().onSuccess( value -> {
             context.checkState();            
         });
+    }
+
+    @Override
+    public Query<T> query() {
+        context.checkState();
+        return delegate().query();
     }
 
     @Override

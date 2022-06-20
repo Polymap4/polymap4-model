@@ -218,7 +218,7 @@ public final class InstanceBuilder {
                         ((ComputedPropertyBase)prop).init( info, instance );
                     }
                     else {
-                        StoreCollectionProperty<?> storeProp = (StoreCollectionProperty<?>)state.loadProperty( info );
+                        var storeProp = (StoreCollectionProperty<Object>)state.loadProperty( info );
                         prop = new ManyAssociationImpl<>( context, storeProp );
                     }
                     prop = new ConstraintsManyAssociationInterceptor<>( (ManyAssociation<?>)prop, (EntityRuntimeContextImpl)context );

@@ -17,6 +17,8 @@ package org.polymap.model2;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.polymap.model2.query.Query;
+
 import areca.common.Promise;
 import areca.common.base.Opt;
 
@@ -34,6 +36,8 @@ public interface ManyAssociation<T extends Entity>
         return fetch().reduce( new ArrayList<>(), (l,entity) -> entity.ifPresent( present -> l.add( present ) ) );
     }
     
+    Query<T> query();
+
     public boolean add( T elm );
 
     public int size();

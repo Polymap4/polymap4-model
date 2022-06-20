@@ -59,7 +59,15 @@ public class ObjectStoreBuilder {
             
             if (!objectStoreNames.contains( name ) || clear) {
                 LOG.info( "Creating schema: %s ...", name );
-                db.createObjectStore( name, IDBObjectStoreParameters.create()/*.keyPath( "id" )*/ ); 
+                var os = db.createObjectStore( name, IDBObjectStoreParameters.create()/*.keyPath( "id" )*/ );
+                
+                for (var prop : info.getProperties()) {
+                    if (prop.isQueryable()) {
+                        //Assert.that( prop.is );
+                        LOG.info( "    Index: %s (%s)", prop.getNameInStore(), prop.getNameInStore() );
+                        os.createIndex( prop.getNameInStore(), prop.getNameInStore() );
+                    }
+                }
             }
         }
     }

@@ -365,6 +365,7 @@ public class UnitOfWorkImpl
                 }
                 catch (Throwable e) {
                     LOG.warn( "Error while calling onLifecycleChange()", e );
+                    throw (RuntimeException)e;
                 }
             }
         }

@@ -32,11 +32,12 @@ public class DefaultValues {
     private static Log log = LogFactory.getLog( DefaultValues.class );
 
     public static final String      DEFAULT_STRING = "";
-    public static final Integer     DEFAULT_INTEGER = new Integer( 0 );
+    public static final Integer     DEFAULT_INTEGER = Integer.valueOf( 0 );
+    public static final Long        DEFAULT_LONG = Long.valueOf( 0 );
     public static final Date        DEFAULT_DATE = new Date( 0 );
     public static final Boolean     DEFAULT_BOOLEAN = Boolean.FALSE;
-    public static final Float       DEFAULT_FLOAT = new Float( 0 );
-    public static final Double      DEFAULT_DOUBLE = new Double( 0 );
+    public static final Float       DEFAULT_FLOAT = Float.valueOf( 0f );
+    public static final Double      DEFAULT_DOUBLE = Double.valueOf( 0d );
 
     /**
      * Creates a default value for the given field. The default value can be defined
@@ -81,6 +82,9 @@ public class DefaultValues {
             }
             else if (type.equals( Integer.class )) {
                 return DEFAULT_INTEGER;
+            }
+            else if (type.equals( Long.class )) {
+                return DEFAULT_LONG;
             }
             else if (type.equals( Date.class )) {
                 return DEFAULT_DATE;

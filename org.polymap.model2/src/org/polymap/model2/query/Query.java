@@ -20,9 +20,11 @@ import static org.polymap.model2.query.Expressions.and;
 import java.util.ArrayList;
 
 import org.polymap.model2.Entity;
+import org.polymap.model2.Property;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.UnitOfWork;
 
+import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.base.Opt;
 
@@ -33,6 +35,22 @@ import areca.common.base.Opt;
  */
 public abstract class Query<T extends Entity> {
 
+    public enum Order {
+        ASC, DESC
+    }
+    
+    public static class OrderBy {
+        public Property<?>  prop;
+        public Order        order;
+        
+        public OrderBy( Property<?> prop, Order order ) {
+            this.prop = prop;
+            this.order = order;
+        }
+    }
+    
+    // instance *******************************************
+    
     public Class<T>             resultType;
 
     public BooleanExpression    expression = Expressions.TRUE;
@@ -40,6 +58,8 @@ public abstract class Query<T extends Entity> {
     public int                  firstResult = 0;
 
     public int                  maxResults = Integer.MAX_VALUE;
+
+    public OrderBy              orderBy;
 
     
     public Query( Class<T> resultType ) {
@@ -75,9 +95,8 @@ public abstract class Query<T extends Entity> {
      * import static org.polymap.model2.query.Expressions.and;
      * import static org.polymap.model2.query.Expressions.eq;
      *
-     * Employee wanted = Expressions.template( Employee.class, repo );
      * rs = uow.query( Employee.class )
-     *         .where( and( eq( wanted.firstname, "Ulli" ), eq( wanted.name, "Philipp" ) ) )
+     *         .where( and( eq( Employee.TYPE.firstname, "Ulli" ), eq( Employee.TYPE.name, "Philipp" ) ) )
      *         .execute();
      * </pre>
      * 
@@ -128,6 +147,13 @@ public abstract class Query<T extends Entity> {
         return this;
     }
 
+    
+    public Query<T> orderBy( Property<?> prop, Order order ) {
+        Assert.that( prop.info().isQueryable(), "orderBy() property must be @Queryable!" );
+        this.orderBy = new OrderBy( prop, order );
+        return this;
+    }
+    
     
     public Class<T> resultType() {
         return resultType;

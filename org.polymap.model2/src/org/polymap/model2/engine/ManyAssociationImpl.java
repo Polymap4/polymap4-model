@@ -16,6 +16,8 @@ package org.polymap.model2.engine;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
+import org.polymap.model2.query.Expressions;
+import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
@@ -23,6 +25,7 @@ import org.polymap.model2.store.StoreCollectionProperty;
 
 import areca.common.Promise;
 import areca.common.base.Opt;
+import areca.common.base.Sequence;
 
 /**
  * 
@@ -35,10 +38,10 @@ class ManyAssociationImpl<T extends Entity>
     private EntityRuntimeContext        context;
 
     /** Holding the ids of the associated Entities. */
-    private StoreCollectionProperty     storeProp;
+    private StoreCollectionProperty<Object> storeProp;
     
 
-    public ManyAssociationImpl( EntityRuntimeContext context, StoreCollectionProperty<?> storeProp ) {
+    public ManyAssociationImpl( EntityRuntimeContext context, StoreCollectionProperty<Object> storeProp ) {
         this.context = context;
         this.storeProp = storeProp;
     }
@@ -72,6 +75,16 @@ class ManyAssociationImpl<T extends Entity>
                 : Promise.absent();
     }
 
+
+    @Override
+    public Query<T> query() {
+        Class<T> entityType = info().getType();
+        var ids = Sequence.of( storeProp ).toArray( Object[]::new );
+        return context.getUnitOfWork().query( entityType )
+                .where( Expressions.id( ids ) );
+    }
+
+    
     @Override
     public boolean add( T elm ) {
         assert elm != null;

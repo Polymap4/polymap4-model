@@ -25,6 +25,7 @@ import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
 import org.polymap.model2.Property;
 import org.polymap.model2.PropertyBase;
+import org.polymap.model2.query.Query;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.EntityRuntimeContext;
@@ -285,6 +286,11 @@ public final class TemplateInstanceBuilder {
         @Override
         public Promise<Opt<T>> fetch() {
             throw new ModelRuntimeException( "Calling fetch() on a query template is not allowed." );
+        }
+
+        @Override
+        public Query<T> query() {
+            throw new ModelRuntimeException( "Method is not allowed on query template" );
         }
     }
 

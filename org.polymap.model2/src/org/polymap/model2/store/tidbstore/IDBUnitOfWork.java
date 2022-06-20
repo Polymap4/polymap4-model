@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.store.tidbstore;
 
+import static org.polymap.model2.store.tidbstore.IDBStore.TxMode.READONLY;
+
 import java.util.Collection;
 
 import java.io.IOException;
@@ -29,6 +31,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
+import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.UnitOfWork.Submitted;
 import org.polymap.model2.store.CompositeState;
@@ -139,26 +142,45 @@ public class IDBUnitOfWork
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
         LOG.debug( "executeQuery(): %s where %s", entityInfo.getNameInStore(), query.expression );
         
-        var promise = new Promise.Completable<CompositeStateReference>();
-        doRequest( TxMode.READONLY, entityInfo.getNameInStore(), 
-                os -> os.openCursor(), 
-                request -> {
-                    if (!promise.isCanceled()) {
-                        IDBCursor cursor = request.getResult();
-                        if (!cursor.isNull()) {
-                            JSObject jsObject = cursor.getValue();
-                            IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
-                            promise.consumeResult( CompositeStateReference.create( state.id(), state ) );
-                            cursor.doContinue();
+        return new Promise.Completable<CompositeStateReference>() {
+                boolean isFirstResult = true;
+                int count = 0;
+            {
+                doRequest( READONLY, entityInfo.getNameInStore(), 
+                    os -> {
+                        if (query.orderBy != null) {
+                            IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
+                            return index.openCursor( null, query.orderBy.order == Order.DESC 
+                                    ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );
                         }
                         else {
-                            // XXX signal end
-                            promise.complete( null );
+                            return os.openCursor();
                         }
-                    }
-                },
-                error -> promise.completeWithError( error ) );
-        return promise;
+                    }, 
+                    request -> {
+                        if (!isCanceled()) {
+                            IDBCursor cursor = request.getResult();
+                            if (isFirstResult && query.firstResult > 0) {
+                                isFirstResult = false;
+                                cursor.advance( query.firstResult );
+                                //LOG.info( "executeQuery(): advance %s", query.firstResult );
+                            }
+                            else if (!cursor.isNull() && count < query.maxResults) {
+                                JSObject jsObject = cursor.getValue();
+                                IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
+                                consumeResult( CompositeStateReference.create( state.id(), state ) );
+                                count ++;
+                                cursor.doContinue();
+                            }
+                            else {
+                                // XXX signal end
+                                complete( null );
+                            }
+                        }
+                    },
+                    err -> completeWithError( err ) );
+            }
+        };
     }
 
 
