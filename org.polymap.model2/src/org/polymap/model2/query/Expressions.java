@@ -16,6 +16,7 @@ package org.polymap.model2.query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Set;
 
 import org.polymap.model2.Association;
 import org.polymap.model2.CollectionProperty;
@@ -83,12 +84,16 @@ public class Expressions {
         return new Disjunction( children.toArray( new BooleanExpression[ children.size() ] ) );                                                                               
     }
     
+    protected static <T> TemplateProperty<T> template( Property<T> prop ) {
+        return TemplateProperty.class.cast( prop );
+    }
+    
     public static <T> PropertyEquals<T> eq( Property<T> prop, T value ) {
-        return new PropertyEquals<T>( (TemplateProperty<T>)prop, value );
+        return new PropertyEquals<T>( template( prop ), value );
     }
 
     public static <T> PropertyNotEquals<T> notEq( Property<T> prop, T value ) {
-        return new PropertyNotEquals<T>( (TemplateProperty<T>)prop, value );
+        return new PropertyNotEquals<T>( template( prop ), value );
     }
     
     public static <T> Negation not( BooleanExpression expression ) {
@@ -104,11 +109,11 @@ public class Expressions {
      * command lines. The check is case-sensitive always.
      */
     public static <T> PropertyMatches<T> matches( Property<T> prop, T value ) {
-        return new PropertyMatches<T>( (TemplateProperty)prop, value );
+        return new PropertyMatches<T>( template( prop ), value );
     }
     
-    public static <T> PropertyEqualsAny<T> eqAny( Property<T> prop, T... values ) {
-        return new PropertyEqualsAny( (TemplateProperty)prop, values );
+    public static <T> PropertyEqualsAny<T> eqAny( Property<T> prop, Set<T> values ) {
+        return new PropertyEqualsAny<T>( template( prop ), values );
     }
     
 //    public static <T> PropertyEqualsAny<T> eqAny( Property<T> prop, Iterable<T> values ) {
@@ -118,11 +123,11 @@ public class Expressions {
 //    }
     
     public static <T extends Entity> AssociationEquals<T> is( Association<T> assoc, T entity ) {
-        return new AssociationEquals( (TemplateProperty)assoc, id( entity ) );
+        return new AssociationEquals<T>( (TemplateProperty)assoc, id( entity ) );
     }
 
     public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, T... entities ) {
-        return new AssociationEquals( (TemplateProperty)assoc, id( entities ) );
+        return new AssociationEquals<T>( (TemplateProperty)assoc, id( entities ) );
     }
 
 //    public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, Iterable<T> entities ) {
@@ -136,7 +141,7 @@ public class Expressions {
      * the given array of ids.
      */
     public static <T extends Entity> IdPredicate<T> id( Object... ids ) {
-        return new IdPredicate( ids );
+        return new IdPredicate<T>( ids );
     }
     
     /**
@@ -148,7 +153,7 @@ public class Expressions {
         for (int i=0; i<entities.length; i++) {
             ids[i] = entities[i].id();
         }
-        return new IdPredicate( ids );
+        return new IdPredicate<T>( ids );
     }
 
     // Quantifiers ****************************************
@@ -161,7 +166,7 @@ public class Expressions {
      * to check if an Association points to an <b>already known Entity</b>.
      */
     public static <T extends Entity> Quantifier the( Association<T> prop, BooleanExpression subExp ) {
-        return new TheAssociationQuantifier( prop, subExp );
+        return new TheAssociationQuantifier<T>( prop, subExp );
     }
     
     /**

@@ -100,7 +100,7 @@ public class IDBCompositeState
     }
     
     
-    protected JSObject jsValueOf( Object value ) {
+    public static JSObject jsValueOf( Object value ) {
         if (value == null) {
             return null;
         }
@@ -125,7 +125,7 @@ public class IDBCompositeState
     }
     
     
-    protected Object javaValueOf( JSObject value, PropertyInfo<?> info ) {
+    public static Object javaValueOf( JSObject value, PropertyInfo<?> info ) {
         if (JSStateObject.isUndefined( value )) {
             return null;
         }
@@ -147,7 +147,6 @@ public class IDBCompositeState
         else {
             throw new UnsupportedOperationException( "Unhandled Entity property type: " + info.getName() );
         }
-        
     }
     
     

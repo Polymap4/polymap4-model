@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2014-2015, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2014-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -15,6 +15,7 @@
 package org.polymap.model2.query.grammar;
 
 import java.util.Arrays;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,15 +27,15 @@ import org.polymap.model2.engine.TemplateProperty;
  * The "IN" operator, allows to compare the value of a property with multiple values.
  * True if any of the given values equals the property value.
  * 
- * @author <a href="http://www.polymap.de">Falko Br�utigam</a>
+ * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 public class PropertyEqualsAny<T>
         extends ComparisonPredicate<T> {
 
-    public T[]                  values;
+    public Set<T> values;
 
     
-    public PropertyEqualsAny( TemplateProperty<T> prop, T[] values ) {
+    public PropertyEqualsAny( TemplateProperty<T> prop, Set<T> values ) {
         super( prop, null );
         this.values = values;
     }
@@ -43,7 +44,7 @@ public class PropertyEqualsAny<T>
     @Override
     public boolean evaluate( Composite target ) {
         String propName = prop.info().getName();
-        Object propValue = ((Property)target.info().getProperty( propName ).get( target )).get();
+        Object propValue = ((Property<?>)target.info().getProperty( propName ).get( target )).get();
         
         for (T v : values) {
             if (v.equals( propValue )) {

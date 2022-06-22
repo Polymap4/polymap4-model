@@ -43,8 +43,8 @@ import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.Platform;
 import areca.common.Promise;
-import areca.common.Promise.Completable;
 import areca.common.base.Opt;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
@@ -168,24 +168,25 @@ public class UnitOfWorkImpl
         Assert.notNull( id, "Given Id is null." );
         checkOpen();
 
-        // for preempt runtime this should be computeIfAbsent()
         if (loaded.containsKey( id )) {
-            LOG.debug( "entity(): CACHED" );
+            LOG.debug( "entity(): CACHED: %s", id );
             T entity = (T)loaded.get( id );
             entity = entity.status() != EntityStatus.REMOVED ? entity : null;
             return Promise.completed( entity );
         }
         else {
             return storeUow.loadEntityState( id, entityClass ).map( state -> {
-                LOG.debug( "entity(): LOADED: %s", state );
+                LOG.debug( "entity(): LOADED: %s", id );
                 if (state == null) {
                     return null;
                 }
                 else {
-                    T entity = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
-                    loaded.put( id, entity );
+                    var entity = (T)loaded.computeIfAbsent( id, __ -> { 
+                        var result = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
+                        lifecycle( singleton( result ), State.AFTER_LOADED );
+                        return result;
+                    });
                     Assert.that( entity.status() != EntityStatus.REMOVED );
-                    lifecycle( singleton( entity ), State.AFTER_LOADED );        
                     return entity;
                 }
             });
@@ -247,92 +248,41 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
-                return storeUow.executeQuery( this )
-                        // query
-                        .map( (CompositeStateReference ref, Completable<T> next) -> {
-                            // database results (just un-modified)
+                // query store
+                var queried = storeUow.executeQuery( this )
+                        // check/load Entity
+                        .then( (CompositeStateReference ref) -> {
                             if (ref != null) {
-                                @SuppressWarnings( "unchecked" )
-                                T entity = (T)loaded.computeIfAbsent( ref.id(), key -> {
-                                    CompositeState state = ref.get();
-                                    return repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
-                                });
-                                Assert.that( entity.status() != CREATED );
-                                if (entity.status() == LOADED) {
-                                    next.consumeResult( entity );
-                                } else {
-                                    Assert.that( modified.containsKey( entity.id() ) );
-                                }
-                            }
-                            // send modified (potentially matching) Entities of query type
-                            // !AFTER db results! in order to minimize race cond
-                            else {
-                                modified.values().forEach( entity -> {
-                                    Assert.that( entity.status().status > LOADED.status );
-                                    if (entity.getClass().equals( entityClass )) {
-                                        next.consumeResult( entityClass.cast( entity ) );
-                                    }
-                                });
-                                next.complete( null );
+                                Assert.isNull( ref.get(), "Not yet implemented: CompositeStateReference with state." );
+                                return entity( entityClass, ref.id() );
+                            } else {
+                                return Promise.completed( null );
                             }
                         })
-
-//                        // distinct results
-//                        .filter( (T entity) -> alreadySent.add( entity ) )
-                        
-                        // evaluate all modified (from DB and modified)
+                        // filter modified
                         .filter( (T entity) -> {
-                            return entity != null // XXX && entity.status() == EntityStatus.MODIFIED
-                                    ? expression.evaluate( entity ) : true;
-                        })
-                        .map( entity -> Opt.of( entity ) );
+                            if (entity != null) {
+                                Assert.that( entity.status() != CREATED );
+                                return entity.status() == LOADED;
+                            } else {
+                                return true;
+                            }
+                        });
+
+                // unsubmitted changes
+                var unsubmitted = new Promise.Completable<T>();
+                Platform.async( () -> {
+                    LOG.debug( "query(): modified: %s", modified.size() );
+                    modified.values().forEach( check -> {
+                        Assert.that( check.status().status > LOADED.status );
+                        if (check.getClass().equals( entityClass ) && expression.evaluate( check )) {
+                            unsubmitted.consumeResult( entityClass.cast( check ) );
+                        }
+                    });
+                    unsubmitted.complete( null );
+                });
                 
-                
-//                Sequence<T,RuntimeException> unmodifiedResults = Sequence.of( RuntimeException.class, rs )
-//                        .transform( ref -> entity( entityClass, ref.id(), ref ) )
-//                        .filter( entity -> {
-//                            EntityStatus status = entity != null ? entity.status() : EntityStatus.REMOVED;
-//                            Assert.that( status != EntityStatus.CREATED ); 
-//                            return status == EntityStatus.LOADED;                                                        
-//                        })
-//                        // XXX remove when IDBStore supports indexed
-//                        .filter( entity -> {
-//                            return expression.evaluate( entity );
-//                        });
-//                
-//                // modified
-//                // XXX not cached, done for every call to iterator()
-//                @SuppressWarnings( "unchecked" )
-//                Sequence<T,RuntimeException> modifiedResults = Sequence.of( modified.values(), RuntimeException.class )
-//                        .filter( entity -> {
-//                            return entity.getClass().equals( entityClass ) 
-//                                    && (entity.status() == CREATED || entity.status() == MODIFIED)
-//                                    && expression.evaluate( entity );
-//                        })
-//                        .transform( entity -> (T)entity );
-//
-//                // ResultSet, caching the ids for subsequent runs
-//                Iterable<T> allResults = unmodifiedResults.concat( modifiedResults ).asIterable();
-//                return new CachingResultSet<T>( allResults.iterator() ) {
-//                    @Override
-//                    protected T entity( Object id ) {
-//                        return UnitOfWorkImpl.this.entity( entityClass, id, null );
-//                    }
-//                    @Override
-//                    public int size() {
-//                        return cachedSize.supply( () ->
-//                                delegate == null
-//                                    ? cachedIds.size()
-//                                    : modified.isEmpty() 
-//                                            ? rs.size()
-//                                            : Sequence.of( iterator() ).count() );
-//                    }
-//                    @Override
-//                    public void close() {
-//                        rs.close();
-//                        super.close();
-//                    }
-//                };
+                return queried.join( unsubmitted ).map( entity -> Opt.of( entity ) );
             }
         };
     }

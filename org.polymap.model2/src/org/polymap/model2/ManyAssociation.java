@@ -33,9 +33,14 @@ public interface ManyAssociation<T extends Entity>
     public Promise<Opt<T>> fetch();
     
     public default Promise<List<T>> fetchCollect() {
-        return fetch().reduce( new ArrayList<>(), (l,entity) -> entity.ifPresent( present -> l.add( present ) ) );
+        return fetch().reduce( new ArrayList<>( 128 ), (l,entity) -> entity.ifPresent( present -> l.add( present ) ) );
     }
     
+    /**
+     * Query/order the associated entities.
+     *  
+     * @see #fetch()
+     */
     Query<T> query();
 
     public boolean add( T elm );

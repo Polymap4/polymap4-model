@@ -18,10 +18,12 @@ import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 
 import java.util.Arrays;
 
+import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore;
 
+import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
@@ -42,68 +44,85 @@ public class AssociationsModelTest {
 
     public static final ClassInfo<AssociationsModelTest> info = AssociationsModelTestClassInfo.instance();
 
-    private static int          dbCount = 0;
-    
-    protected EntityRepository   _repo;
+    protected EntityRepository   repo;
 
     protected UnitOfWork         uow;
     
 
-    protected Promise<EntityRepository> initRepo() {
+    protected Promise<EntityRepository> initRepo( String name ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info, Company.info ) )
-                .store.set( new IDBStore( "AssociationsModelTest-" + dbCount++, nextDbVersion(), true ) )
+                .store.set( new IDBStore( "AssociationsModelTest-" + name, nextDbVersion(), true ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
-                    _repo = newRepo;
+                    repo = newRepo;
                     uow = newRepo.newUnitOfWork();
                 });
     }
 
     @After
     protected void tearDown() throws Exception {
-        if (_repo != null) {
+        if (repo != null) {
             uow.close();
-            _repo.close();
+            repo.close();
         }
+    }
+
+    
+    protected Promise<Company> createCompany() {
+        var _uow = repo.newUnitOfWork();
+        var company = _uow.createEntity( Company.class, c -> { 
+            Sequence.ofInts( 0, 9 )
+                    .map( i -> _uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
+                    .forEach( p -> c.employees.add( p ) );
+            _uow.createEntity( Person.class, p -> p.name.set( "extra" ) ); 
+        });
+        return _uow.submit().map( submitted -> company );
     }
 
     
     @Test
     public Promise<?> manyTest() throws Exception {
-        return initRepo()
-                .then( repo -> {
-                    //var first = uow.createEntity( Person.class, p -> p.name.set( "first" ) );
-                    var company = uow.createEntity( Company.class, c -> { 
-                        Sequence.ofInts( 1, 10 )
-                                .map( i -> uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
-                                .forEach( p -> c.employees.add( p ) );
-                    });
-                    return uow.submit().map( submitted -> company );
-                })
-                .then( created -> {
-                    var uow3 = _repo.newUnitOfWork();
-                    return uow3.entity( Company.class, created.id() );
-                })
-                .then( fetched -> {
-                    return fetched.employees.fetch().onSuccess( p -> {
-                        //LOG.debug( "Employees: %s", p ); 
-                    });
+        return initRepo( "manyTest" )
+                .then( __ -> createCompany() )
+                .then( created -> uow.entity( Company.class, created.id() ) )
+                .then( company -> company.employees.fetchCollect() )
+                .onSuccess( rs -> {
+                    LOG.info( "%s", Sequence.of( rs ).map( p -> p.name.get() ) );
+                    Assert.isEqual( 10, rs.size() );
                 });
     }
-        
 
+    
+    @Test
+    public Promise<?> manyQueryTest() throws Exception {
+        return initRepo( "manyQueryTest" )
+                .then( __ -> createCompany() )
+                .then( created -> uow.entity( Company.class, created.id() ) )
+                .then( company -> company.employees.query()
+                        .orderBy( Person.TYPE.name, Order.DESC )
+                        .firstResult( 1 )
+                        .maxResults( 5 )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    LOG.info( "%s", Sequence.of( rs ).map( p -> p.name.get() ) );
+                    Assert.isEqual( 5, rs.size() );
+                    Assert.isEqual( "8", rs.get( 0 ).name.get() );
+                });
+    }
+
+    
     @Test
     public Promise<?> oneTest() throws Exception {
-        return initRepo()
-                .then( repo -> {
+        return initRepo( "oneTest" )
+                .then( __ -> {
                     var first = uow.createEntity( Person.class, p -> p.name.set( "first" ) );
                     var company = uow.createEntity( Company.class, c -> c.chief.set( first ) );
                     return uow.submit().map( submitted -> company );
                 })
                 .then( created -> {
-                    var uow3 = _repo.newUnitOfWork();
+                    var uow3 = repo.newUnitOfWork();
                     return uow3.entity( Company.class, created.id() );
                 })
                 .then( fetched -> {

@@ -82,7 +82,7 @@ public abstract class Query<T extends Entity> {
     
     
     public Promise<ArrayList<T>> executeCollect() {
-        return execute().reduce( new ArrayList<T>(), (l,result) -> result.ifPresent( entity -> l.add( entity ) ) );
+        return execute().reduce( new ArrayList<T>( 128 ), (l,result) -> result.ifPresent( entity -> l.add( entity ) ) );
     }
     
     

@@ -29,5 +29,8 @@ public abstract class IDBIndex2 extends IDBIndex {
     @JSMethod
     public abstract IDBCursorRequest openCursor(IDBKeyRange range, String order);
 
+    @JSMethod
+    public abstract IDBCursorRequest openKeyCursor(IDBKeyRange range, String order);
+
     
 }

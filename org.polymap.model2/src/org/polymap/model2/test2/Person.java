@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright 2012, Falko Bräutigam. All rights reserved.
+ * Copyright 2012-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -44,7 +44,7 @@ public /*abstract*/ class Person
     @Concerns( {InvocationCountConcern.class} )
     public Property<String>         name;
 
-    /** Defaults to "Ulli". Not Nullable. */
+    @Queryable
     @DefaultValue( "Ulli" )
     protected Property<String>      firstname;
 

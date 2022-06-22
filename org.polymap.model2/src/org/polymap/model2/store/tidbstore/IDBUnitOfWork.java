@@ -14,14 +14,11 @@
  */
 package org.polymap.model2.store.tidbstore;
 
-import static org.polymap.model2.store.tidbstore.IDBStore.TxMode.READONLY;
-
 import java.util.Collection;
 
 import java.io.IOException;
 
 import org.teavm.jso.JSObject;
-import org.teavm.jso.indexeddb.IDBCursor;
 import org.teavm.jso.indexeddb.IDBObjectStore;
 import org.teavm.jso.indexeddb.IDBRequest;
 import org.teavm.jso.indexeddb.IDBTransaction;
@@ -31,7 +28,6 @@ import org.apache.commons.lang3.tuple.MutablePair;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Query;
-import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.UnitOfWork.Submitted;
 import org.polymap.model2.store.CompositeState;
@@ -86,7 +82,7 @@ public class IDBUnitOfWork
      * @param createRequest
      * @param handleResult
      */
-    protected <RE extends IDBRequest,R> void doRequest( TxMode mode, String storeName, 
+    protected <RE extends IDBRequest> void doRequest( TxMode mode, String storeName, 
             RFunction<IDBObjectStore,RE> createRequest, 
             RConsumer<RE> handleResult,
             RConsumer<Throwable> handleError) { 
@@ -101,6 +97,32 @@ public class IDBUnitOfWork
         request.setOnSuccess( ev -> {
             handleResult.accept( request );
         });
+    }
+    
+    /**
+     * Must be followed by {@link Promise#map(areca.common.base.BiConsumer)} spread
+     * operation.
+     *
+     * @param <RE>
+     * @param <T>
+     */
+    protected <RE extends IDBRequest, T extends Entity> Promise<RE> doRequest( TxMode mode, Class<T> entityType, 
+            RFunction<IDBObjectStore,RE> createRequest ) {
+        
+        CompositeInfo<T> entityInfo = store.infoOf( entityType );        
+        IDBTransaction tx = store.transaction( mode, entityInfo.getNameInStore() );
+        IDBObjectStore os = tx.objectStore( entityInfo.getNameInStore() );
+        
+        RE request = createRequest.apply( os );
+        
+        var result = new Promise.Completable<RE>();
+        request.setOnError( ev -> {
+            result.completeWithError( new IOException( "Event: " + ev.getType() + ", Error: " + request.getError().getName() ) );
+        });
+        request.setOnSuccess( ev -> {
+            result.consumeResult( request );
+        });
+        return result;
     }
     
     
@@ -132,7 +154,6 @@ public class IDBUnitOfWork
     
     @Override
     public <T extends Entity> CompositeState adoptEntityState( Object state, Class<T> entityClass ) {
-        // XXX Auto-generated method stub
         throw new RuntimeException( "not yet implemented." );
     }
 
@@ -142,45 +163,14 @@ public class IDBUnitOfWork
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
         LOG.debug( "executeQuery(): %s where %s", entityInfo.getNameInStore(), query.expression );
         
-        return new Promise.Completable<CompositeStateReference>() {
-                boolean isFirstResult = true;
-                int count = 0;
-            {
-                doRequest( READONLY, entityInfo.getNameInStore(), 
-                    os -> {
-                        if (query.orderBy != null) {
-                            IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
-                            return index.openCursor( null, query.orderBy.order == Order.DESC 
-                                    ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );
-                        }
-                        else {
-                            return os.openCursor();
-                        }
-                    }, 
-                    request -> {
-                        if (!isCanceled()) {
-                            IDBCursor cursor = request.getResult();
-                            if (isFirstResult && query.firstResult > 0) {
-                                isFirstResult = false;
-                                cursor.advance( query.firstResult );
-                                //LOG.info( "executeQuery(): advance %s", query.firstResult );
-                            }
-                            else if (!cursor.isNull() && count < query.maxResults) {
-                                JSObject jsObject = cursor.getValue();
-                                IDBCompositeState state = new IDBCompositeState( query.resultType(), (JSStateObject)jsObject );
-                                consumeResult( CompositeStateReference.create( state.id(), state ) );
-                                count ++;
-                                cursor.doContinue();
-                            }
-                            else {
-                                // XXX signal end
-                                complete( null );
-                            }
-                        }
-                    },
-                    err -> completeWithError( err ) );
-            }
-        };
+        return new QueryExecutor( query, this )
+                .execute()
+                .map( (ids, next) -> {
+                    for (var id : ids) {
+                        next.consumeResult( CompositeStateReference.create( id, null ) );
+                    }
+                    next.complete( null );
+                });
     }
 
 

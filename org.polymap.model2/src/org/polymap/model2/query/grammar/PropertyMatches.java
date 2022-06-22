@@ -27,12 +27,14 @@ import areca.common.Assert;
 public class PropertyMatches<T>
         extends ComparisonPredicate<T> {
 
-    protected char  singleWildcard = '?';
+    public char     singleWildcard = '?';
 
-    protected char  multiWildcard = '*';
+    public char     multiWildcard = '*';
     
     public PropertyMatches( TemplateProperty<T> prop, T value, char singleWildcard, char multiWildcard ) {
         super( prop, value );
+        this.singleWildcard = singleWildcard;
+        this.multiWildcard = multiWildcard;
     }
 
     public PropertyMatches( TemplateProperty<T> prop, T value ) {

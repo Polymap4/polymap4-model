@@ -16,13 +16,14 @@ package org.polymap.model2.test2;
 
 import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.matches;
-import static org.polymap.model2.query.Query.Order.ASC;
 import static org.polymap.model2.query.Query.Order.DESC;
 
 import java.util.Arrays;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
+import org.polymap.model2.query.Expressions;
+import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore;
@@ -81,6 +82,11 @@ public class SimpleQueryTest {
         uow.createEntity( Person.class, proto -> {
             proto.firstname.set( "Ulli" );
             proto.name.set( "Philipp" );
+            //proto.birthday.set( Date.valueOf( "19" ) )
+        });  
+        uow.createEntity( Person.class, proto -> {
+            proto.firstname.set( "M" );
+            proto.name.set( "Philipp" );
             //proto.rating.set( Rating.good );
         });  
         uow.createEntity( Person.class, proto -> {
@@ -92,11 +98,25 @@ public class SimpleQueryTest {
     
     
     @Test
-    public Promise<?> allTest() {
-        return initRepo( "all" )
+    public Promise<?> allCollectTest() {
+        return initRepo( "allCollect" )
                 .then( uow -> uow.query( Person.class ).executeCollect() )
                 .onSuccess( rs -> {
-                    Assert.isEqual( 2, rs.size() );
+                    Assert.isEqual( 3, rs.size() );
+                });
+    }
+        
+    @Test
+    public Promise<?> allTest() {
+        var c = new MutableInt( 0 );
+        return initRepo( "all" )
+                .then( uow -> uow.query( Person.class ).execute() )
+                .onSuccess( (it,opt) -> {
+                    LOG.debug( "Result: %s (complete=%s)", opt, it.isComplete() );
+                    opt.ifPresent( __ -> c.increment() );
+                    if (it.isComplete()) {
+                        Assert.isEqual( 3, c.intValue() );
+                    }
                 });
     }
         
@@ -105,61 +125,67 @@ public class SimpleQueryTest {
     public Promise<?> eqTest() {
         return initRepo( "eq" )
                 .then( uow -> uow.query( Person.class )
-                        .where( eq( Person.TYPE.firstname, "Ulli" ) )
+                        .where( eq( Person.TYPE.name, "Philipp" ) )
                         .executeCollect() )
                 .onSuccess( rs -> {
-                    Assert.isEqual( 1, rs.size() );
+                    Assert.isEqual( 2, rs.size() );
                 });
     }
         
 
     @Test
-    public Promise<?> matchesTest() {
-        return initRepo( "matches" )
+    public Promise<?> matchesMultiTest() {
+        return initRepo( "matchesMulti" )
                 .then( uow -> uow.query( Person.class )
-                        .where( matches( Person.TYPE.firstname, "Ul*" ) )
+                        .where( matches( Person.TYPE.name, "Philipp*" ) )
                         .executeCollect() )
                 .onSuccess( rs -> {
-                    Assert.isEqual( 1, rs.size() );
-                })
-                .then( rs -> _uow.query( Person.class )
-                        .where( matches( Person.TYPE.firstname, "Ull?" ) )
-                        .executeCollect() )
-                .onSuccess( rs -> {
-                    Assert.isEqual( 1, rs.size() );
+                    Assert.isEqual( 2, rs.size() );
                 });
     }
     
 
     @Test
-    public Promise<?> orderByTest() {
-        return initRepo( "orderBy" )
+    public Promise<?> matchesMulti2Test() {
+        return initRepo( "matchesMulti2" )
                 .then( uow -> uow.query( Person.class )
-                        .orderBy( Person.TYPE.name, ASC )
-                        .execute() )
-                .onSuccess( n -> {
-                    LOG.info( "orderBy: %s", n.map( p -> p.name.get() ).orElse( null ) );
-                })
-                .reduce2( "", (r,n) -> n.ifPresentMap( p -> {
-                    Assert.that( r.compareTo( p.name.get() ) < 0, r + " !< " + p.name.get() );
-                    return p.name.get();
-                }).orElse( null ) );
+                        .where( matches( Person.TYPE.name, "Phili*" ) )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    Assert.isEqual( 2, rs.size() );
+                });
     }
     
+
     @Test
-    public Promise<?> orderByDescTest() {
-        return initRepo( "orderByDesc" )
+    public Promise<?> orderByForAllTest() {
+        return initRepo( "orderBy" )
                 .then( uow -> uow.query( Person.class )
                         .orderBy( Person.TYPE.name, DESC )
-                        .execute() )
-                .onSuccess( n -> {
-                    LOG.info( "orderByDesc: %s", n.map( p -> p.name.get() ).orElse( null ) );
-                })
-                .reduce2( "ZZZ", (r,n) -> n.ifPresentMap( p -> {
-                    //Assert.that( r.compareTo( p.name.get() ) > 0,  r + " !> " + p.name.get() );
-                    return p.name.get();
-                }).orElse( null ) );
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    Assert.isEqual( 3, rs.size() );
+                    Assert.isEqual( "Zimmermann", rs.get( 0 ).name.get() );
+                });
     }
+
+    
+    @Test
+    public Promise<?> orderByWhereFirstMaxTest() {
+        return initRepo( "orderBy2" )
+                .then( uow -> uow.query( Person.class )
+                        .where( eq( Person.TYPE.name, "Philipp" ) )
+                        .orderBy( Person.TYPE.name, Order.ASC )
+                        .firstResult( 0 )
+                        .maxResults( 1 )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    Assert.isEqual( 1, rs.size() );
+                    Assert.isEqual( "Philipp", rs.get( 0 ).name.get() );
+                });
+    }
+    
+    
     
     @Test
     public Promise<?> readCreated() {
@@ -172,7 +198,7 @@ public class SimpleQueryTest {
                 })
                 .then( __ -> _uow.query( Person.class ).executeCollect() )
                 .onSuccess( rs -> 
-                        Assert.isEqual( 3, rs.size() ) )
+                        Assert.isEqual( 4, rs.size() ) )
                 
                 .then( __ -> _uow.query( Person.class )
                         .where( eq( Person.TYPE.firstname, "neu" ) )
@@ -184,7 +210,7 @@ public class SimpleQueryTest {
                         .where( eq( Person.TYPE.name, "Philipp" ) )
                         .executeCollect() )
                 .onSuccess( rs -> 
-                        Assert.isEqual( 2, rs.size() ) );
+                        Assert.isEqual( 3, rs.size() ) );
     }
     
 
@@ -206,7 +232,7 @@ public class SimpleQueryTest {
                         .where( eq( Person.TYPE.name, "Philipp" ) )
                         .executeCollect() )
                 .onSuccess( rs -> 
-                        Assert.isEqual( 1, rs.size() ) );
+                        Assert.isEqual( 2, rs.size() ) );
     }
 
     
@@ -242,26 +268,29 @@ public class SimpleQueryTest {
                 });                    
     }
 
-//    @Test
-//    public Promise<?> queryNameTest() {
-//        return initRepo( "queryName" )
-//                .then( __ -> {
-//                    var uow2 = _repo.newUnitOfWork();
-//                    Sequence.ofInts( 0, 9 ).forEach( i -> {
-//                        uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );                        
-//                    });
-//                    return uow2.submit();
-//                })
-//                .then( submitted -> {
-//                    var uow = _repo.newUnitOfWork();
-//                    return uow.query( Person.class )
-//                            .where( eq( Person.TYPE.name, "name-0" ) )
-//                            .executeCollect()
-//                            .onSuccess( results -> {
-//                                Assert.isEqual( 1, results.size() );
-//                            });
-//                });
-//    }
+    
+    @Test
+    public Promise<?> equalsAnyTest() {
+        return initRepo( "equalsAny" )
+                .then( __ -> {
+                    var uow2 = _repo.newUnitOfWork();
+                    Sequence.ofInts( 0, 9 ).forEach( i -> uow2.createEntity( Person.class, p -> p.name.set( "" + i ) ) );
+                    return uow2.submit();
+                })
+                // query
+                .then( submitted -> {
+                    return _uow.query( Person.class )
+                            .where( Expressions.eqAny( Person.TYPE.name, Sequence.of( "3", "5", "2" ).toSet() ) )
+                            .executeCollect();
+                })
+                // results
+                .onSuccess( rs -> {
+                    Assert.isEqual( 3, rs.size() );
+                    Assert.isEqual( "2", rs.get( 0 ).name.get() );
+                });                    
+    }
+
+    
 
     //    @Test
     //    @Skip
