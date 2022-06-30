@@ -138,21 +138,11 @@ public interface UnitOfWork
      * Ensures that an Entity exists that matches the given condition.
      *
      * @return Whether found or newly created Entity.
-     * @throws {@link AssertionException} If more than one Entity exists for the given condition.
+     * @throws {@link AssertionException} If more than one Entity exists for the
+     *         given condition.
      */
-    public default <T extends Entity,E extends Exception> Promise<T> ensureEntity( 
-            Class<T> type, BooleanExpression cond, Consumer<T,E> initializer ) throws E {
-        
-        return query( type ).where( cond ).executeCollect().map( rs -> {
-            if (rs.isEmpty()) {
-                return createEntity( type, initializer );
-            }
-            else {
-                Assert.isEqual( 1, rs.size() );
-                return rs.get( 0 );
-            }
-        });
-    }
+    public <T extends Entity,E extends Exception> Promise<T> ensureEntity( 
+            Class<T> type, BooleanExpression cond, Consumer<T,E> initializer );
 
 
     /**
@@ -165,8 +155,8 @@ public interface UnitOfWork
 
 
     /**
-     * Sends all modifications down to the underlying store but but does not
-     * close this {@link UnitOfWork}.
+     * Sends all modifications down to the underlying store but does not close this
+     * {@link UnitOfWork}.
      * <p/>
      * If {@link #prepare()} fails and throws an exception then it has to clean any
      * transaction specific resources and locks before returning. Client code may use

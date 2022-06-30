@@ -27,10 +27,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.query.Query;
+import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.Lifecycle;
 import org.polymap.model2.runtime.Lifecycle.State;
@@ -45,6 +47,7 @@ import org.polymap.model2.store.StoreUnitOfWork;
 import areca.common.Assert;
 import areca.common.Platform;
 import areca.common.Promise;
+import areca.common.base.Consumer;
 import areca.common.base.Opt;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
@@ -86,30 +89,11 @@ public class UnitOfWorkImpl
         assert repo != null : "repo must not be null.";
         assert suow != null : "suow must not be null.";
 
-//        MutableConfiguration cacheConfig = new MutableConfiguration()
-//                .setExpiryPolicyFactory( AccessedExpiryPolicy.factoryOf( Duration.ONE_MINUTE ) );
-//        CacheManager cacheManager = repo.getConfig().cacheManager.get();
-        
         this.loaded = new /*Concurrent*/HashMap<>( 128 );  //LoadingCache.create( cacheManager, cacheConfig );
         this.loadedMixins = new /*Concurrent*/HashMap<>( 128 );  //LoadingCache.create( cacheManager, cacheConfig );
         this.modified = new /*Concurrent*/HashMap<>( 128/*, 0.75f, SimpleCache.CONCURRENCY*/ );
 
         commitLock = repo.getConfig().commitLockStrategy.get().get();
-        
-//        // check evicted entries and re-insert if modified
-//        this.loaded.addEvictionListener( new CacheEvictionListener<Object,Entity>() {
-//            public void onEviction( Object key, Entity entity ) {
-//                // re-insert if modified
-//                if (entity.status() != EntityStatus.LOADED) {
-//                    loaded.putIfAbsent( key, entity );
-//                }
-//                // mark entity as evicted otherwise
-//                else {
-//                    EntityRuntimeContext entityContext = UnitOfWorkImpl.this.repo.contextOfEntity( entity );
-//                    entityContext.raiseStatus( EntityStatus.EVICTED );
-//                }
-//            }
-//        });
     }
 
     
@@ -160,19 +144,42 @@ public class UnitOfWorkImpl
         return result;
     }
 
-
+    
     @Override
-    @SuppressWarnings("unchecked")
+    public <T extends Entity,E extends Exception> Promise<T> ensureEntity( 
+            Class<T> type, BooleanExpression cond, Consumer<T,E> initializer ) {
+        
+        return query( type ).where( cond ).executeCollect().map( rs -> {
+            if (rs.isEmpty()) {
+                // there is a race cond between query and create, so we have
+                // to make sure that the entity was not created already be someone else
+                // XXX this needs a lock in preempt environments
+                T foundOrCreated = Sequence.of( loaded.values() )
+                        .<T,RuntimeException>filter( type::isInstance )
+                        .first( cond::evaluate )
+                        .orElse( createEntity( type, initializer ) );
+                Assert.that( cond.evaluate( foundOrCreated ), "Newly created Entity does not match search condition: " + cond );
+                return foundOrCreated;
+            }
+            else {
+                Assert.isEqual( 1, rs.size() );
+                return rs.get( 0 );
+            }
+        });
+    }
+
+    
+    @Override
     public <T extends Entity> Promise<T> entity( final Class<T> entityClass, final Object id ) {
         Assert.notNull( entityClass, "Given entity Class is null." );
         Assert.notNull( id, "Given Id is null." );
         checkOpen();
 
-        if (loaded.containsKey( id )) {
+        T cached = entityClass.cast( loaded.get( id ) );
+        if (cached != null) {
             LOG.debug( "entity(): CACHED: %s", id );
-            T entity = (T)loaded.get( id );
-            entity = entity.status() != EntityStatus.REMOVED ? entity : null;
-            return Promise.completed( entity );
+            cached = cached.status() != EntityStatus.REMOVED ? cached : null;
+            return Promise.completed( cached );
         }
         else {
             return storeUow.loadEntityState( id, entityClass ).map( state -> {
@@ -181,11 +188,11 @@ public class UnitOfWorkImpl
                     return null;
                 }
                 else {
-                    var entity = (T)loaded.computeIfAbsent( id, __ -> { 
+                    var entity = entityClass.cast( loaded.computeIfAbsent( id, __ -> { 
                         var result = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
                         lifecycle( singleton( result ), State.AFTER_LOADED );
                         return result;
-                    });
+                    }));
                     Assert.that( entity.status() != EntityStatus.REMOVED );
                     return entity;
                 }

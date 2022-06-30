@@ -22,7 +22,9 @@ import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.StoreProperty;
 
+import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.base.Consumer;
 
 /**
  * 
@@ -65,6 +67,36 @@ class AssociationImpl<T extends Entity>
     }
 
     
+    @Override
+    @SuppressWarnings("unchecked")
+    public <E extends Exception> Promise<T> ensure( Consumer<T,E> initializer ) {
+//        return context.getUnitOfWork().ensureEntity( (Class<T>)info().getType(),
+//                Expressions.id( storeProp.get() != null ? storeProp.get() : "__impossible__" ),
+//                proto -> {
+//                   initializer.accept( (T)proto );
+//                   set( (T)proto );
+//                });
+        
+        return fetch().map( entity -> {
+            // already there
+            if (entity != null) {
+                return entity;
+            }
+            // created by concurrent thread
+            else if (storeProp.get() != null) {
+                var uow = (UnitOfWorkImpl)context.getUnitOfWork();
+                return Assert.notNull( (T)uow.loaded.get( storeProp.get() ) ); 
+            }
+            // create new Entity
+            else {
+                T created = context.getUnitOfWork().<T,E>createEntity( info().getType(), initializer );
+                set( created );
+                return created;
+            }
+        });
+    }
+
+
     @Override
     public void set( T value ) {
         // make sure that elm belongs to my UoW; it would not break here but

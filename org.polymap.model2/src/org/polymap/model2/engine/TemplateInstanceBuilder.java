@@ -38,6 +38,7 @@ import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.base.Consumer;
 import areca.common.base.Opt;
 import areca.common.reflect.ClassInfo;
 import areca.common.reflect.FieldInfo;
@@ -210,6 +211,11 @@ public final class TemplateInstanceBuilder {
         public Promise<T> fetch() {
             throw new ModelRuntimeException( "Calling fetch() on a query template is not allowed." );
         }
+
+        @Override
+        public <E extends Exception> Promise<T> ensure( Consumer<T,E> initializer ) {
+            throw new ModelRuntimeException( "Calling fetch() on a query template is not allowed." );
+        }        
     }
 
 

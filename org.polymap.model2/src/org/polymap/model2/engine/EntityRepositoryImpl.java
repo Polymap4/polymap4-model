@@ -159,7 +159,7 @@ public class EntityRepositoryImpl
                 }
             }
         }
-        return Assert.notNull( result );
+        return Assert.notNull( result, "No such Entity found in this repo: " + compositeClassInfo.name() );
     }
     
     

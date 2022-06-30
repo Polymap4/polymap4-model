@@ -21,6 +21,7 @@ import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.ModelRuntimeException;
 
 import areca.common.Promise;
+import areca.common.base.Consumer;
 
 /**
  *
@@ -50,6 +51,14 @@ final class ConstraintsAssociationInterceptor<T extends Entity>
                 throw new ModelRuntimeException( "Property is not @Nullable: " + fullPropName() );
             }            
         });
+    }
+
+
+    @Override
+    public <E extends Exception> Promise<T> ensure( Consumer<T,E> initializer ) {
+        context.checkState();
+        context.raiseStatus( EntityStatus.MODIFIED );
+        return delegate().ensure( initializer );
     }
 
 
