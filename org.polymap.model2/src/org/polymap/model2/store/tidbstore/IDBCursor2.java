@@ -16,6 +16,7 @@ package org.polymap.model2.store.tidbstore;
 
 import org.teavm.interop.NoSideEffects;
 import org.teavm.jso.JSMethod;
+import org.teavm.jso.JSObject;
 import org.teavm.jso.indexeddb.IDBCursor;
 
 /**
@@ -29,5 +30,9 @@ public interface IDBCursor2
     @NoSideEffects
     @JSMethod("continue")
     void doContinue();
+
+    @NoSideEffects
+    @JSMethod("continue")
+    void doContinue( JSObject nextKey );
 
 }

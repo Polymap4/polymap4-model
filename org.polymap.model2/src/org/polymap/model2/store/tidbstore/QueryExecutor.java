@@ -21,7 +21,10 @@ import static org.teavm.jso.indexeddb.IDBCursor.DIRECTION_NEXT;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSString;
@@ -58,7 +61,10 @@ import areca.common.log.LogFactory.Log;
 class QueryExecutor {
 
     private static final Log LOG = LogFactory.getLog( QueryExecutor.class );
-    
+
+    /** Init size of result lists. */
+    public static final int DEFAULT_RS_SIZE = 128;
+
     protected Query<?>          query;
     
     protected IDBUnitOfWork     uow;
@@ -82,7 +88,7 @@ class QueryExecutor {
         // orderBy
         if (query.orderBy != null) {
             LOG.debug( "orderBy: %s", query.orderBy.prop.info().getName() );
-            var ordered = new ArrayList<Object>( 128 );
+            var ordered = new ArrayList<Object>( DEFAULT_RS_SIZE );
             result = result.then( ids -> uow
                     .doRequest( READONLY, query.resultType, os -> {
                         IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
@@ -124,7 +130,7 @@ class QueryExecutor {
      */
     protected Promise<List<Object>> executeOrderByWithoutQuery() {
         LOG.info( "orderBy (NO query): %s, firstResult=%d, maxResults=%d", query.orderBy.prop.info().getName(), query.firstResult, query.maxResults );
-        var ordered = new ArrayList<Object>( 128 );
+        var ordered = new ArrayList<Object>( DEFAULT_RS_SIZE );
         var isFirstRun = new MutableBoolean( true );
         var count = new MutableInt( 0 );
         var timer = Timer.start();
@@ -167,7 +173,7 @@ class QueryExecutor {
             return Promise.completed( Arrays.asList( ((IdPredicate<?>)exp).ids ) );
         }
         else if (exp instanceof PropertyEqualsAny) {
-            return processPropertyEqualsAny( (PropertyEqualsAny<?>)exp );
+            return processPropertyEqualsAny2( (PropertyEqualsAny<?>)exp );
         }
         else if (exp instanceof ComparisonPredicate) {
             return processComparison( (ComparisonPredicate<?>)exp );
@@ -179,7 +185,7 @@ class QueryExecutor {
 
 
     protected Promise<List<Object>> processComparison( ComparisonPredicate<?> exp ) {
-        var result = new ArrayList<Object>( 256 );
+        var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
@@ -226,7 +232,7 @@ class QueryExecutor {
             return Promise.completed( Collections.emptyList() );
         }
         
-        var result = new ArrayList<Object>( 256 );
+        var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
@@ -259,8 +265,80 @@ class QueryExecutor {
     }
 
 
+    /**
+     * Depends on: IDBCursor.doContinue( nextKey ); 
+     */
+    protected Promise<List<Object>> processPropertyEqualsAny2( PropertyEqualsAny<?> exp ) {
+        if (exp.values.isEmpty()) {
+            return Promise.completed( Collections.emptyList() );
+        }
+        var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
+        var searchValues = new SortedValuesIterator( exp.values );
+        return uow
+                .doRequest( READONLY, query.resultType, os -> {
+                    Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
+                    IDBIndex2 index = os.index( exp.prop.info().getNameInStore() ).cast();
+                    return index.openKeyCursor( null, DIRECTION_NEXT );
+                })
+                .map( (cursor, next) -> {
+                    if (!cursor.isNull()) {
+                        var value = IDBCompositeState.javaValueOf( cursor.getKey(), exp.prop.info() );
+                        LOG.debug( "EqualsAny: value=%s - searchValue=%s", value, searchValues.peek );
+                        
+                        while (searchValues.peek.compareTo( value ) < 0) {
+                            if (searchValues.hasMore()) {
+                                LOG.debug( "EqualsAny:   skipping searchValue=%s", searchValues.peek );
+                                searchValues.next();
+                            }
+                            else {
+                                // no more values to search for
+                                LOG.debug( "EqualsAny: ids: %s", result );
+                                next.complete( result );
+                                return;                                
+                            }
+                        }
+                        
+                        if (value.equals( searchValues.peek )) {
+                            LOG.debug( "EqualsAny:   found: %s == %s", value, searchValues.peek );
+                            result.add( id( cursor.getPrimaryKey() ) );
+                            cursor.doContinue();  // check for more entry for this searchValue
+                        }
+                        else {
+                            LOG.debug( "EqualsAny:   continue: %s", searchValues.peek );
+                            cursor.doContinue( IDBCompositeState.jsValueOf( searchValues.peek ) );                            
+                        }
+                    }
+                    else {
+                        // no more index entries to check
+                        LOG.debug( "EqualsAny: ids: %s", result );
+                        next.complete( result );
+                    }
+                });
+    }
+
+
+    protected class SortedValuesIterator {
+        public Comparable<Object> peek;
+        private Iterator<Object> it;
+        
+        public SortedValuesIterator( Set<?> values ) {
+            var sorted = new TreeSet<Object>( values );
+            LOG.debug( "EqualsAny: %s", sorted );
+            it = sorted.iterator();
+            next();
+        }
+        public boolean hasMore() {
+            return it.hasNext();
+        }
+        @SuppressWarnings("unchecked")
+        public void next() {
+            peek = it.hasNext() ? (Comparable<Object>)it.next() : null;            
+        }
+    }
+
+    
     protected Promise<List<Object>> processTrue() {
-        var result = new ArrayList<Object>( 256 );
+        var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
         return uow
                 .doRequest( READONLY, query.resultType, os -> os.openCursor() ) // FIXME key cursor
                 .map( (cursor, next) -> {
