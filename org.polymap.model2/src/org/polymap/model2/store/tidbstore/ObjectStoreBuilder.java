@@ -18,9 +18,10 @@ import java.util.Set;
 
 import org.teavm.jso.indexeddb.IDBDatabase;
 import org.teavm.jso.indexeddb.IDBObjectStoreParameters;
-
 import org.polymap.model2.runtime.EntityRepository;
+import org.polymap.model2.store.tidbstore.IDBObjectStore2.IndexParameters;
 
+import areca.common.Assert;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -59,13 +60,15 @@ public class ObjectStoreBuilder {
             
             if (!objectStoreNames.contains( name ) || clear) {
                 LOG.info( "Creating schema: %s ...", name );
-                var os = db.createObjectStore( name, IDBObjectStoreParameters.create()/*.keyPath( "id" )*/ );
+                var os = db.createObjectStore( name, IDBObjectStoreParameters.create() ).<IDBObjectStore2>cast();
                 
                 for (var prop : info.getProperties()) {
                     if (prop.isQueryable()) {
-                        //Assert.that( prop.is );
+                        Assert.that( !prop.getType().equals( Boolean.class ), "Boolean is not a valid index key in IndexedDB: " + prop );
                         LOG.info( "    Index: %s (%s)", prop.getNameInStore(), prop.getNameInStore() );
-                        os.createIndex( prop.getNameInStore(), prop.getNameInStore() );
+                        var params = IndexParameters.create();
+                        params.setMultiEntry( true );
+                        os.createIndex( prop.getNameInStore(), prop.getNameInStore(), params );
                     }
                 }
             }

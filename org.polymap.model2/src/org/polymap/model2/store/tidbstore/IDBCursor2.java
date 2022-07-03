@@ -35,4 +35,8 @@ public interface IDBCursor2
     @JSMethod("continue")
     void doContinue( JSObject nextKey );
 
+    @NoSideEffects
+    @JSMethod("continuePrimaryKey")
+    void doContinuePrimaryKey( JSObject nextKey, JSObject nextPrimaryKey );
+
 }

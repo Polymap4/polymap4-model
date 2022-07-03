@@ -108,11 +108,11 @@ public class IDBUnitOfWork
      * @param <T>
      */
     protected <RE extends IDBCursorRequest, T extends Entity> Promise<IDBCursor2> doRequest( TxMode mode, Class<T> entityType, 
-            RFunction<IDBObjectStore,RE> createRequest ) {
+            RFunction<IDBObjectStore2,RE> createRequest ) {
         
         CompositeInfo<T> entityInfo = store.infoOf( entityType );        
         IDBTransaction tx = store.transaction( mode, entityInfo.getNameInStore() );
-        IDBObjectStore os = tx.objectStore( entityInfo.getNameInStore() );
+        IDBObjectStore2 os = tx.objectStore( entityInfo.getNameInStore() ).cast();
         
         RE request = createRequest.apply( os );
         

@@ -14,6 +14,8 @@
  */
 package org.polymap.model2.query.grammar;
 
+import java.util.Arrays;
+
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 
@@ -47,5 +49,10 @@ public class IdPredicate<T extends Entity>
         }
         return false;
     }
-    
+
+
+    @Override
+    public String toString() {
+        return String.format( "id IN %s", Arrays.toString( ids ) );
+    }
 }

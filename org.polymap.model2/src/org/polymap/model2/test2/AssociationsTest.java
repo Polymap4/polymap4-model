@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2012-2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2012-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -14,6 +14,9 @@
  */
 package org.polymap.model2.test2;
 
+import static org.polymap.model2.query.Expressions.anyOf;
+import static org.polymap.model2.query.Expressions.eq;
+import static org.polymap.model2.query.Expressions.id;
 import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 
 import java.util.Arrays;
@@ -38,11 +41,11 @@ import areca.common.testrunner.Test;
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 @Test
-public class AssociationsModelTest {
+public class AssociationsTest {
 
-    private static final Log LOG = LogFactory.getLog( AssociationsModelTest.class );
+    private static final Log LOG = LogFactory.getLog( AssociationsTest.class );
 
-    public static final ClassInfo<AssociationsModelTest> info = AssociationsModelTestClassInfo.instance();
+    public static final ClassInfo<AssociationsTest> info = AssociationsTestClassInfo.instance();
 
     protected EntityRepository   repo;
 
@@ -52,7 +55,7 @@ public class AssociationsModelTest {
     protected Promise<EntityRepository> initRepo( String name ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info, Company.info ) )
-                .store.set( new IDBStore( "AssociationsModelTest-" + name, nextDbVersion(), true ) )
+                .store.set( new IDBStore( "AssociationsTest-" + name, nextDbVersion(), true ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -84,7 +87,7 @@ public class AssociationsModelTest {
 
     
     @Test
-    public Promise<?> manyTest() throws Exception {
+    public Promise<?> manyFetchCollectTest() throws Exception {
         return initRepo( "manyTest" )
                 .then( __ -> createCompany() )
                 .then( created -> uow.entity( Company.class, created.id() ) )
@@ -110,6 +113,36 @@ public class AssociationsModelTest {
                     LOG.info( "manyQueryTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
                     Assert.isEqual( 5, rs.size() );
                     Assert.isEqual( "98", rs.get( 0 ).name.get() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyQueryAnyOfIdsTest() throws Exception {
+        return initRepo( "manyQueryIsTest" )
+                .then( __ -> createCompany() )
+                .then( created -> created.employees.fetchCollect() )
+                .then( employees -> uow.query( Company.class )
+                        .where( anyOf( Company.TYPE.employees, id( employees.get( 0 ).id() ) ) )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    LOG.info( "manyQueryAnyOfIdsTest: %s", rs );
+                    Assert.isEqual( 1, rs.size() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyQueryAnyOfTest() throws Exception {
+        return initRepo( "manyQueryIs2Test" )
+                .then( __ -> createCompany() )
+                .then( __ -> uow.query( Company.class )
+                        .where( anyOf( Company.TYPE.employees, eq( Person.TYPE.name, "10" ) ) )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    LOG.info( "manyQueryTest: %s", rs );
+                    Assert.isEqual( 1, rs.size() );
+                    //Assert.isEqual( "98", rs.get( 0 ).name.get() );
                 });
     }
 

@@ -17,6 +17,7 @@ package org.polymap.model2.test2;
 import org.polymap.model2.Association;
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
+import org.polymap.model2.Queryable;
 
 import areca.common.reflect.RuntimeInfo;
 
@@ -26,9 +27,10 @@ public class Company
 
     public static final CompanyClassInfo info = CompanyClassInfo.instance();
 
-    // public static Person TYPE;
+    public static Company TYPE;
 
     public Association<Person>          chief;
     
+    @Queryable
     public ManyAssociation<Person>      employees;
 }

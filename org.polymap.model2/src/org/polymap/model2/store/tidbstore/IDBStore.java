@@ -16,6 +16,7 @@ package org.polymap.model2.store.tidbstore;
 
 import java.io.IOException;
 
+import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSString;
 import org.teavm.jso.dom.events.Event;
 import org.teavm.jso.indexeddb.EventHandler;
@@ -197,6 +198,17 @@ public class IDBStore
     public static JSString id( Object id ) {
         Assert.that( id instanceof String );
         return JSString.valueOf( (String)id );
+    }
+
+    
+    public static String id( JSObject js ) {
+        if (JSStateObject.isUndefined( js )) {
+            return null;
+        }
+        else {
+            Assert.that( JSString.isInstance( js ) );
+            return ((JSString)js).stringValue();
+        }
     }
 
 }

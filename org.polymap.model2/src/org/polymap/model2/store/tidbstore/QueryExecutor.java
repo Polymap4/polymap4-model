@@ -20,10 +20,10 @@ import static org.teavm.jso.indexeddb.IDBCursor.DIRECTION_NEXT;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
 
 import org.teavm.jso.JSObject;
@@ -35,6 +35,7 @@ import org.teavm.jso.indexeddb.IDBKeyRange;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
+import org.polymap.model2.Entity;
 import org.polymap.model2.Queryable;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
@@ -42,13 +43,16 @@ import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.query.grammar.ComparisonPredicate;
 import org.polymap.model2.query.grammar.IdPredicate;
+import org.polymap.model2.query.grammar.ManyAssociationQuantifier;
 import org.polymap.model2.query.grammar.PropertyEquals;
 import org.polymap.model2.query.grammar.PropertyEqualsAny;
 import org.polymap.model2.query.grammar.PropertyMatches;
+import org.polymap.model2.runtime.PropertyInfo;
 
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Timer;
+import areca.common.base.Opt;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -173,10 +177,14 @@ class QueryExecutor {
             return Promise.completed( Arrays.asList( ((IdPredicate<?>)exp).ids ) );
         }
         else if (exp instanceof PropertyEqualsAny) {
-            return processPropertyEqualsAny2( (PropertyEqualsAny<?>)exp );
+            var equalsAny = (PropertyEqualsAny<?>)exp;
+            return processPropertyEqualsAny2( equalsAny.prop.info(), equalsAny.values );
         }
         else if (exp instanceof ComparisonPredicate) {
             return processComparison( (ComparisonPredicate<?>)exp );
+        }
+        else if (exp instanceof ManyAssociationQuantifier) {
+            return processManyAssociationQuantifier( (ManyAssociationQuantifier<?>)exp );
         }
         else {
             throw new UnsupportedOperationException( "Unhandled expression: " + exp.getClass().getSimpleName() );
@@ -268,21 +276,21 @@ class QueryExecutor {
     /**
      * Depends on: IDBCursor.doContinue( nextKey ); 
      */
-    protected Promise<List<Object>> processPropertyEqualsAny2( PropertyEqualsAny<?> exp ) {
-        if (exp.values.isEmpty()) {
+    protected Promise<List<Object>> processPropertyEqualsAny2( PropertyInfo<?> propInfo, Collection<?> values ) {
+        if (values.isEmpty()) {
             return Promise.completed( Collections.emptyList() );
         }
         var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
-        var searchValues = new SortedValuesIterator( exp.values );
+        var searchValues = new SortedValuesIterator( values );
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
-                    Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
-                    IDBIndex2 index = os.index( exp.prop.info().getNameInStore() ).cast();
+                    Assert.that( propInfo.isQueryable(), "Property is not @Queryable: " + propInfo.getName() );
+                    IDBIndex2 index = os.index( propInfo.getNameInStore() ).cast();
                     return index.openKeyCursor( null, DIRECTION_NEXT );
                 })
                 .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
-                        var value = IDBCompositeState.javaValueOf( cursor.getKey(), exp.prop.info() );
+                        var value = IDBCompositeState.javaValueOf( cursor.getKey(), propInfo );
                         LOG.debug( "EqualsAny: value=%s - searchValue=%s", value, searchValues.peek );
                         
                         while (searchValues.peek.compareTo( value ) < 0) {
@@ -301,7 +309,7 @@ class QueryExecutor {
                         if (value.equals( searchValues.peek )) {
                             LOG.debug( "EqualsAny:   found: %s == %s", value, searchValues.peek );
                             result.add( id( cursor.getPrimaryKey() ) );
-                            cursor.doContinue();  // check for more entry for this searchValue
+                            cursor.doContinue();  // check for more entries for this searchValue
                         }
                         else {
                             LOG.debug( "EqualsAny:   continue: %s", searchValues.peek );
@@ -321,7 +329,7 @@ class QueryExecutor {
         public Comparable<Object> peek;
         private Iterator<Object> it;
         
-        public SortedValuesIterator( Set<?> values ) {
+        public SortedValuesIterator( Collection<?> values ) {
             var sorted = new TreeSet<Object>( values );
             LOG.debug( "EqualsAny: %s", sorted );
             it = sorted.iterator();
@@ -337,10 +345,23 @@ class QueryExecutor {
     }
 
     
+    @SuppressWarnings("unchecked")
+    protected Promise<List<Object>> processManyAssociationQuantifier( ManyAssociationQuantifier<?> exp ) {
+        var subType = exp.prop.info().getType();
+        var subQuery = new Query<>( subType ) {
+            @Override public Promise<Opt<Entity>> execute() { throw new RuntimeException( "do not call" ); }
+        };
+        LOG.info( "AnyOf: subQuery: %s", exp.subExp() );
+        subQuery.where( exp.subExp() );
+        return new QueryExecutor( subQuery, uow ).execute()
+                .then( rs -> processPropertyEqualsAny2( exp.prop.info(), rs ) );
+    }
+
+
     protected Promise<List<Object>> processTrue() {
         var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
         return uow
-                .doRequest( READONLY, query.resultType, os -> os.openCursor() ) // FIXME key cursor
+                .doRequest( READONLY, query.resultType, os -> os.openKeyCursor() )
                 .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
                         Object id = id( cursor.getKey() );
