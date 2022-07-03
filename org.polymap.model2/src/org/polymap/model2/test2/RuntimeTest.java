@@ -18,12 +18,14 @@ import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 import java.util.Arrays;
 
 import org.polymap.model2.runtime.EntityRepository;
+import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Platform;
 import areca.common.Promise;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -108,5 +110,41 @@ public class RuntimeTest {
                     
                     return check.join( submit );
                 });
+    }
+    
+    
+    private Person removed;
+    
+    @Test
+    public Promise<?> removeTest() {
+        return initRepo( "removeTest" )
+                .then( repo -> {
+                    Sequence.ofInts( 0, 9 ).forEach( i -> uow.createEntity( Person.class, p -> p.name.set( "" + i ) ) );
+                    return uow.submit();
+                })
+                .then( __ -> {
+                    return uow.query( Person.class ).executeCollect();
+                })
+                // remove and check Status
+                .then( rs -> {
+                    uow.removeEntity( removed = rs.get( 0 ) );
+                    Assert.isEqual( EntityStatus.REMOVED, removed.status() );
+                    return uow.query( Person.class ).executeCollect();
+                })
+                // check uncommited changes
+                .then( rs -> {
+                    Assert.isEqual( 9, rs.size() );
+                    return uow.submit().onSuccess( __ -> {
+                        Assert.isEqual( EntityStatus.REMOVED, removed.status() );
+                    });
+                })
+                // query commited
+                .then( __ -> {
+                    return uow.query( Person.class ).executeCollect();
+                })
+                .onSuccess( rs -> {
+                    Assert.isEqual( 9, rs.size() );
+                });
+
     }
 }

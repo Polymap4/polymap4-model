@@ -68,7 +68,10 @@ public class DefaultValues {
             else if (type.equals( Boolean.class )) {
                 return Boolean.parseBoolean( defaultValue.value() );
             }
-            // XXX
+            else if (Enum.class.isAssignableFrom( type )) {
+                Class<Enum> enumType = (Class<Enum>)type;
+                Enum.valueOf( enumType, defaultValue.value() );
+            }
             else {
                 throw new UnsupportedOperationException( "Default values of this type are not supported yet: " + type );
             }
@@ -98,7 +101,6 @@ public class DefaultValues {
             else if (type.equals( Double.class )) {
                 return DEFAULT_DOUBLE;
             }
-            // XXX
             else {
                 throw new UnsupportedOperationException( "Default values of this type are not supported yet: " + type );
             }

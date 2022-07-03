@@ -119,6 +119,9 @@ public class IDBCompositeState
         else if (value instanceof Boolean) {
             return JSBoolean.valueOf( ((Boolean)value).booleanValue() );
         }
+        else if (value instanceof Enum) {
+            return JSString.valueOf( ((Enum<?>)value).name() );
+        }
         else {
             throw new UnsupportedOperationException( "Unhandled Entity property type: " + value );
         }
@@ -128,9 +131,6 @@ public class IDBCompositeState
     public static Object javaValueOf( JSObject value, PropertyInfo<?> info ) {
         if (JSStateObject.isUndefined( value )) {
             return null;
-        }
-        else if (JSString.isInstance( value )) {
-            return ((JSString)value).stringValue();
         }
         else if (info.getType().equals( Boolean.class )) {
             return ((JSBoolean)value).booleanValue();
@@ -143,6 +143,18 @@ public class IDBCompositeState
         }
         else if (info.getType().equals( Date.class )) {
             return new Date( (long)((JSDate)value).getTime() );
+        }
+        else if (Enum.class.isAssignableFrom( info.getType() )) {
+            var s = ((JSString)value).stringValue();
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            var enumType = (Class<Enum>)info.getType();
+            @SuppressWarnings("unchecked")
+            var result = Enum.valueOf( enumType, s );
+            return result;
+        }
+        // FIXME for ManyAssociation backed by collections this works just by hazard!
+        else if (JSString.isInstance( value )) {
+            return ((JSString)value).stringValue();
         }
         else {
             throw new UnsupportedOperationException( "Unhandled Entity property type: " + info.getName() );

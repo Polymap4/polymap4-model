@@ -282,7 +282,9 @@ public class UnitOfWorkImpl
                     LOG.debug( "query(): modified: %s", modified.size() );
                     modified.values().forEach( check -> {
                         Assert.that( check.status().status > LOADED.status );
-                        if (check.getClass().equals( entityClass ) && expression.evaluate( check )) {
+                        if (check.getClass().equals( entityClass ) 
+                                && check.status() != REMOVED
+                                && expression.evaluate( check )) {
                             unsubmitted.consumeResult( entityClass.cast( check ) );
                         }
                     });

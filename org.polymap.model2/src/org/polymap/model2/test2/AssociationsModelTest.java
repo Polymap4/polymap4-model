@@ -73,10 +73,11 @@ public class AssociationsModelTest {
     protected Promise<Company> createCompany() {
         var _uow = repo.newUnitOfWork();
         var company = _uow.createEntity( Company.class, c -> { 
-            Sequence.ofInts( 0, 9 )
+            Sequence.ofInts( 0, 99 )
                     .map( i -> _uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
                     .forEach( p -> c.employees.add( p ) );
-            _uow.createEntity( Person.class, p -> p.name.set( "extra" ) ); 
+            Sequence.ofInts( 0, 99 )
+                    .forEach( i -> _uow.createEntity( Person.class, p -> p.name.set( "extra-" + i ) ) );
         });
         return _uow.submit().map( submitted -> company );
     }
@@ -89,8 +90,8 @@ public class AssociationsModelTest {
                 .then( created -> uow.entity( Company.class, created.id() ) )
                 .then( company -> company.employees.fetchCollect() )
                 .onSuccess( rs -> {
-                    LOG.info( "%s", Sequence.of( rs ).map( p -> p.name.get() ) );
-                    Assert.isEqual( 10, rs.size() );
+                    //LOG.info( "manyTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
+                    Assert.isEqual( 100, rs.size() );
                 });
     }
 
@@ -106,9 +107,9 @@ public class AssociationsModelTest {
                         .maxResults( 5 )
                         .executeCollect() )
                 .onSuccess( rs -> {
-                    LOG.info( "%s", Sequence.of( rs ).map( p -> p.name.get() ) );
+                    LOG.info( "manyQueryTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
                     Assert.isEqual( 5, rs.size() );
-                    Assert.isEqual( "8", rs.get( 0 ).name.get() );
+                    Assert.isEqual( "98", rs.get( 0 ).name.get() );
                 });
     }
 

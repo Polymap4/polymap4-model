@@ -30,6 +30,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Timer;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -158,8 +159,23 @@ public class SimpleQueryTest {
     
 
     @Test
-    public Promise<?> orderByForAllTest() {
-        return initRepo( "orderBy" )
+    public Promise<?> orderByNoQueryFirstMaxTest() {
+        return initRepo( "orderByNoQueryFirstMaxTest" )
+                .then( uow -> uow.query( Person.class )
+                        .orderBy( Person.TYPE.name, DESC )
+                        .firstResult( 1 )
+                        .maxResults( 2 )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    Assert.isEqual( 2, rs.size() );
+                    Assert.isEqual( "Philipp", rs.get( 0 ).name.get() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> orderByNoQueryTest() {
+        return initRepo( "orderByNoQueryTest" )
                 .then( uow -> uow.query( Person.class )
                         .orderBy( Person.TYPE.name, DESC )
                         .executeCollect() )
@@ -171,8 +187,8 @@ public class SimpleQueryTest {
 
     
     @Test
-    public Promise<?> orderByWhereFirstMaxTest() {
-        return initRepo( "orderBy2" )
+    public Promise<?> orderByQueryFirstMaxTest() {
+        return initRepo( "orderByQueryFirstMaxTest" )
                 .then( uow -> uow.query( Person.class )
                         .where( eq( Person.TYPE.name, "Philipp" ) )
                         .orderBy( Person.TYPE.name, Order.ASC )
@@ -184,7 +200,6 @@ public class SimpleQueryTest {
                     Assert.isEqual( "Philipp", rs.get( 0 ).name.get() );
                 });
     }
-    
     
     
     @Test
@@ -271,6 +286,7 @@ public class SimpleQueryTest {
     
     @Test
     public Promise<?> equalsAnyTest() {
+        var timer = Timer.start();
         return initRepo( "equalsAny" )
                 .then( __ -> {
                     var uow2 = _repo.newUnitOfWork();
@@ -279,14 +295,19 @@ public class SimpleQueryTest {
                 })
                 // query
                 .then( submitted -> {
+                    LOG.info( "Created in %s", timer.elapsedHumanReadable() );
+                    timer.restart();
                     return _uow.query( Person.class )
                             .where( Expressions.eqAny( Person.TYPE.name, Sequence.of( "3", "5", "2" ).toSet() ) )
+                            .orderBy( Person.TYPE.name, Order.DESC )
+                            .firstResult( 1 )
                             .executeCollect();
                 })
                 // results
                 .onSuccess( rs -> {
-                    Assert.isEqual( 3, rs.size() );
-                    Assert.isEqual( "2", rs.get( 0 ).name.get() );
+                    LOG.info( "Queried in %s", timer.elapsedHumanReadable() );
+                    Assert.isEqual( 2, rs.size() );
+                    Assert.isEqual( "3", rs.get( 0 ).name.get() );
                 });                    
     }
 

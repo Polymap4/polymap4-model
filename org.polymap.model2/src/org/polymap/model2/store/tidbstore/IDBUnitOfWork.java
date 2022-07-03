@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.io.IOException;
 
 import org.teavm.jso.JSObject;
+import org.teavm.jso.indexeddb.IDBCursorRequest;
 import org.teavm.jso.indexeddb.IDBObjectStore;
 import org.teavm.jso.indexeddb.IDBRequest;
 import org.teavm.jso.indexeddb.IDBTransaction;
@@ -106,7 +107,7 @@ public class IDBUnitOfWork
      * @param <RE>
      * @param <T>
      */
-    protected <RE extends IDBRequest, T extends Entity> Promise<RE> doRequest( TxMode mode, Class<T> entityType, 
+    protected <RE extends IDBCursorRequest, T extends Entity> Promise<IDBCursor2> doRequest( TxMode mode, Class<T> entityType, 
             RFunction<IDBObjectStore,RE> createRequest ) {
         
         CompositeInfo<T> entityInfo = store.infoOf( entityType );        
@@ -115,12 +116,13 @@ public class IDBUnitOfWork
         
         RE request = createRequest.apply( os );
         
-        var result = new Promise.Completable<RE>();
+        var result = new Promise.Completable<IDBCursor2>();
         request.setOnError( ev -> {
             result.completeWithError( new IOException( "Event: " + ev.getType() + ", Error: " + request.getError().getName() ) );
         });
         request.setOnSuccess( ev -> {
-            result.consumeResult( request );
+            var cursor = request.getResult().<IDBCursor2>cast();
+            result.consumeResult( cursor );
         });
         return result;
     }
@@ -163,8 +165,7 @@ public class IDBUnitOfWork
         CompositeInfo<T> entityInfo = store.infoOf( query.resultType() );
         LOG.debug( "executeQuery(): %s where %s", entityInfo.getNameInStore(), query.expression );
         
-        return new QueryExecutor( query, this )
-                .execute()
+        return new QueryExecutor( query, this ).execute()
                 .map( (ids, next) -> {
                     for (var id : ids) {
                         next.consumeResult( CompositeStateReference.create( id, null ) );
@@ -176,6 +177,9 @@ public class IDBUnitOfWork
 
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
+        if (modified.isEmpty()) {
+            return Promise.completed( new Submitted() {} );
+        }
         var promise = new Promise.Completable<Entity>();
         var count = new MutableInt( modified.size() );
         for (Entity entity : modified) {

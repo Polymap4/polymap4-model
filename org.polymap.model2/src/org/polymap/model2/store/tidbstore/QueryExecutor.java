@@ -29,6 +29,9 @@ import org.teavm.jso.indexeddb.IDBCursor;
 import org.teavm.jso.indexeddb.IDBIndex;
 import org.teavm.jso.indexeddb.IDBKeyRange;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
+
 import org.polymap.model2.Queryable;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
@@ -42,6 +45,7 @@ import org.polymap.model2.query.grammar.PropertyMatches;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Timer;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -67,6 +71,12 @@ class QueryExecutor {
 
 
     public Promise<List<Object>> execute() {
+        // optimze: orderBy, NO Query
+        if (query.expression == Expressions.TRUE
+                && query.orderBy != null) {
+            return executeOrderByWithoutQuery();
+        }
+        
         var result = process( query.expression );
         
         // orderBy
@@ -79,8 +89,7 @@ class QueryExecutor {
                         return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
                                 ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
                     })
-                    .map( (request,next) -> {
-                        var cursor = request.getResult();
+                    .map( (cursor,next) -> {
                         if (!cursor.isNull()) {
                             Object primaryKey = id( cursor.getPrimaryKey() );
                             if (ids.contains( primaryKey )) {
@@ -99,14 +108,57 @@ class QueryExecutor {
             LOG.debug( "firstResult=%d, maxResults=%d", query.firstResult, query.maxResults );
             result = result.map( ids -> { 
                 var fromIndex = query.firstResult;
-                var toIndex = Math.min( fromIndex + query.maxResults, ids.size() );
+                var toIndex = query.maxResults < Integer.MAX_VALUE 
+                        ? Math.min( fromIndex + query.maxResults, ids.size() )
+                        : ids.size();
+                LOG.debug( "fromIndex=%d, toIndex=%d", fromIndex, toIndex );
                 return ids.subList( fromIndex, toIndex );
             });
         }
         return result;
     }
     
-    
+
+    /**
+     * Optimized handling for orderBy without query.
+     */
+    protected Promise<List<Object>> executeOrderByWithoutQuery() {
+        LOG.info( "orderBy (NO query): %s, firstResult=%d, maxResults=%d", query.orderBy.prop.info().getName(), query.firstResult, query.maxResults );
+        var ordered = new ArrayList<Object>( 128 );
+        var isFirstRun = new MutableBoolean( true );
+        var count = new MutableInt( 0 );
+        var timer = Timer.start();
+        return uow
+                .doRequest( READONLY, query.resultType, os -> {
+                    IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
+                    return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
+                            ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
+                })
+                .map( (cursor,next) -> {
+                    if (!cursor.isNull()) {
+                        if (query.firstResult > 0 && isFirstRun.isTrue()) {
+                            isFirstRun.setFalse();
+                            cursor.advance( query.firstResult );
+                        }
+                        else if (count.intValue() >= query.maxResults) {
+                            LOG.info( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
+                            next.complete( ordered );                            
+                        }
+                        else {
+                            Object primaryKey = id( cursor.getPrimaryKey() );
+                            ordered.add( primaryKey );
+                            count.increment();
+                            cursor.doContinue();
+                        }
+                    }
+                    else {
+                        LOG.info( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
+                        next.complete( ordered );
+                    }
+                });
+    }
+
+
     protected Promise<List<Object>> process( BooleanExpression exp ) {
         if (exp == Expressions.TRUE) {
             return processTrue();
@@ -153,8 +205,7 @@ class QueryExecutor {
                     }
                     return index.openKeyCursor( keyRange, DIRECTION_NEXT );
                 })
-                .map( (request, next) -> {
-                    var cursor = request.getResult();
+                .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
                         Object id = id( cursor.getPrimaryKey() );
                         var value = IDBCompositeState.javaValueOf( cursor.getKey(), exp.prop.info() );
@@ -187,22 +238,21 @@ class QueryExecutor {
                         lower = lower == null || lower.compareTo( v ) > 0 ? comparable : lower;
                         upper = upper == null || upper.compareTo( v ) < 0 ? comparable : upper;
                     }
-                    LOG.info( "EqualsAny: %s <= x <= %s", lower, upper );
+                    LOG.debug( "EqualsAny: %s <= x <= %s", lower, upper );
                     IDBKeyRange keyRange = IDBKeyRange.bound( jsValueOf( lower ), jsValueOf( upper ), false, false );
                     return index.openKeyCursor( keyRange, DIRECTION_NEXT );
                 })
-                .map( (request, next) -> {
-                    var cursor = request.getResult();
+                .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
                         var value = IDBCompositeState.javaValueOf( cursor.getKey(), exp.prop.info() );
-                        LOG.info( "EqualsAny: value=%s", value );
+                        LOG.debug( "EqualsAny: value=%s", value );
                         if (exp.values.contains( value )) {
                             result.add( id( cursor.getPrimaryKey() ) );
                         }
                         cursor.doContinue();
                     }
                     else {
-                        LOG.info( "EqualsAny: ids: %s", result );
+                        LOG.debug( "EqualsAny: ids: %s", result );
                         next.complete( result );
                     }
                 });
@@ -213,8 +263,7 @@ class QueryExecutor {
         var result = new ArrayList<Object>( 256 );
         return uow
                 .doRequest( READONLY, query.resultType, os -> os.openCursor() ) // FIXME key cursor
-                .map( (request, next) -> {
-                    var cursor = request.getResult();
+                .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
                         Object id = id( cursor.getKey() );
                         result.add( id );
