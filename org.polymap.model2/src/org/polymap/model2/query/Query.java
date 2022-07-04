@@ -18,6 +18,7 @@ import static areca.common.Assert.notNull;
 import static org.polymap.model2.query.Expressions.and;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.Property;
@@ -81,8 +82,8 @@ public abstract class Query<T extends Entity> {
     public abstract Promise<Opt<T>> execute();
     
     
-    public Promise<ArrayList<T>> executeCollect() {
-        return execute().reduce( new ArrayList<T>( 128 ), (l,result) -> result.ifPresent( entity -> l.add( entity ) ) );
+    public Promise<List<T>> executeCollect() {
+        return execute().reduce( new ArrayList<T>( 128 ), (result,next) -> next.ifPresent( entity -> result.add( entity ) ) );
     }
     
     

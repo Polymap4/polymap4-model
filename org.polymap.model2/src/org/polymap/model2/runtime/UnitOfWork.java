@@ -14,9 +14,9 @@
  */
 package org.polymap.model2.runtime;
 
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.Set;
-
+import java.util.Optional;
 import java.io.IOException;
 import java.sql.ResultSet;
 
@@ -169,7 +169,10 @@ public interface UnitOfWork
      */
     public Promise<Submitted> submit(); // throws IOException, ConcurrentEntityModificationException;
 
-    public interface Submitted {        
+    public class Submitted {
+        public Set<Object> createdIds = new HashSet<>( 128 );
+        public Set<Object> modifiedIds = new HashSet<>( 128 );
+        public Set<Object> removedIds = new HashSet<>( 128 );
     }
 
     

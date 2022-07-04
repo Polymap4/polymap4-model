@@ -17,6 +17,8 @@ package org.polymap.model2.test2;
 import org.polymap.model2.Association;
 import org.polymap.model2.Entity;
 import org.polymap.model2.ManyAssociation;
+import org.polymap.model2.Nullable;
+import org.polymap.model2.Property;
 import org.polymap.model2.Queryable;
 
 import areca.common.reflect.RuntimeInfo;
@@ -29,6 +31,9 @@ public class Company
 
     public static Company TYPE;
 
+    @Nullable
+    public Property<String>             name;
+    
     public Association<Person>          chief;
     
     @Queryable

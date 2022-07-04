@@ -83,6 +83,22 @@ final class ConstraintsManyAssociationInterceptor<T extends Entity>
     }
 
     @Override
+    public boolean remove( T e ) {
+        context.checkState();
+        if (isImmutable) {
+            throw new ModelRuntimeException( "Property is @Immutable: " + fullPropName() );
+        }
+        if (delegate().remove( e )) {
+            //System.out.println( "ManyAssociation: remove()-> MODIFIED" );
+            context.raiseStatus( EntityStatus.MODIFIED );
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    @Override
     public Promise<Opt<T>> fetch() {
         context.checkState();
         return delegate().fetch().onSuccess( value -> {

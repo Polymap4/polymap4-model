@@ -21,6 +21,8 @@ import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 
 import java.util.Arrays;
 
+import org.apache.commons.lang3.mutable.MutableObject;
+
 import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
@@ -133,6 +135,19 @@ public class AssociationsTest {
 
     
     @Test
+    public Promise<?> manyComputedBidiAssociationTest() throws Exception {
+        return initRepo( "manyComputedBidiTest" )
+                .then( __ -> createCompany() )
+                .then( created -> created.employees.fetchCollect() )
+                .then( employees -> employees.get( 0 ).companies() )
+                .onSuccess( rs -> {
+                    LOG.info( "manyComputedBidiAssociationTest: %s", rs );
+                    Assert.isEqual( 1, rs.size() );
+                });
+    }
+
+    
+    @Test
     public Promise<?> manyQueryAnyOfTest() throws Exception {
         return initRepo( "manyQueryIs2Test" )
                 .then( __ -> createCompany() )
@@ -142,6 +157,36 @@ public class AssociationsTest {
                 .onSuccess( rs -> {
                     LOG.info( "manyQueryTest: %s", rs );
                     Assert.isEqual( 1, rs.size() );
+                    //Assert.isEqual( "98", rs.get( 0 ).name.get() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyRemoveTest() throws Exception {
+        var created = new MutableObject<Company>();
+        return initRepo( "manyRemoveTest" )
+                .then( __ -> createCompany() )
+                .then( _created -> uow.entity( _created ) )
+                .then( loaded -> {
+                    created.setValue( loaded );                    
+                    return loaded.employees.fetchCollect();
+                })
+                .then( employees -> {
+                    Assert.that( created.getValue().employees.remove( employees.get( 10 ) ) );
+                    Assert.that( created.getValue().employees.remove( employees.get( 11 ) ) );
+                    return uow.submit();
+                })
+                .then( __ -> {
+                    var uow2 = repo.newUnitOfWork();
+                    return uow2.query( Company.class ).executeCollect();
+                })
+                .then( rs -> {
+                    return rs.get( 0 ).employees.fetchCollect();
+                })
+                .onSuccess( rs -> {
+                    LOG.info( "manyRemoveTest: %s", rs.size() );
+                    Assert.isEqual( 98, rs.size() );
                     //Assert.isEqual( "98", rs.get( 0 ).name.get() );
                 });
     }

@@ -408,7 +408,15 @@ public class UnitOfWorkImpl
                 .filter( entity -> entity.status() == LOADED )
                 .toList();
         return storeUow.rollback( _loaded )
-                .onSuccess( __ -> lifecycle( _loaded, State.AFTER_REFRESH ) );
+                .map( submitted -> {
+                    for (var removedId : submitted.removedIds) {
+                        var removed = loaded.remove( removedId );
+                        removed.context.resetStatus( EntityStatus.REMOVED );
+                        LOG.info( "Removed: " + removed );
+                    }
+                    lifecycle( _loaded, State.AFTER_REFRESH );
+                    return submitted;
+                });
     }
 
 
@@ -420,7 +428,15 @@ public class UnitOfWorkImpl
                 .filter( entity -> ids.contains( entity.id() ) )
                 .toList();
         return storeUow.rollback( entities )
-                .onSuccess( __ -> lifecycle( entities, State.AFTER_REFRESH ) );
+                .map( submitted -> {
+                    for (var removedId : submitted.removedIds) {
+                        var removed = loaded.remove( removedId );
+                        removed.context.resetStatus( EntityStatus.REMOVED );
+                        LOG.info( "Removed: " + removed );
+                    }
+                    lifecycle( entities, State.AFTER_REFRESH );
+                    return submitted;
+                });
     }
 
 

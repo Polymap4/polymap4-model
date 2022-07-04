@@ -280,6 +280,11 @@ public final class TemplateInstanceBuilder {
         }
 
         @Override
+        public boolean remove( T e ) {
+            throw new ModelRuntimeException( "Method is not allowed on query template" );
+        }
+
+        @Override
         public Iterator<T> iterator() {
             throw new ModelRuntimeException( "Method is not allowed on query template" );
         }

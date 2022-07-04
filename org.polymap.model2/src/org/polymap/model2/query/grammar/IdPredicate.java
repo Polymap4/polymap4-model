@@ -33,7 +33,7 @@ public class IdPredicate<T extends Entity>
 
     
     public IdPredicate( Object... ids ) {
-        Assert.that( ids != null && ids.length > 0 );
+        Assert.that( ids != null /*&& ids.length > 0*/, "IdPredicate: ids must not be null" );
 //        assert !Arrays.stream( ids ).filter( id -> id instanceof Composite ).findAny().isPresent() 
 //                : "Composite is not allowed as key. Did you cast parameter of Expressions.id() correctly?";
         this.ids = ids;

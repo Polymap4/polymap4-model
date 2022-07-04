@@ -133,7 +133,7 @@ class QueryExecutor {
      * Optimized handling for orderBy without query.
      */
     protected Promise<List<Object>> executeOrderByWithoutQuery() {
-        LOG.info( "orderBy (NO query): %s, firstResult=%d, maxResults=%d", query.orderBy.prop.info().getName(), query.firstResult, query.maxResults );
+        LOG.debug( "orderBy (NO query): %s, firstResult=%d, maxResults=%d", query.orderBy.prop.info().getName(), query.firstResult, query.maxResults );
         var ordered = new ArrayList<Object>( DEFAULT_RS_SIZE );
         var isFirstRun = new MutableBoolean( true );
         var count = new MutableInt( 0 );
@@ -151,7 +151,7 @@ class QueryExecutor {
                             cursor.advance( query.firstResult );
                         }
                         else if (count.intValue() >= query.maxResults) {
-                            LOG.info( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
+                            LOG.debug( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
                             next.complete( ordered );                            
                         }
                         else {
@@ -162,7 +162,7 @@ class QueryExecutor {
                         }
                     }
                     else {
-                        LOG.info( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
+                        LOG.debug( "   Results: %d (%s)", ordered.size(), timer.elapsedHumanReadable() );
                         next.complete( ordered );
                     }
                 });

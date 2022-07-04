@@ -42,6 +42,8 @@ public interface StoreCollectionProperty<T>
 
     public boolean add( T elm );
     
+    public boolean remove( T elm );
+
     /**
      * Creates a new value for this property. For simple properties usually this is
      * just {@link PropertyInfo#getDefaultValue()}. For {@link CompositeState} value this

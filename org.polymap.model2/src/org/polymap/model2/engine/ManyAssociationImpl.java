@@ -22,6 +22,7 @@ import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.StoreCollectionProperty;
+import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Promise;
 import areca.common.base.Opt;
@@ -95,6 +96,13 @@ class ManyAssociationImpl<T extends Entity>
         return storeProp.add( elm.id() );
     }
 
+    
+    @Override
+    public boolean remove( T elm ) {
+        return storeProp.remove( elm.id() );
+    }
+
+    
     @Override
     public String toString() {
         return "ManyAssociation[name:" + info().getName() + ",value=" + super.toString() + "]";

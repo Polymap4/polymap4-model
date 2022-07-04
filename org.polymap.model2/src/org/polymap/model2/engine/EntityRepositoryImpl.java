@@ -318,7 +318,7 @@ public class EntityRepositoryImpl
         @Override
         public void raiseStatus( EntityStatus newStatus ) {
             checkState();
-            Assert.that( newStatus.status >= status.status );
+            Assert.that( newStatus.status >= status.status, "New status " + newStatus + " !>= " + status );
             var old = status;
             // keep created if modified after creation
             if (status != EntityStatus.CREATED) {

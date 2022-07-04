@@ -45,6 +45,8 @@ public interface ManyAssociation<T extends Entity>
 
     public boolean add( T elm );
 
+    public boolean remove( T elm );
+
     public int size();
 
 }

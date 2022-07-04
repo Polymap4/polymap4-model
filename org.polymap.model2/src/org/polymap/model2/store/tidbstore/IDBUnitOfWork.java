@@ -182,17 +182,21 @@ public class IDBUnitOfWork
         }
         var promise = new Promise.Completable<Entity>();
         var count = new MutableInt( modified.size() );
+        var submitted = new Submitted();
         for (Entity entity : modified) {
             // FIXME separated transactions!
             doRequest( TxMode.READWRITE, entity.info().getNameInStore(),
                     os -> {
                         LOG.debug( "submit(): " + entity );
                         switch (entity.status()) {
-                            case CREATED: 
+                            case CREATED:
+                                submitted.createdIds.add( entity.id() );
                                 return os.add( (JSObject)entity.state(), IDBStore.id( entity.id() ) );
                             case MODIFIED:
+                                submitted.modifiedIds.add( entity.id() );
                                 return os.put( (JSObject)entity.state(), IDBStore.id( entity.id() ) );
                             case REMOVED:
+                                submitted.removedIds.add( entity.id() );
                                 return os.delete( IDBStore.id( entity.id() ) );
                             default: 
                                 throw new IllegalStateException( "Status: " + entity.status() );
@@ -207,7 +211,7 @@ public class IDBUnitOfWork
                     },
                     error -> promise.completeWithError( error ) );
         }
-        return promise.reduce( new Submitted() {}, (r,entity) -> {} );
+        return promise.reduce( submitted, (r,entity) -> {} );
     }
 
 
@@ -220,6 +224,8 @@ public class IDBUnitOfWork
         if (l.isEmpty()) {
             return Promise.completed( new Submitted() {} );
         }
+        
+        var submitted = new Submitted();
         return Promise.joined( l.size(), i -> {
             var entity = l.get( i );
             var state = (IDBCompositeState)context.contextOfEntity( entity ).getState();
@@ -227,10 +233,17 @@ public class IDBUnitOfWork
                     .map( newState -> MutablePair.of( state, (IDBCompositeState)newState ) );
         })
         .map( loaded -> {
-            loaded.left.jsObject = loaded.right.jsObject;
-            LOG.debug( "ROLLED BACK: " + loaded.left.id() );
-            return new Submitted() {};
-        });
+            if (loaded.right == null) {
+                submitted.removedIds.add( loaded.left.id() );
+            }
+            else {
+                submitted.modifiedIds.add( loaded.left.id() );
+                loaded.left.jsObject = loaded.right.jsObject;
+                LOG.debug( "ROLLED BACK: " + loaded.left.id() );
+            }
+            return loaded;
+        })
+        .reduce( submitted, (result, next) -> {} );
     }
 
 

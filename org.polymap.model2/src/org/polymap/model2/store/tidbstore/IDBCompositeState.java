@@ -17,7 +17,6 @@ package org.polymap.model2.store.tidbstore;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.logging.Logger;
 
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSArray;
@@ -32,8 +31,9 @@ import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreCollectionProperty;
 import org.polymap.model2.store.StoreProperty;
-
 import areca.common.Assert;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 
@@ -43,8 +43,8 @@ import areca.common.Assert;
 public class IDBCompositeState
         implements CompositeState {
 
-    private static final Logger LOG = Logger.getLogger( IDBCompositeState.class.getName() );
-    
+    private static final Log LOG = LogFactory.getLog( IDBCompositeState.class );
+
     protected Class<? extends Composite>    entityClass;
     
     protected JSStateObject                 jsObject;
@@ -229,6 +229,24 @@ public class IDBCompositeState
             }
             array.push( jsValueOf( elm ) );
             return true;
+        }
+
+        @Override
+        public boolean remove( Object elm ) {
+            @SuppressWarnings("unchecked")
+            JSArray<JSObject> array = (JSArray<JSObject>)jsObject.get( info().getNameInStore() );
+            if (JSObjects.isUndefined( array )) {
+                return false;
+            }
+            var jsValue = jsValueOf( elm );
+            for (int i = 0; i < array.getLength(); i++) {
+                if (array.get( i ) == jsValue) {
+                    LOG.info( "Collection: remove index=" + i );
+                    array.splice( i, 1 );
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override

@@ -15,6 +15,7 @@
 package org.polymap.model2.test2;
 
 import java.util.Date;
+import java.util.List;
 
 import org.polymap.model2.Concerns;
 import org.polymap.model2.DefaultValue;
@@ -23,6 +24,9 @@ import org.polymap.model2.Entity;
 import org.polymap.model2.Nullable;
 import org.polymap.model2.Property;
 import org.polymap.model2.Queryable;
+import org.polymap.model2.query.Expressions;
+
+import areca.common.Promise;
 
 /**
  * 
@@ -51,4 +55,15 @@ public /*abstract*/ class Person
     @Nullable
     protected Property<Date>        birthday;
  
+//    @Computed( ComputedBidiManyAssociation.class )
+//    public ManyAssociation<Company> company;
+    
+    /**
+     * Computed bidi association to {@link Company#employees}.
+     */
+    public Promise<List<Company>> companies() {
+        return context.getUnitOfWork().query( Company.class )
+                .where( Expressions.anyOf( Company.TYPE.employees, Expressions.id( id() ) ) )
+                .executeCollect();
+    }
 }
