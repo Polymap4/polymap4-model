@@ -37,10 +37,16 @@ public interface Lifecycle {
         AFTER_LOADED,
         /**  */
         AFTER_CREATED,
-        /** Fired when the {@link Entity#status()} switches from {@link EntityStatus#LOADED} to {@link EntityStatus#MODIFIED}. */
+        /**
+         * Fired when the {@link Entity#status()} switches from
+         * {@link EntityStatus#LOADED} to {@link EntityStatus#MODIFIED}.
+         */
         AFTER_MODIFIED,
-        /** @deprecated Yet to be supported by the engine. */
-        BEFORE_REMOVED
+        /**
+         * Fired when the {@link Entity#status()} switches from
+         * {@link EntityStatus#MODIFIED}.
+         */
+        AFTER_REMOVED
     }
     
     public void onLifecycleChange( State state );

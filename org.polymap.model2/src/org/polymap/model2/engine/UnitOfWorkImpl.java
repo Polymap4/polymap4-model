@@ -105,8 +105,11 @@ public class UnitOfWorkImpl
         if (entity.status() == MODIFIED || entity.status() == REMOVED) {
             modified.putIfAbsent( entity.id(), entity );
         }
-        if (old == LOADED || entity.status() == MODIFIED) {
+        if (old.status < MODIFIED.status || entity.status() == MODIFIED) {
             lifecycle( singleton( entity ), State.AFTER_MODIFIED );
+        }
+        if (old.status < REMOVED.status || entity.status() == REMOVED) {
+            lifecycle( singleton( entity ), State.AFTER_REMOVED );
         }
     }
 
