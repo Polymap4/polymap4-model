@@ -36,19 +36,22 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import org.polymap.model2.Entity;
+import org.polymap.model2.PropertyBase;
 import org.polymap.model2.Queryable;
+import org.polymap.model2.engine.TemplateProperty;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.query.grammar.BooleanExpression;
+import org.polymap.model2.query.grammar.CollectionQuantifier;
 import org.polymap.model2.query.grammar.ComparisonPredicate;
 import org.polymap.model2.query.grammar.IdPredicate;
 import org.polymap.model2.query.grammar.ManyAssociationQuantifier;
 import org.polymap.model2.query.grammar.PropertyEquals;
 import org.polymap.model2.query.grammar.PropertyEqualsAny;
 import org.polymap.model2.query.grammar.PropertyMatches;
-import org.polymap.model2.runtime.PropertyInfo;
-
+import org.polymap.model2.query.grammar.Quantifier.Type;
+import org.polymap.model2.query.grammar.TheCompositeQuantifier;
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Timer;
@@ -73,17 +76,29 @@ class QueryExecutor {
     
     protected IDBUnitOfWork     uow;
     
+    protected String            indexBaseName = "";
+    
     
     public QueryExecutor( Query<?> query, IDBUnitOfWork uow ) {
         this.query = query;
         this.uow = uow;
     }
 
+    protected QueryExecutor( Query<?> query, IDBUnitOfWork uow, String indexBaseName ) {
+        this( query, uow );
+        this.indexBaseName = indexBaseName;
+    }
 
+    
+    protected String indexName( PropertyBase<?> prop ) {
+        LOG.info( "Index: %s -> %s", prop.info().getNameInStore(), indexBaseName + prop.info().getNameInStore() ); 
+        return indexBaseName + prop.info().getNameInStore();
+    }
+
+    
     public Promise<List<Object>> execute() {
         // optimze: orderBy, NO Query
-        if (query.expression == Expressions.TRUE
-                && query.orderBy != null) {
+        if (query.expression == Expressions.TRUE && query.orderBy != null) {
             return executeOrderByWithoutQuery();
         }
         
@@ -95,7 +110,7 @@ class QueryExecutor {
             var ordered = new ArrayList<Object>( DEFAULT_RS_SIZE );
             result = result.then( ids -> uow
                     .doRequest( READONLY, query.resultType, os -> {
-                        IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
+                        IDBIndex2 index = os.index( indexName( query.orderBy.prop ) ).cast();
                         return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
                                 ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
                     })
@@ -140,7 +155,7 @@ class QueryExecutor {
         var timer = Timer.start();
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
-                    IDBIndex2 index = os.index( query.orderBy.prop.info().getNameInStore() ).cast();
+                    IDBIndex2 index = os.index( indexName( query.orderBy.prop ) ).cast();
                     return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
                             ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
                 })
@@ -178,13 +193,19 @@ class QueryExecutor {
         }
         else if (exp instanceof PropertyEqualsAny) {
             var equalsAny = (PropertyEqualsAny<?>)exp;
-            return processPropertyEqualsAny2( equalsAny.prop.info(), equalsAny.values );
+            return processPropertyEqualsAny2( equalsAny.prop, equalsAny.values );
         }
         else if (exp instanceof ComparisonPredicate) {
             return processComparison( (ComparisonPredicate<?>)exp );
         }
         else if (exp instanceof ManyAssociationQuantifier) {
             return processManyAssociationQuantifier( (ManyAssociationQuantifier<?>)exp );
+        }
+        else if (exp instanceof TheCompositeQuantifier) {
+            return processCompositeQuantifier( (TheCompositeQuantifier<?>)exp );
+        }
+        else if (exp instanceof CollectionQuantifier) {
+            return processCollectionQuantifier( (CollectionQuantifier<?>)exp );
         }
         else {
             throw new UnsupportedOperationException( "Unhandled expression: " + exp.getClass().getSimpleName() );
@@ -197,7 +218,7 @@ class QueryExecutor {
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
-                    IDBIndex2 index = os.index( exp.prop.info().getNameInStore() ).cast();
+                    IDBIndex2 index = os.index( indexName( exp.prop ) ).cast();
                     IDBKeyRange keyRange = null;
                     // eq
                     if (exp instanceof PropertyEquals) {
@@ -244,7 +265,7 @@ class QueryExecutor {
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
-                    IDBIndex2 index = os.index( exp.prop.info().getNameInStore() ).cast();
+                    IDBIndex2 index = os.index( indexName( exp.prop ) ).cast();
                     Comparable<Object> lower = null;
                     Comparable<Object> upper = null;
                     for (var v : exp.values) {
@@ -276,7 +297,7 @@ class QueryExecutor {
     /**
      * Depends on: IDBCursor.doContinue( nextKey ); 
      */
-    protected Promise<List<Object>> processPropertyEqualsAny2( PropertyInfo<?> propInfo, Collection<?> values ) {
+    protected Promise<List<Object>> processPropertyEqualsAny2( TemplateProperty<?> prop, Collection<?> values ) {
         if (values.isEmpty()) {
             return Promise.completed( Collections.emptyList() );
         }
@@ -284,13 +305,13 @@ class QueryExecutor {
         var searchValues = new SortedValuesIterator( values );
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
-                    Assert.that( propInfo.isQueryable(), "Property is not @Queryable: " + propInfo.getName() );
-                    IDBIndex2 index = os.index( propInfo.getNameInStore() ).cast();
+                    Assert.that( prop.info().isQueryable(), "Property is not @Queryable: " + prop.info().getName() );
+                    IDBIndex2 index = os.index( indexName( prop ) ).cast();
                     return index.openKeyCursor( null, DIRECTION_NEXT );
                 })
                 .map( (cursor, next) -> {
                     if (!cursor.isNull()) {
-                        var value = IDBCompositeState.javaValueOf( cursor.getKey(), propInfo );
+                        var value = IDBCompositeState.javaValueOf( cursor.getKey(), prop.info() );
                         LOG.debug( "EqualsAny: value=%s - searchValue=%s", value, searchValues.peek );
                         
                         while (searchValues.peek.compareTo( value ) < 0) {
@@ -344,17 +365,31 @@ class QueryExecutor {
         }
     }
 
-    
+
     @SuppressWarnings("unchecked")
     protected Promise<List<Object>> processManyAssociationQuantifier( ManyAssociationQuantifier<?> exp ) {
-        var subType = exp.prop.info().getType();
-        var subQuery = new Query<>( subType ) {
-            @Override public Promise<Opt<Entity>> execute() { throw new RuntimeException( "do not call" ); }
-        };
+        Assert.that( exp.type == Type.ANY, "ALL quantifier is not yet supported" );
         LOG.info( "AnyOf: subQuery: %s", exp.subExp() );
-        subQuery.where( exp.subExp() );
+        var subType = exp.prop.info().getType();
+        var subQuery = new SubQuery<>( subType ).where( exp.subExp() );
         return new QueryExecutor( subQuery, uow ).execute()
-                .then( rs -> processPropertyEqualsAny2( exp.prop.info(), rs ) );
+                .then( rs -> processPropertyEqualsAny2( (TemplateProperty<?>)exp.prop, rs ) );
+    }
+
+
+    protected Promise<List<Object>> processCompositeQuantifier( TheCompositeQuantifier<?> exp ) {
+        Assert.that( exp.type == Type.THE_ONLY, "Wrong quantifier: " + exp.type );
+        var subType = exp.prop.info().getType();
+        var subQuery = new SubQuery<>( query.resultType() ).where( exp.subExp() );
+        LOG.info( "TheComposite: %s: %s", subType, exp.subExp() );
+        return new QueryExecutor( subQuery, uow, indexName( exp.prop ) + "." ).execute();
+    }
+
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    protected Promise<List<Object>> processCollectionQuantifier( CollectionQuantifier exp ) {
+        Assert.that( exp.type == Type.ANY, "ALL quantifier is not yet supported" );
+        return processComparison( new PropertyEquals( (TemplateProperty)exp.prop, exp.value ) );
     }
 
 
@@ -378,6 +413,20 @@ class QueryExecutor {
     
     protected Object id( JSObject js ) {
         return ((JSString)js).stringValue();  // XXX        
+    }
+
+
+    /**
+     * 
+     */
+    protected static class SubQuery<T extends Entity>
+            extends Query<T> {
+        
+        public SubQuery( Class<T> resultType ) {
+            super( resultType );
+        }
+    
+        @Override public Promise<Opt<T>> execute() { throw new RuntimeException( "do not call" ); }
     }
     
 }

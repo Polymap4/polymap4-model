@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2020, the @authors. All rights reserved.
+ * Copyright (C) 2020-2022, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -37,8 +37,7 @@ import areca.common.log.LogFactory.Log;
 
 /**
  * 
- *
- * @author git_user_name
+ * @author Falko
  */
 public class IDBCompositeState
         implements CompositeState {
@@ -47,25 +46,25 @@ public class IDBCompositeState
 
     protected Class<? extends Composite>    entityClass;
     
-    protected JSStateObject                 jsObject;
+    protected JSStateObject                 state;
 
     
     public IDBCompositeState( Object id, Class<? extends Composite> entityClass ) {
         this.entityClass = Assert.notNull( entityClass );
-        this.jsObject = JSStateObject.create();
-        this.jsObject.set( "id", IDBStore.id( Assert.notNull( id ) ) );
+        this.state = JSStateObject.create();
+        this.state.set( "id", IDBStore.id( Assert.notNull( id ) ) );
     }
     
     
     public IDBCompositeState( Class<? extends Composite> entityClass, JSStateObject jsObject ) {
         this.entityClass = Assert.notNull( entityClass );
-        this.jsObject = Assert.notNull( jsObject );
+        this.state = Assert.notNull( jsObject );
     }
 
 
     @Override
     public Object id() {
-        return ((JSString)jsObject.get( "id" )).stringValue();
+        return ((JSString)state.get( "id" )).stringValue();
     }
 
 
@@ -78,8 +77,7 @@ public class IDBCompositeState
 
     @Override
     public StoreProperty<?> loadProperty( PropertyInfo info ) {
-        // Assert.that( !info.isAssociation() && info.getMaxOccurs() == 1 );
-        if (info.getMaxOccurs() > 1) {
+        if (info.getMaxOccurs() > 1) { // Many, Collection, CompositeCollection
             return new StoreCollectionPropertyImpl() {
                 @Override public PropertyInfo info() { return info; }
                 @Override public Object get() { throw new RuntimeException( "..." ); }
@@ -96,7 +94,7 @@ public class IDBCompositeState
 
     @Override
     public JSStateObject getUnderlying() {
-        return jsObject;
+        return state;
     }
     
     
@@ -170,18 +168,37 @@ public class IDBCompositeState
         
         @Override
         public Object get() {
-            return javaValueOf( jsObject.get( info().getNameInStore() ), info() );
+            var jsvalue = state.get( info().getNameInStore() );
+            if (JSStateObject.isUndefined( jsvalue )) {
+                return null;
+            }
+            else if (Composite.class.isAssignableFrom( info().getType() )
+                    && !info().isAssociation()) { // XXX separate impl for Composite
+                Class<? extends Composite> compositeType = info().getType();
+                JSStateObject compositeState = jsvalue.cast();
+                return new IDBCompositeState( compositeType, compositeState );
+            }
+            else {
+                return javaValueOf( jsvalue, info() );
+            }
         }
         
         @Override
         public void set( Object value ) {
-            jsObject.set( info().getNameInStore(), jsValueOf( value ) );
+            Assert.that( !Composite.class.isInstance( value ), "Composite value is not yet supported." );
+            state.set( info().getNameInStore(), jsValueOf( value ) );
         }
         
         @Override
         public Object createValue( Class actualType ) {
-            // XXX Auto-generated method stub
-            throw new RuntimeException( "not yet implemented." );
+            if (Composite.class.isAssignableFrom( actualType )) {
+                var compositeState = JSStateObject.create();
+                state.set( info().getNameInStore(), compositeState );
+                return new IDBCompositeState( actualType, compositeState );
+            }
+            else {
+                throw new RuntimeException( "not yet implemented: " + actualType );
+            }
         }
     };
 
@@ -194,13 +211,23 @@ public class IDBCompositeState
 
         @Override
         public int size() {
-            JSArray<?> array = (JSArray<?>)jsObject.get( info().getNameInStore() );
+            JSArray<?> array = (JSArray<?>)state.get( info().getNameInStore() );
             return JSObjects.isUndefined( array ) ? 0 : array.getLength();
+        }
+
+        protected JSArray<JSObject> ensureArray() {
+            @SuppressWarnings("unchecked")
+            JSArray<JSObject> array = (JSArray<JSObject>)state.get( info().getNameInStore() );
+            if (JSObjects.isUndefined( array )) {
+                array = JSArray.create();                
+                state.set( info().getNameInStore(), array );
+            }
+            return array;
         }
 
         @Override
         public Iterator<Object> iterator() {
-            JSArray<?> array = (JSArray<?>)jsObject.get( info().getNameInStore() );
+            JSArray<?> array = (JSArray<?>)state.get( info().getNameInStore() );
             if (!JSObjects.isUndefined( array )) {
                 return new Iterator<Object>() {
                     int index = 0;
@@ -210,7 +237,16 @@ public class IDBCompositeState
                     }
                     @Override
                     public Object next() {
-                        return javaValueOf( array.get( index++ ), info() );
+                        var jsvalue = array.get( index++ );
+                        if (Composite.class.isAssignableFrom( info().getType() )
+                                && !info().isAssociation()) { // XXX separate impl for composite
+                            Class<? extends Composite> compositeType = info().getType();
+                            JSStateObject compositeState = jsvalue.cast();
+                            return new IDBCompositeState( compositeType, compositeState );
+                        }
+                        else {
+                            return javaValueOf( jsvalue, info() );
+                        }
                     }
                 };
             }
@@ -221,23 +257,18 @@ public class IDBCompositeState
 
         @Override
         public boolean add( Object elm ) {
-            @SuppressWarnings("unchecked")
-            JSArray<JSObject> array = (JSArray<JSObject>)jsObject.get( info().getNameInStore() );
-            if (JSObjects.isUndefined( array )) {
-                array = JSArray.create();                
-                jsObject.set( info().getNameInStore(), array );
-            }
-            array.push( jsValueOf( elm ) );
+            ensureArray().push( jsValueOf( elm ) );
             return true;
         }
 
         @Override
         public boolean remove( Object elm ) {
             @SuppressWarnings("unchecked")
-            JSArray<JSObject> array = (JSArray<JSObject>)jsObject.get( info().getNameInStore() );
+            JSArray<JSObject> array = (JSArray<JSObject>)state.get( info().getNameInStore() );
             if (JSObjects.isUndefined( array )) {
                 return false;
             }
+            Assert.that( !Composite.class.isInstance( elm ), "Composite value is not yet supported." );
             var jsValue = jsValueOf( elm );
             for (int i = 0; i < array.getLength(); i++) {
                 if (array.get( i ) == jsValue) {
@@ -251,7 +282,15 @@ public class IDBCompositeState
 
         @Override
         public Object createValue( Class actualType ) {
-            throw new RuntimeException( "not yet implemented." );
+            if (Composite.class.isAssignableFrom( actualType ) 
+                    && !info().isAssociation()) { // XXX separate impl for Composite
+                var compositeState = JSStateObject.create();
+                ensureArray().push( compositeState );
+                return new IDBCompositeState( actualType, compositeState );
+            }
+            else {
+                throw new RuntimeException( "not yet implemented: " + actualType );
+            }
         }
 
         @Override

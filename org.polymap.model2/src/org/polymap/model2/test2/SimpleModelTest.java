@@ -29,7 +29,6 @@ import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
 import areca.common.testrunner.After;
-import areca.common.testrunner.Skip;
 import areca.common.testrunner.Test;
 
 /**
@@ -171,10 +170,12 @@ public class SimpleModelTest {
     
     
     @Test
-    @Skip
-    public void testDefaults() throws Exception {
-        Person person = uow.createEntity( Person.class );
-        Assert.isEqual( "Ulli", person.firstname.get() );
+    public Promise<?> testDefaults() throws Exception {
+        return initRepo( "defaults" ).map( __ -> {
+            Person person = uow.createEntity( Person.class );
+            Assert.isEqual( "Ulli", person.firstname.get() );
+            return null;
+        });
     }
     
 

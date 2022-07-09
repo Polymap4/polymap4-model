@@ -50,6 +50,13 @@ public abstract class Quantifier<P extends PropertyBase<T>, T>
         this.prop = prop;
     }
 
+    
+    public Quantifier( Type type, P prop ) {
+        this.type = type;
+        this.prop = prop;
+    }
+
+    
     public BooleanExpression subExp() {
         return children[0];
     }

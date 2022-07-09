@@ -196,7 +196,7 @@ public class IDBStore
 
     
     public static JSString id( Object id ) {
-        Assert.that( id instanceof String );
+        Assert.that( id instanceof String, "Id is not String: " + id );
         return JSString.valueOf( (String)id );
     }
 

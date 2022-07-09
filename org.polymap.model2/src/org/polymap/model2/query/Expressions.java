@@ -28,6 +28,7 @@ import org.polymap.model2.engine.TemplateInstanceBuilder;
 import org.polymap.model2.engine.TemplateProperty;
 import org.polymap.model2.query.grammar.AssociationEquals;
 import org.polymap.model2.query.grammar.BooleanExpression;
+import org.polymap.model2.query.grammar.CollectionQuantifier;
 import org.polymap.model2.query.grammar.CompositeCollectionQuantifier;
 import org.polymap.model2.query.grammar.Conjunction;
 import org.polymap.model2.query.grammar.Disjunction;
@@ -165,7 +166,7 @@ public class Expressions {
      * Use {@link #is(Association, Entity)} or {@link #isAnyOf(Association, Entity...)}
      * to check if an Association points to an <b>already known Entity</b>.
      */
-    public static <T extends Entity> Quantifier the( Association<T> prop, BooleanExpression subExp ) {
+    public static <T extends Entity> Quantifier<Association<T>,T> the( Association<T> prop, BooleanExpression subExp ) {
         return new TheAssociationQuantifier<T>( prop, subExp );
     }
     
@@ -173,23 +174,30 @@ public class Expressions {
      * Queries a single Composite property. True if the Composite matches the given
      * sub-expression.
      */
-    public static <T extends Composite> Quantifier the( Property<T> prop, BooleanExpression subExp ) {
-        return new TheCompositeQuantifier( prop, subExp );
+    public static <T extends Composite> Quantifier<Property<T>,T> the( Property<T> prop, BooleanExpression subExp ) {
+        return new TheCompositeQuantifier<T>( prop, subExp );
     }
     
     /**
      * True if ANY member of the given Composite collection matches the given
      * sub-expression.
      */
-    public static <T extends Composite> Quantifier anyOf( CollectionProperty<T> prop, BooleanExpression subExp ) {
-        return new CompositeCollectionQuantifier( Type.ANY, prop, subExp );
+    public static <T extends Composite> Quantifier<CollectionProperty<T>,T> anyOf( CollectionProperty<T> prop, BooleanExpression subExp ) {
+        return new CompositeCollectionQuantifier<T>( Type.ANY, prop, subExp );
+    }
+    
+    /**
+     * True if ANY value of the given collection matches the given value.
+     */
+    public static <T> Quantifier<CollectionProperty<T>,T> anyEq( CollectionProperty<T> prop, T value ) {
+        return new CollectionQuantifier<T>( Type.ANY, prop, value );
     }
     
     /**
      * True if ANY member of the given association matches the given sub-expression.
      */
-    public static <T extends Entity> Quantifier anyOf( ManyAssociation<T> prop, BooleanExpression subExp ) {
-        return new ManyAssociationQuantifier( Type.ANY, prop, subExp );
+    public static <T extends Entity> Quantifier<ManyAssociation<T>,T> anyOf( ManyAssociation<T> prop, BooleanExpression subExp ) {
+        return new ManyAssociationQuantifier<T>( Type.ANY, prop, subExp );
     }
     
     // Template *******************************************

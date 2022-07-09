@@ -238,7 +238,7 @@ public class IDBUnitOfWork
             }
             else {
                 submitted.modifiedIds.add( loaded.left.id() );
-                loaded.left.jsObject = loaded.right.jsObject;
+                loaded.left.state = loaded.right.state;
                 LOG.debug( "ROLLED BACK: " + loaded.left.id() );
             }
             return loaded;

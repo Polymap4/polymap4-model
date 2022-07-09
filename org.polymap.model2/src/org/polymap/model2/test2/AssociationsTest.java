@@ -89,6 +89,21 @@ public class AssociationsTest {
 
     
     @Test
+    public Promise<?> testProperties() throws Exception {
+        return initRepo( "" )
+                .map( __ -> {
+                    Assert.isEqual( 1, Company.TYPE.chief.info().getMaxOccurs() );
+                    Assert.isEqual( true, Company.TYPE.chief.info().isAssociation() );
+                    Assert.isEqual( Person.class, Company.TYPE.chief.info().getType() );
+                    Assert.isEqual( Integer.MAX_VALUE, Company.TYPE.employees.info().getMaxOccurs() );
+                    Assert.isEqual( true, Company.TYPE.employees.info().isAssociation() );
+                    Assert.isEqual( Person.class, Company.TYPE.employees.info().getType() );
+                    return null;
+                });
+    }
+    
+    
+    @Test
     public Promise<?> manyFetchCollectTest() throws Exception {
         return initRepo( "manyTest" )
                 .then( __ -> createCompany() )

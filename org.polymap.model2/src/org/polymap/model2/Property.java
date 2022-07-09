@@ -22,6 +22,8 @@ import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.NotNullableException;
 import org.polymap.model2.runtime.ValueInitializer;
 
+import areca.common.base.Consumer;
+
 /**
  * A single property of a {@link Composite}. Possible types are simple values (
  * {@link Number}, {@link Boolean}, {@link String}, {@link Date}, {@link Enum}) or
@@ -82,6 +84,16 @@ public interface Property<T>
      */
     public <U extends T> U createValue( ValueInitializer<U> initializer );
 
+    /**
+     * See {@link #createValue(ValueInitializer)}
+     */
+    public default <U extends T, E extends Exception> U createValue( Consumer<U,E> initializer ) throws E {
+        return createValue( proto -> {
+            initializer.accept( proto );
+            return proto;
+        });
+    }
+    
     /**
      * Modifies the value of this property.
      *

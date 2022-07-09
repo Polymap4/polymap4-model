@@ -20,6 +20,9 @@ import java.util.Date;
 import org.polymap.model2.runtime.TypedValueInitializer;
 import org.polymap.model2.runtime.ValueInitializer;
 
+import areca.common.base.Consumer;
+import areca.common.base.Sequence;
+
 /**
  * A multi-value property of a {@link Composite}. Possible types are simple values (
  * {@link Number}, {@link Boolean}, {@link String}, {@link Date}, {@link Enum}) or
@@ -55,4 +58,17 @@ public interface CollectionProperty<T>
      */
     public <U extends T> U createElement( ValueInitializer<U> initializer );
 
+    /**
+     * See {@link #createElement(ValueInitializer)}
+     */
+    public default <U extends T, E extends Exception> U createElement( Consumer<U,E> initializer ) throws E {
+        return createElement( proto -> {
+            initializer.accept( proto );
+            return proto;
+        });
+    }
+
+    public default Sequence<T,RuntimeException> seq() {
+        return Sequence.of( this );
+    }
 }
