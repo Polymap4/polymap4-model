@@ -93,7 +93,7 @@ public class ObjectStoreBuilder {
             os.createIndex( name, name, params );
         }
         
-        if (Composite.class.isAssignableFrom( prop.getType() )) {
+        if (Composite.class.isAssignableFrom( prop.getType() ) && !prop.isAssociation()) {
             Class<? extends Composite> compositeType = prop.getType();
             var compositeInfo = repo.infoOf( ClassInfo.of( compositeType ) );
             for (var compositeProp : compositeInfo.getProperties()) {

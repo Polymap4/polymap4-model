@@ -91,7 +91,7 @@ class QueryExecutor {
 
     
     protected String indexName( PropertyBase<?> prop ) {
-        LOG.info( "Index: %s -> %s", prop.info().getNameInStore(), indexBaseName + prop.info().getNameInStore() ); 
+        LOG.debug( "Index: %s -> %s", prop.info().getNameInStore(), indexBaseName + prop.info().getNameInStore() ); 
         return indexBaseName + prop.info().getNameInStore();
     }
 
