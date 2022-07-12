@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2014, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2014-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -20,6 +20,7 @@ import org.polymap.model2.PropertyBase;
 import org.polymap.model2.engine.TemplateProperty;
 import org.polymap.model2.runtime.PropertyInfo;
 
+import areca.common.Promise;
 import areca.common.base.Sequence;
 
 /**
@@ -44,6 +45,14 @@ public abstract class BooleanExpression {
      */
     public abstract boolean evaluate( Composite target );
 
+    /** 
+     * Easy, and error prone, way to make evaluation async. Async is needed because
+     * {@link ManyAssociationQuantifier} needs to fetch entities 
+     *
+     */
+    public Promise<Boolean>  evaluate2( Composite target ){
+        return Promise.completed( evaluate( target ) );
+    }
     
     // util methods
     

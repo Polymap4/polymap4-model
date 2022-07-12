@@ -369,7 +369,7 @@ class QueryExecutor {
     @SuppressWarnings("unchecked")
     protected Promise<List<Object>> processManyAssociationQuantifier( ManyAssociationQuantifier<?> exp ) {
         Assert.that( exp.type == Type.ANY, "ALL quantifier is not yet supported" );
-        LOG.info( "AnyOf: subQuery: %s", exp.subExp() );
+        LOG.debug( "AnyOf: subQuery: %s", exp.subExp() );
         var subType = exp.prop.info().getType();
         var subQuery = new SubQuery<>( subType ).where( exp.subExp() );
         return new QueryExecutor( subQuery, uow ).execute()
@@ -381,7 +381,7 @@ class QueryExecutor {
         Assert.that( exp.type == Type.THE_ONLY, "Wrong quantifier: " + exp.type );
         var subType = exp.prop.info().getType();
         var subQuery = new SubQuery<>( query.resultType() ).where( exp.subExp() );
-        LOG.info( "TheComposite: %s: %s", subType, exp.subExp() );
+        LOG.debug( "TheComposite: %s: %s", subType, exp.subExp() );
         return new QueryExecutor( subQuery, uow, indexName( exp.prop ) + "." ).execute();
     }
 

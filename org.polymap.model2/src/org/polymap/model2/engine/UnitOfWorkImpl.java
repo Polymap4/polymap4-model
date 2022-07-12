@@ -45,7 +45,6 @@ import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
-import areca.common.Platform;
 import areca.common.Promise;
 import areca.common.base.Consumer;
 import areca.common.base.Opt;
@@ -159,7 +158,7 @@ public class UnitOfWorkImpl
                 // XXX this needs a lock in preempt environments
                 T foundOrCreated = Sequence.of( loaded.values() )
                         .<T,RuntimeException>filter( type::isInstance )
-                        .first( cond::evaluate )
+                        .first( cond::evaluate )  // FIXME evaluate is now async
                         .orElse( createEntity( type, initializer ) );
                 Assert.that( cond.evaluate( foundOrCreated ), "Newly created Entity does not match search condition: " + cond );
                 return foundOrCreated;
@@ -280,19 +279,33 @@ public class UnitOfWorkImpl
                         });
 
                 // unsubmitted changes
-                var unsubmitted = new Promise.Completable<T>();
-                Platform.async( () -> {
-                    LOG.debug( "query(): modified: %s", modified.size() );
-                    modified.values().forEach( check -> {
-                        Assert.that( check.status().status > LOADED.status );
-                        if (check.getClass().equals( entityClass ) 
-                                && check.status() != REMOVED
-                                && expression.evaluate( check )) {
-                            unsubmitted.consumeResult( entityClass.cast( check ) );
-                        }
-                    });
-                    unsubmitted.complete( null );
+                var _modified = Sequence.of( modified.values() )
+                        .filter( it -> entityClass.isInstance( it ) && it.status() != REMOVED )
+                        .map( it -> entityClass.cast( it ) )
+                        .toList();
+
+                LOG.debug( "query(): modified: %s (%s)", _modified.size(), modified.size() );
+                var unsubmitted = Promise.joined( _modified.size(), null, i -> {
+                    var check = _modified.get( i );                    
+                    Assert.that( check.status().status > LOADED.status );
+                    return expression.evaluate2( check ).map( match -> match ? check : null );
                 });
+                
+//                var unsubmitted = new Promise.Completable<T>();
+//                LOG.debug( "query(): modified: %s", modified.size() );
+//                var count= new MutableInt( 0 );
+//                for (var check : modified.values()) {
+//                    Assert.that( check.status().status > LOADED.status );
+//                    if (entityClass.isInstance( check ) && check.status() != REMOVED) {
+//                        expression.evaluate2( check ).onSuccess( match -> { 
+//                            if (match) {
+//                                unsubmitted.consumeResult( entityClass.cast( check ) );
+//                            }
+//                            if (count.incrementAndGet() == modified.size()
+//                        });
+//                    }
+//                }
+//                unsubmitted.complete( null );
                 
                 return queried.join( unsubmitted ).map( entity -> Opt.of( entity ) );
             }

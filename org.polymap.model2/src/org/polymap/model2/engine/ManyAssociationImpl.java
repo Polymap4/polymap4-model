@@ -22,7 +22,6 @@ import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.PropertyInfo;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.StoreCollectionProperty;
-import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Promise;
 import areca.common.base.Opt;

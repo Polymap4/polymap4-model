@@ -19,6 +19,7 @@ import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.id;
 import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -74,17 +75,21 @@ public class AssociationsTest {
         }
     }
 
-    
+    /**
+     * Creates und submitts a new {@link Company}.
+     * 
+     * @return {@link Company} fetched from {@link #uow}.
+     */
     protected Promise<Company> createCompany() {
         var _uow = repo.newUnitOfWork();
         var company = _uow.createEntity( Company.class, c -> { 
-            Sequence.ofInts( 0, 99 )
+            Sequence.ofInts( 0, 9 )
                     .map( i -> _uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
                     .forEach( p -> c.employees.add( p ) );
-            Sequence.ofInts( 0, 99 )
+            Sequence.ofInts( 0, 9 )
                     .forEach( i -> _uow.createEntity( Person.class, p -> p.name.set( "extra-" + i ) ) );
         });
-        return _uow.submit().map( submitted -> company );
+        return _uow.submit().then( submitted -> uow.entity( company ) );
     }
 
     
@@ -107,11 +112,10 @@ public class AssociationsTest {
     public Promise<?> manyFetchCollectTest() throws Exception {
         return initRepo( "manyTest" )
                 .then( __ -> createCompany() )
-                .then( created -> uow.entity( Company.class, created.id() ) )
                 .then( company -> company.employees.fetchCollect() )
                 .onSuccess( rs -> {
                     //LOG.info( "manyTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
-                    Assert.isEqual( 100, rs.size() );
+                    Assert.isEqual( 10, rs.size() );
                 });
     }
 
@@ -120,7 +124,19 @@ public class AssociationsTest {
     public Promise<?> manyQueryTest() throws Exception {
         return initRepo( "manyQueryTest" )
                 .then( __ -> createCompany() )
-                .then( created -> uow.entity( Company.class, created.id() ) )
+                .then( company -> company.employees.query().executeCollect() )
+                .onSuccess( rs -> {
+                    //LOG.info( "manyQueryTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
+                    Assert.isEqual( 10, rs.size() );
+                    Assert.isEqual( "0", rs.get( 0 ).name.get() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyQueryOrderedPagedTest() throws Exception {
+        return initRepo( "manyQueryOrderedPagedTest" )
+                .then( __ -> createCompany() )
                 .then( company -> company.employees.query()
                         .orderBy( Person.TYPE.name, Order.DESC )
                         .firstResult( 1 )
@@ -129,13 +145,13 @@ public class AssociationsTest {
                 .onSuccess( rs -> {
                     LOG.info( "manyQueryTest: %s", Sequence.of( rs ).map( p -> p.name.get() ) );
                     Assert.isEqual( 5, rs.size() );
-                    Assert.isEqual( "98", rs.get( 0 ).name.get() );
+                    Assert.isEqual( "8", rs.get( 0 ).name.get() );
                 });
     }
 
     
     @Test
-    public Promise<?> manyQueryAnyOfIdsTest() throws Exception {
+    public Promise<?> manyQueryAnyOfIsTest() throws Exception {
         return initRepo( "manyQueryIsTest" )
                 .then( __ -> createCompany() )
                 .then( created -> created.employees.fetchCollect() )
@@ -145,6 +161,30 @@ public class AssociationsTest {
                 .onSuccess( rs -> {
                     LOG.info( "manyQueryAnyOfIdsTest: %s", rs );
                     Assert.isEqual( 1, rs.size() );
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyQueryAnyOfIsUnsubmittedTest() throws Exception {
+        var company = new MutableObject<Company>( null );
+        var removed = new ArrayList<Person>();
+        return initRepo( "manyQueryIsUnsubmittedTest" )
+                .then( __ -> createCompany() )
+                .then( _created -> {
+                    company.setValue( _created );
+                    return _created.employees.fetchCollect();
+                })
+                .map( employees -> {
+                    company.getValue().employees.remove( employees.get( 0 ) );
+                    removed.add( employees.get( 0 ) );
+                    return employees.get( 0 ).id();
+                })
+                .then( removedId -> uow.query( Company.class )
+                        .where( anyOf( Company.TYPE.employees, id( removedId ) ) )
+                        .executeCollect() )
+                .onSuccess( rs -> {
+                    Assert.isEqual( 0, rs.size() );
                 });
     }
 
@@ -167,7 +207,7 @@ public class AssociationsTest {
         return initRepo( "manyQueryIs2Test" )
                 .then( __ -> createCompany() )
                 .then( __ -> uow.query( Company.class )
-                        .where( anyOf( Company.TYPE.employees, eq( Person.TYPE.name, "10" ) ) )
+                        .where( anyOf( Company.TYPE.employees, eq( Person.TYPE.name, "1" ) ) )
                         .executeCollect() )
                 .onSuccess( rs -> {
                     LOG.info( "manyQueryTest: %s", rs );
@@ -182,14 +222,13 @@ public class AssociationsTest {
         var created = new MutableObject<Company>();
         return initRepo( "manyRemoveTest" )
                 .then( __ -> createCompany() )
-                .then( _created -> uow.entity( _created ) )
                 .then( loaded -> {
                     created.setValue( loaded );                    
                     return loaded.employees.fetchCollect();
                 })
                 .then( employees -> {
-                    Assert.that( created.getValue().employees.remove( employees.get( 10 ) ) );
-                    Assert.that( created.getValue().employees.remove( employees.get( 11 ) ) );
+                    Assert.that( created.getValue().employees.remove( employees.get( 0 ) ) );
+                    Assert.that( created.getValue().employees.remove( employees.get( 1 ) ) );
                     return uow.submit();
                 })
                 .then( __ -> {
@@ -201,7 +240,7 @@ public class AssociationsTest {
                 })
                 .onSuccess( rs -> {
                     LOG.info( "manyRemoveTest: %s", rs.size() );
-                    Assert.isEqual( 98, rs.size() );
+                    Assert.isEqual( 8, rs.size() );
                     //Assert.isEqual( "98", rs.get( 0 ).name.get() );
                 });
     }
