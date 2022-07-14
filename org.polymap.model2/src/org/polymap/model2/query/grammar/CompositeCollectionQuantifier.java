@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2015, Falko Bräutigam. All rights reserved.
+ * Copyright (C) 2015-2022, Falko Bräutigam. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -21,7 +21,7 @@ import org.polymap.model2.runtime.PropertyInfo;
 /**
  * 
  *
- * @author <a href="http://www.polymap.de">Falko Br�utigam</a>
+ * @author Falko Bräutigam
  */
 public class CompositeCollectionQuantifier<T extends Composite>
         extends Quantifier<CollectionProperty<T>,T> {
@@ -51,4 +51,10 @@ public class CompositeCollectionQuantifier<T extends Composite>
         return type == Type.ANY ? false : true;
     }
 
+
+    @Override
+    public String toString() {
+        return String.format( "%s %s [%s]", type, prop.info().getName(), subExp() );
+    }
+    
 }

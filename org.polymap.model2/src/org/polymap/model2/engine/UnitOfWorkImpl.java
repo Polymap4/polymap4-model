@@ -285,6 +285,7 @@ public class UnitOfWorkImpl
                         .toList();
 
                 LOG.debug( "query(): modified: %s (%s)", _modified.size(), modified.size() );
+                Assert.that( orderBy == null || _modified.isEmpty(), "OrderBy for modified results is not yet supported." );
                 var unsubmitted = Promise.joined( _modified.size(), null, i -> {
                     var check = _modified.get( i );                    
                     Assert.that( check.status().status > LOADED.status );

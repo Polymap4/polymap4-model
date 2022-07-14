@@ -219,7 +219,7 @@ public class IDBCompositeState
             @SuppressWarnings("unchecked")
             JSArray<JSObject> array = (JSArray<JSObject>)state.get( info().getNameInStore() );
             if (JSObjects.isUndefined( array )) {
-                array = JSArray.create();                
+                array = JSArray.create();
                 state.set( info().getNameInStore(), array );
             }
             return array;
@@ -295,7 +295,7 @@ public class IDBCompositeState
 
         @Override
         public void clear() {
-            throw new RuntimeException( "not yet implemented." );
+            state.set( info().getNameInStore(), JSArray.create() );
         }
     }
 }
