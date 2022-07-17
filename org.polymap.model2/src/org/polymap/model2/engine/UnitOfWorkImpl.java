@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
@@ -45,6 +44,7 @@ import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.MutableInt;
 import areca.common.Promise;
 import areca.common.base.Consumer;
 import areca.common.base.Opt;
@@ -64,7 +64,7 @@ public class UnitOfWorkImpl
 
 //    protected static final Exception        PREPARED = new Exception( "Successfully prepared for commit." );
     
-    private static AtomicInteger            idCount = new AtomicInteger( (int)Math.abs( System.currentTimeMillis() ) );
+    private static MutableInt               idCount = new MutableInt/*AtomicInteger*/( (int)Math.abs( System.currentTimeMillis() ) );
     
     protected EntityRepositoryImpl          repo;
     

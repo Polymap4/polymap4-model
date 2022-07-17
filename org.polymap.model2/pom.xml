@@ -49,7 +49,7 @@
             <!-- Java compiler -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>3.8.1</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
@@ -61,7 +61,9 @@
                         <goals>
                             <goal>compile</goal>
                         </goals>
-                        <configuration>
+                         <configuration>
+                            <debug>true</debug>
+                            <debuglevel>lines,vars,source</debuglevel>
                             <excludes>
                                 <exclude>**/runtime/event/**</exclude>
                                 <exclude>**/runtime/locking/PessimisticLocking.java</exclude>

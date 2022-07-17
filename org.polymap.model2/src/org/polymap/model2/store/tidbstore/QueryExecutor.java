@@ -25,12 +25,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
-
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSString;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.apache.commons.lang3.mutable.MutableInt;
 
 import org.polymap.model2.Entity;
 import org.polymap.model2.PropertyBase;
@@ -54,6 +52,7 @@ import org.polymap.model2.store.tidbstore.indexeddb.IDBIndex;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBKeyRange;
 
 import areca.common.Assert;
+import areca.common.MutableInt;
 import areca.common.Promise;
 import areca.common.Timer;
 import areca.common.base.Opt;

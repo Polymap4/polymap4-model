@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.teavm.jso.JSObject;
 
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.MutablePair;
 
 import org.polymap.model2.Entity;
@@ -38,6 +37,7 @@ import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
 import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
+import areca.common.MutableInt;
 import areca.common.Promise;
 import areca.common.base.Consumer.RConsumer;
 import areca.common.base.Function.RFunction;
