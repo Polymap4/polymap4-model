@@ -36,8 +36,8 @@ public abstract class IDBObjectStore implements JSObject, IDBCursorSource {
         }
     }
 
-    @JSBody(/*FIXME: falko: params*/params = "{obj}", script = "return this;")
-    private native String[] unwrapStringArray(JSObject obj);
+    @JSBody(params = "obj", script = "return obj;")
+    private static native String[] unwrapStringArray(JSObject obj);
 
     @JSProperty
     public abstract String[] getIndexNames();
@@ -74,4 +74,28 @@ public abstract class IDBObjectStore implements JSObject, IDBCursorSource {
     public abstract IDBCountRequest count();
 
     public abstract IDBCountRequest count(JSObject key);
+    
+    
+    public abstract IDBIndex createIndex(String name, String key, IndexParameters params );
+
+    public abstract IDBCursorRequest openKeyCursor();
+
+    public abstract IDBCursorRequest openKeyCursor(IDBKeyRange range);
+
+    public abstract IDBCursorRequest openKeyCursor(IDBKeyRange range, String direction);
+
+    
+    public static abstract class IndexParameters
+            implements JSObject {
+
+        @JSBody(params = {"obj"}, script = "console.log( obj );")
+        public static native void console( JSObject obj );
+        
+        @JSBody( script = "return {};" )
+        public static native IndexParameters create();
+        
+        @JSProperty
+        public abstract void setMultiEntry( boolean value );
+    }
+
 }

@@ -19,10 +19,6 @@ import java.util.Collection;
 import java.io.IOException;
 
 import org.teavm.jso.JSObject;
-import org.teavm.jso.indexeddb.IDBCursorRequest;
-import org.teavm.jso.indexeddb.IDBObjectStore;
-import org.teavm.jso.indexeddb.IDBRequest;
-import org.teavm.jso.indexeddb.IDBTransaction;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -36,6 +32,11 @@ import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreRuntimeContext;
 import org.polymap.model2.store.StoreUnitOfWork;
 import org.polymap.model2.store.tidbstore.IDBStore.TxMode;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBCursor;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBCursorRequest;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBRequest;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.Promise;
 import areca.common.base.Consumer.RConsumer;
@@ -107,21 +108,21 @@ public class IDBUnitOfWork
      * @param <RE>
      * @param <T>
      */
-    protected <RE extends IDBCursorRequest, T extends Entity> Promise<IDBCursor2> doRequest( TxMode mode, Class<T> entityType, 
-            RFunction<IDBObjectStore2,RE> createRequest ) {
+    protected <RE extends IDBCursorRequest, T extends Entity> Promise<IDBCursor> doRequest( TxMode mode, Class<T> entityType, 
+            RFunction<IDBObjectStore,RE> createRequest ) {
         
         CompositeInfo<T> entityInfo = store.infoOf( entityType );        
         IDBTransaction tx = store.transaction( mode, entityInfo.getNameInStore() );
-        IDBObjectStore2 os = tx.objectStore( entityInfo.getNameInStore() ).cast();
+        IDBObjectStore os = tx.objectStore( entityInfo.getNameInStore() ).cast();
         
         RE request = createRequest.apply( os );
         
-        var result = new Promise.Completable<IDBCursor2>();
+        var result = new Promise.Completable<IDBCursor>();
         request.setOnError( ev -> {
             result.completeWithError( new IOException( "Event: " + ev.getType() + ", Error: " + request.getError().getName() ) );
         });
         request.setOnSuccess( ev -> {
-            var cursor = request.getResult().<IDBCursor2>cast();
+            var cursor = request.getResult().<IDBCursor>cast();
             result.consumeResult( cursor );
         });
         return result;

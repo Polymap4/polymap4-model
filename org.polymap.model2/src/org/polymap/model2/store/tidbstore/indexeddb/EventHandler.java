@@ -20,9 +20,6 @@ import org.teavm.jso.JSObject;
 import org.teavm.jso.dom.events.Event;
 
 @JSFunctor
-@FunctionalInterface
 public interface EventHandler extends JSObject {
-    
-    void handleEvent( Event ev );
-    
+    void handleEvent(Event ev);
 }

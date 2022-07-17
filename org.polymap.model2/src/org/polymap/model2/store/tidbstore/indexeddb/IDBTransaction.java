@@ -32,15 +32,6 @@ public interface IDBTransaction extends JSObject, EventTarget {
     IDBObjectStore objectStore(String name);
 
     void abort();
-    
-    /**
-     * For an active transaction, commits the transaction. Note that this doesn't
-     * normally have to be called — a transaction will automatically commit when all
-     * outstanding requests have been satisfied and no new requests have been made.
-     * commit() can be used to start the commit process without waiting for events
-     * from outstanding requests to be dispatched.
-     */
-    void commit();
 
     @JSProperty("onabort")
     void setOnAbort(EventHandler handler);

@@ -28,9 +28,6 @@ import java.util.TreeSet;
 
 import org.teavm.jso.JSObject;
 import org.teavm.jso.core.JSString;
-import org.teavm.jso.indexeddb.IDBCursor;
-import org.teavm.jso.indexeddb.IDBIndex;
-import org.teavm.jso.indexeddb.IDBKeyRange;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -52,6 +49,10 @@ import org.polymap.model2.query.grammar.PropertyEqualsAny;
 import org.polymap.model2.query.grammar.PropertyMatches;
 import org.polymap.model2.query.grammar.Quantifier.Type;
 import org.polymap.model2.query.grammar.TheCompositeQuantifier;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBCursor;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBIndex;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBKeyRange;
+
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Timer;
@@ -97,30 +98,37 @@ class QueryExecutor {
 
     
     public Promise<List<Object>> execute() {
-        // optimze: orderBy, NO Query
+        // optimize: orderBy, NO Query
         if (query.expression == Expressions.TRUE && query.orderBy != null) {
             return executeOrderByWithoutQuery();
         }
         
         var result = process( query.expression );
         
-        // orderBy
+        // orderBy (first/max)
         if (query.orderBy != null) {
             LOG.debug( "orderBy: %s", query.orderBy.prop.info().getName() );
             var ordered = new ArrayList<Object>( DEFAULT_RS_SIZE );
+            var count = new MutableInt( 0 );
             result = result.then( ids -> uow
                     .doRequest( READONLY, query.resultType, os -> {
-                        IDBIndex2 index = os.index( indexName( query.orderBy.prop ) ).cast();
+                        IDBIndex index = os.index( indexName( query.orderBy.prop ) ).cast();
                         return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
                                 ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
                     })
                     .map( (cursor,next) -> {
                         if (!cursor.isNull()) {
                             Object primaryKey = id( cursor.getPrimaryKey() );
-                            if (ids.contains( primaryKey )) {
+                            if (ids.contains( primaryKey ) && count.getAndIncrement() >= query.firstResult) {
                                 ordered.add( primaryKey );
                             }
-                            cursor.doContinue();
+                            if (ordered.size() >= query.maxResults) {
+                                LOG.debug( "Ids: %s", ids );
+                                next.complete( ordered );                                
+                            }
+                            else {
+                                cursor.doContinue();
+                            }
                         }
                         else {
                             LOG.debug( "Ids: %s", ids );
@@ -129,7 +137,7 @@ class QueryExecutor {
                     }));
         }
         // first/max
-        if (query.firstResult > 0 || query.maxResults < Integer.MAX_VALUE) {
+        else if (query.firstResult > 0 || query.maxResults < Integer.MAX_VALUE) {
             LOG.debug( "firstResult=%d, maxResults=%d", query.firstResult, query.maxResults );
             result = result.map( ids -> { 
                 var fromIndex = query.firstResult;
@@ -155,7 +163,7 @@ class QueryExecutor {
         var timer = Timer.start();
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
-                    IDBIndex2 index = os.index( indexName( query.orderBy.prop ) ).cast();
+                    IDBIndex index = os.index( indexName( query.orderBy.prop ) ).cast();
                     return index.openKeyCursor( null, query.orderBy.order == Order.DESC 
                             ? IDBCursor.DIRECTION_PREVIOUS : IDBCursor.DIRECTION_NEXT );                    
                 })
@@ -218,7 +226,7 @@ class QueryExecutor {
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
-                    IDBIndex2 index = os.index( indexName( exp.prop ) ).cast();
+                    IDBIndex index = os.index( indexName( exp.prop ) ).cast();
                     IDBKeyRange keyRange = null;
                     // eq
                     if (exp instanceof PropertyEquals) {
@@ -265,7 +273,7 @@ class QueryExecutor {
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( exp.prop.info().isQueryable(), "Property is not @Queryable: " + exp.prop.info().getName() );
-                    IDBIndex2 index = os.index( indexName( exp.prop ) ).cast();
+                    IDBIndex index = os.index( indexName( exp.prop ) ).cast();
                     Comparable<Object> lower = null;
                     Comparable<Object> upper = null;
                     for (var v : exp.values) {
@@ -306,7 +314,7 @@ class QueryExecutor {
         return uow
                 .doRequest( READONLY, query.resultType, os -> {
                     Assert.that( prop.info().isQueryable(), "Property is not @Queryable: " + prop.info().getName() );
-                    IDBIndex2 index = os.index( indexName( prop ) ).cast();
+                    IDBIndex index = os.index( indexName( prop ) ).cast();
                     return index.openKeyCursor( null, DIRECTION_NEXT );
                 })
                 .map( (cursor, next) -> {

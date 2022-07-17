@@ -14,13 +14,13 @@
  */
 package org.polymap.model2.store.tidbstore;
 
-import org.teavm.jso.indexeddb.IDBDatabase;
-import org.teavm.jso.indexeddb.IDBObjectStoreParameters;
-
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.PropertyInfo;
-import org.polymap.model2.store.tidbstore.IDBObjectStore2.IndexParameters;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBDatabase;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStore.IndexParameters;
+import org.polymap.model2.store.tidbstore.indexeddb.IDBObjectStoreParameters;
 
 import areca.common.Assert;
 import areca.common.base.Sequence;
@@ -69,7 +69,7 @@ public class ObjectStoreBuilder {
             // create
             if (!objectStoreNames.contains( name ) || clear) {
                 LOG.info( "Creating schema: %s ...", name );
-                var os = db.createObjectStore( name, IDBObjectStoreParameters.create() ).<IDBObjectStore2>cast();
+                var os = db.createObjectStore( name, IDBObjectStoreParameters.create() ).<IDBObjectStore>cast();
                 
                 // indexes
                 for (var prop : info.getProperties()) {
@@ -81,7 +81,7 @@ public class ObjectStoreBuilder {
     
     
     @SuppressWarnings("rawtypes")
-    protected void checkCreateIndexes( PropertyInfo prop, IDBObjectStore2 os, String name, boolean valid ) {
+    protected void checkCreateIndexes( PropertyInfo prop, IDBObjectStore os, String name, boolean valid ) {
         if (prop.isQueryable()) {
             Assert.that( !prop.getType().equals( Boolean.class ), "Boolean is not a valid index key in IndexedDB: " + prop );
             if (!valid) {

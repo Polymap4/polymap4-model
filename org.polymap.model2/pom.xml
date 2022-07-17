@@ -63,7 +63,6 @@
                         </goals>
                         <configuration>
                             <excludes>
-                                <exclude>**/store/tidbstore/indexeddb/**</exclude>
                                 <exclude>**/runtime/event/**</exclude>
                                 <exclude>**/runtime/locking/PessimisticLocking.java</exclude>
                                 <exclude>**/runtime/locking/MrowPessimisticLocking.java</exclude>

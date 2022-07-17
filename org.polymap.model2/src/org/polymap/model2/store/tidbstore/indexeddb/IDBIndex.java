@@ -16,6 +16,7 @@
 package org.polymap.model2.store.tidbstore.indexeddb;
 
 import org.teavm.jso.JSBody;
+import org.teavm.jso.JSMethod;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 import org.teavm.jso.core.JSString;
@@ -58,4 +59,12 @@ public abstract class IDBIndex implements JSObject, IDBCursorSource {
     public abstract IDBCountRequest count(JSObject key);
 
     public abstract IDBCountRequest count();
+    
+    
+    @JSMethod
+    public abstract IDBCursorRequest openCursor(IDBKeyRange range, String order);
+
+    @JSMethod
+    public abstract IDBCursorRequest openKeyCursor(IDBKeyRange range, String order);
+
 }

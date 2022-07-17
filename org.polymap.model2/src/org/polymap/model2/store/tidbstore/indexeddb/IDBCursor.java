@@ -21,7 +21,7 @@ import org.teavm.jso.JSMethod;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 
-public abstract class IDBCursor implements JSObject {
+public interface IDBCursor extends JSObject {
     String DIRECTION_NEXT = "next";
 
     String DIRECTION_NEXT_UNIQUE = "nextunique";
@@ -31,32 +31,50 @@ public abstract class IDBCursor implements JSObject {
     String DIRECTION_PREVIOUS_UNIQUE = "prevunique";
 
     @JSProperty
-    public abstract IDBCursorSource getSource();
+    IDBCursorSource getSource();
 
     @JSProperty
-    public abstract String getDirection();
+    String getDirection();
 
     @JSProperty
-    public abstract JSObject getKey();
+    JSObject getKey();
 
     @JSProperty
-    public abstract JSObject getValue();
+    JSObject getValue();
 
     @JSProperty
-    public abstract JSObject getPrimaryKey();
+    JSObject getPrimaryKey();
 
-    public abstract IDBRequest update(JSObject value);
+    IDBRequest update(JSObject value);
 
-    public abstract void advance(int count);
+    void advance(int count);
 
-    @JSMethod("continue")
-    public abstract void doContinue();
+//    @JSMethod("continue")
+//    void doContinue();
 
-    public abstract IDBRequest delete();
+    IDBRequest delete();
     
-    /** XXX falko: check after {@link #doContinue()} */
-    @NoSideEffects
+    /**
+     * This method is used by success handlers of an {@link IDBCursorRequest} to
+     * check if the cursor has another value.
+     *
+     * @return True signals that the next invocation of {@link #getValue()} returns a
+     *         valid value.
+     */
     @JSBody(script = "return this === null;")
-    public abstract boolean isNull();
+    boolean isNull();
+
+    
+    @NoSideEffects
+    @JSMethod("continue")
+    void doContinue();
+
+    @NoSideEffects
+    @JSMethod("continue")
+    void doContinue( JSObject nextKey );
+
+    @NoSideEffects
+    @JSMethod("continuePrimaryKey")
+    void doContinuePrimaryKey( JSObject nextKey, JSObject nextPrimaryKey );
 
 }
