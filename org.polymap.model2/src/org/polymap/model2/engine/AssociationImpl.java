@@ -68,7 +68,7 @@ class AssociationImpl<T extends Entity>
 
     
     @Override
-    @SuppressWarnings("unchecked")
+    //@SuppressWarnings("unchecked")
     public <E extends Exception> Promise<T> ensure( Consumer<T,E> initializer ) {
 //        return context.getUnitOfWork().ensureEntity( (Class<T>)info().getType(),
 //                Expressions.id( storeProp.get() != null ? storeProp.get() : "__impossible__" ),
@@ -89,7 +89,7 @@ class AssociationImpl<T extends Entity>
             }
             // create new Entity
             else {
-                T created = context.getUnitOfWork().<T,E>createEntity( info().getType(), initializer );
+                T created = (T)context.getUnitOfWork().createEntity( info().getType(), initializer );
                 set( created );
                 return created;
             }
