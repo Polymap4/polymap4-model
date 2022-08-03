@@ -164,7 +164,7 @@ public class UnitOfWorkImpl
                 return foundOrCreated;
             }
             else {
-                Assert.isEqual( 1, rs.size() );
+                Assert.isEqual( 1, rs.size(), "UnitOfWork: ensureEntity() has multiple matches! (" + cond + ")" );
                 return rs.get( 0 );
             }
         });
