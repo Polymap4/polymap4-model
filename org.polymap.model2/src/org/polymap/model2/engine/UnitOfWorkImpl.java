@@ -154,9 +154,9 @@ public class UnitOfWorkImpl
         return query( type ).where( cond ).executeCollect().map( rs -> {
             if (rs.isEmpty()) {
                 // there is a race cond between query and create, so we have
-                // to make sure that the entity was not created already be someone else
-                // XXX this needs a lock in preempt environments
-                T foundOrCreated = Sequence.of( loaded.values() )
+                // to make sure that the entity was not created someone else for this UoW
+                // XXX this needs some kind of lock in preempt environments
+                T foundOrCreated = Sequence.of( modified.values() )
                         .<T,RuntimeException>filter( type::isInstance )
                         .first( cond::evaluate )  // FIXME evaluate is now async
                         .orElse( createEntity( type, initializer ) );
@@ -257,6 +257,11 @@ public class UnitOfWorkImpl
                 // may contain refs to the states which would kept in memory for the lifetime of
                 // the ResultSet otherwise
 
+                var _modified = Sequence.of( modified.values() )
+                        .filter( it -> entityClass.isInstance( it ) && it.status() != REMOVED )
+                        .map( it -> entityClass.cast( it ) )
+                        .toList();
+
                 // query store
                 var queried = storeUow.executeQuery( this )
                         // check/load Entity
@@ -279,11 +284,6 @@ public class UnitOfWorkImpl
                         });
 
                 // unsubmitted changes
-                var _modified = Sequence.of( modified.values() )
-                        .filter( it -> entityClass.isInstance( it ) && it.status() != REMOVED )
-                        .map( it -> entityClass.cast( it ) )
-                        .toList();
-
                 LOG.debug( "query(): modified: %s (%s)", _modified.size(), modified.size() );
                 Assert.that( orderBy == null || _modified.isEmpty(), "OrderBy for modified results is not yet supported." );
                 var unsubmitted = Promise.joined( _modified.size(), null, i -> {
