@@ -63,7 +63,7 @@ class AssociationImpl<T extends Entity>
         Object id = storeProp.get();
         return id != null 
                 ? context.getUnitOfWork().entity( info().getType(), id )
-                : Promise.completed( null );
+                : Promise.completed( null, context.getUnitOfWork().priority() );
     }
 
     

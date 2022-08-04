@@ -27,6 +27,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Opt;
 
 /**
@@ -81,7 +82,12 @@ public abstract class Query<T extends Entity> {
      */
     public abstract Promise<Opt<T>> execute();
     
-    
+    /**
+     * {@link #execute() Executes} the query and collects results.
+     * 
+     * @see Promise#priority(Priority)
+     * @return Collected results of the query.
+     */
     public Promise<List<T>> executeCollect() {
         return execute().reduce( new ArrayList<T>( 128 ), (result,next) -> next.ifPresent( entity -> result.add( entity ) ) );
     }

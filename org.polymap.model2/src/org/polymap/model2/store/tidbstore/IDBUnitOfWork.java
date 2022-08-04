@@ -39,6 +39,7 @@ import org.polymap.model2.store.tidbstore.indexeddb.IDBTransaction;
 
 import areca.common.MutableInt;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Consumer.RConsumer;
 import areca.common.base.Function.RFunction;
 import areca.common.base.Sequence;
@@ -58,6 +59,8 @@ public class IDBUnitOfWork
     protected StoreRuntimeContext   context;
     
     protected IDBStore              store;
+
+    protected Priority              priority;
     
 
     public IDBUnitOfWork( IDBStore store, StoreRuntimeContext context ) {
@@ -73,6 +76,13 @@ public class IDBUnitOfWork
 //                .collect( Collectors.toMap( os -> os.getName(), os -> os ) );
 //        action.accept( objectStores );
 //    }
+
+
+    @Override
+    public void setPriority( Priority priority ) {
+        this.priority = priority;
+    }
+
 
     /**
      * 
@@ -100,6 +110,7 @@ public class IDBUnitOfWork
             handleResult.accept( request );
         });
     }
+    
     
     /**
      * Must be followed by {@link Promise#map(areca.common.base.BiConsumer)} spread
@@ -179,7 +190,7 @@ public class IDBUnitOfWork
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
         if (modified.isEmpty()) {
-            return Promise.completed( new Submitted() {} );
+            return Promise.completed( new Submitted() {}, priority );
         }
         var promise = new Promise.Completable<Entity>();
         var count = new MutableInt( modified.size() );
@@ -223,7 +234,7 @@ public class IDBUnitOfWork
     public Promise<Submitted> rollback( Iterable<Entity> entities ) {
         var l = Sequence.of( entities ).toList();
         if (l.isEmpty()) {
-            return Promise.completed( new Submitted() {} );
+            return Promise.completed( new Submitted() {}, priority );
         }
         
         var submitted = new Submitted();

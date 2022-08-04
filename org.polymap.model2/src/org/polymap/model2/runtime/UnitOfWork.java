@@ -31,6 +31,8 @@ import org.polymap.model2.store.StoreSPI;
 import areca.common.Assert;
 import areca.common.AssertionException;
 import areca.common.Promise;
+import areca.common.Scheduler;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Consumer;
 import areca.common.base.Function;
 
@@ -55,6 +57,15 @@ import areca.common.base.Function;
 public interface UnitOfWork
         extends AutoCloseable {
 
+    /**
+     * Sets the priority the {@link Scheduler} should execute the results of async
+     * operations with, or null to execute in the main JS event loop.
+     */
+    public UnitOfWork setPriority( Priority priority );
+    
+    public Priority priority();
+    
+    
     /**
      * Builds an {@link Entity} instance for the given state and assigns it
      * to this {@link UnitOfWork}.
@@ -137,6 +148,8 @@ public interface UnitOfWork
     /**
      * Ensures that an Entity exists that matches the given condition.
      *
+     * @param prio The priority the {@link Scheduler} should execute this operation
+     *        with, or null to execute in the main JS event loop.
      * @return Whether found or newly created Entity.
      * @throws {@link AssertionException} If more than one Entity exists for the
      *         given condition.

@@ -22,6 +22,7 @@ import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.UnitOfWork.Submitted;
 
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 
 /**
  * Represents the store interface provided by an underlying store to be
@@ -69,5 +70,7 @@ public interface StoreUnitOfWork {
     public Promise<Submitted> rollback( Iterable<Entity> modified );
 
     public void close();
+
+    public void setPriority( Priority priority );
 
 }

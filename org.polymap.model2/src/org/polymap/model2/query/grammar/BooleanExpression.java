@@ -50,8 +50,8 @@ public abstract class BooleanExpression {
      * {@link ManyAssociationQuantifier} needs to fetch entities 
      *
      */
-    public Promise<Boolean>  evaluate2( Composite target ){
-        return Promise.completed( evaluate( target ) );
+    public Promise<Boolean> evaluate2( Composite target ) {
+        return Promise.completed( evaluate( target ), null ); // XXX scheduler priority
     }
     
     // util methods

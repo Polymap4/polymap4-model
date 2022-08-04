@@ -196,7 +196,7 @@ class QueryExecutor {
             return processTrue();
         }
         else if (exp instanceof IdPredicate) {
-            return Promise.completed( Arrays.asList( ((IdPredicate<?>)exp).ids ) );
+            return Promise.completed( Arrays.asList( ((IdPredicate<?>)exp).ids ), uow.priority );
         }
         else if (exp instanceof PropertyEqualsAny) {
             var equalsAny = (PropertyEqualsAny<?>)exp;
@@ -265,7 +265,7 @@ class QueryExecutor {
     
     protected Promise<List<Object>> processPropertyEqualsAny( PropertyEqualsAny<?> exp ) {
         if (exp.values.isEmpty()) {
-            return Promise.completed( Collections.emptyList() );
+            return Promise.completed( Collections.emptyList(), uow.priority );
         }
         
         var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
@@ -306,7 +306,7 @@ class QueryExecutor {
      */
     protected Promise<List<Object>> processPropertyEqualsAny2( TemplateProperty<?> prop, Collection<?> values ) {
         if (values.isEmpty()) {
-            return Promise.completed( Collections.emptyList() );
+            return Promise.completed( Collections.emptyList(), uow.priority );
         }
         var result = new ArrayList<Object>( DEFAULT_RS_SIZE );
         var searchValues = new SortedValuesIterator( values );

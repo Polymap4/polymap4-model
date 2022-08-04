@@ -31,6 +31,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -50,10 +51,12 @@ public class AssociationsTest {
 
     public static final ClassInfo<AssociationsTest> info = AssociationsTestClassInfo.instance();
 
-    protected EntityRepository   repo;
+    protected EntityRepository  repo;
 
-    protected UnitOfWork         uow;
+    protected UnitOfWork        uow;
     
+    protected Priority          priority = Priority.BACKGROUND;
+
 
     protected Promise<EntityRepository> initRepo( String name ) {
         return EntityRepository.newConfiguration()
@@ -63,7 +66,7 @@ public class AssociationsTest {
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
                     repo = newRepo;
-                    uow = newRepo.newUnitOfWork();
+                    uow = newRepo.newUnitOfWork().setPriority( priority );
                 });
     }
 
@@ -81,7 +84,7 @@ public class AssociationsTest {
      * @return {@link Company} fetched from {@link #uow}.
      */
     protected Promise<Company> createCompany() {
-        var _uow = repo.newUnitOfWork();
+        var _uow = repo.newUnitOfWork().setPriority( priority );
         var company = _uow.createEntity( Company.class, c -> { 
             Sequence.ofInts( 0, 9 )
                     .map( i -> _uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
@@ -232,7 +235,7 @@ public class AssociationsTest {
                     return uow.submit();
                 })
                 .then( __ -> {
-                    var uow2 = repo.newUnitOfWork();
+                    var uow2 = repo.newUnitOfWork().setPriority( priority );
                     return uow2.query( Company.class ).executeCollect();
                 })
                 .then( rs -> {
@@ -255,7 +258,7 @@ public class AssociationsTest {
                     return uow.submit().map( submitted -> company );
                 })
                 .then( created -> {
-                    var uow3 = repo.newUnitOfWork();
+                    var uow3 = repo.newUnitOfWork().setPriority( priority );
                     return uow3.entity( Company.class, created.id() );
                 })
                 .then( fetched -> {

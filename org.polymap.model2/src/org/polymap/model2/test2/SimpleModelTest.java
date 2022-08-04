@@ -25,6 +25,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -43,9 +44,11 @@ public class SimpleModelTest {
 
     public static final ClassInfo<SimpleModelTest> info = SimpleModelTestClassInfo.instance();
 
-    protected EntityRepository   _repo;
+    protected EntityRepository  _repo;
 
-    protected UnitOfWork         uow; 
+    protected UnitOfWork        uow;
+    
+    protected Priority          priority = Priority.BACKGROUND;
     
 
     protected Promise<EntityRepository> initRepo( String testName ) {
@@ -56,7 +59,7 @@ public class SimpleModelTest {
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
                     _repo = newRepo;
-                    uow = newRepo.newUnitOfWork();
+                    uow = newRepo.newUnitOfWork().setPriority( priority );
                 });
     }
 
@@ -69,7 +72,7 @@ public class SimpleModelTest {
     }
 
     
-    @Test
+    @Test( /*enumParams = { "null", "BACKGROUND" }*/ )
     public Promise<?> testEntityInfo() throws Exception {
         return initRepo( "entityInfo" ).map( repo -> {
             CompositeInfo<Person> personInfo = repo.infoOf( Person.info );
@@ -97,7 +100,7 @@ public class SimpleModelTest {
                     person.name.set( "Philipp" );
                     Assert.isEqual( person.name.get(), "Philipp" );
  
-                    UnitOfWork uow2 = repo.newUnitOfWork();
+                    UnitOfWork uow2 = repo.newUnitOfWork().setPriority( priority );
                     uow2.entity( Person.class, person.id() ).onSuccess( p -> {
                         LOG.debug( "Uncommited: %s", Assert.isNull( p ) );
                     });
@@ -113,7 +116,7 @@ public class SimpleModelTest {
 //                    });
 //                })
                 .then( created -> {
-                    var uow3 = _repo.newUnitOfWork();
+                    var uow3 = _repo.newUnitOfWork().setPriority( priority );
                     return uow3.entity( Person.class, created.id() )
                             .onSuccess( p -> {
                                 LOG.debug( "Commited re-read: %s", p );

@@ -27,6 +27,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -45,10 +46,12 @@ public class ComplexModelTest {
 
     public static final ClassInfo<ComplexModelTest> info = ComplexModelTestClassInfo.instance();
 
-    protected EntityRepository   _repo;
+    protected EntityRepository  _repo;
 
-    protected UnitOfWork         uow; 
+    protected UnitOfWork        uow; 
     
+    protected Priority          priority = Priority.BACKGROUND;
+
 
     protected Promise<EntityRepository> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
@@ -58,7 +61,7 @@ public class ComplexModelTest {
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
                     _repo = newRepo;
-                    uow = newRepo.newUnitOfWork();
+                    uow = newRepo.newUnitOfWork().setPriority( priority );
                 });
     }
 
@@ -80,7 +83,7 @@ public class ComplexModelTest {
                     Assert.isEqual( "address", Contact.TYPE.address.info().getName() );
                     Assert.isEqual( Address.class, Contact.TYPE.address.info().getType() );
                     
-                    var _uow = repo.newUnitOfWork();
+                    var _uow = repo.newUnitOfWork().setPriority( priority );
                     var contact = _uow.createEntity( Contact.class );
                     Assert.isNull( contact.address.get() );
 
@@ -113,7 +116,7 @@ public class ComplexModelTest {
                     Assert.isEqual( "emails", Contact.TYPE.emails.info().getName() );
                     Assert.isEqual( String.class, Contact.TYPE.emails.info().getType() );
                     
-                    var _uow = repo.newUnitOfWork();
+                    var _uow = repo.newUnitOfWork().setPriority( priority );
                     var contact = _uow.createEntity( Contact.class );
                     Assert.isEqual( 0, contact.emails.size() );
 
@@ -145,7 +148,7 @@ public class ComplexModelTest {
                     Assert.isEqual( false, Contact.TYPE.emails.info().isAssociation() );
                     Assert.isEqual( Address.class, Contact.TYPE.others.info().getType() );
                     
-                    var _uow = repo.newUnitOfWork();
+                    var _uow = repo.newUnitOfWork().setPriority( priority );
                     var contact = _uow.createEntity( Contact.class );
                     Assert.isEqual( 0, contact.others.size() );
 

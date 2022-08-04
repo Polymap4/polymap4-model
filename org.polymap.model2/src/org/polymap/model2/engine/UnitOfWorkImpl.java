@@ -46,6 +46,7 @@ import org.polymap.model2.store.StoreUnitOfWork;
 import areca.common.Assert;
 import areca.common.MutableInt;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Consumer;
 import areca.common.base.Opt;
 import areca.common.base.Sequence;
@@ -81,6 +82,8 @@ public class UnitOfWorkImpl
     
     protected CommitLockStrategy            commitLock;
 
+    protected Priority                      priority;
+
     
     protected UnitOfWorkImpl( EntityRepositoryImpl repo, StoreUnitOfWork suow ) {
         this.repo = repo;
@@ -110,6 +113,20 @@ public class UnitOfWorkImpl
         if (old.status < REMOVED.status || entity.status() == REMOVED) {
             lifecycle( singleton( entity ), State.AFTER_REMOVED );
         }
+    }
+
+
+    @Override
+    public UnitOfWork setPriority( Priority priority ) {
+        this.priority = priority;
+        storeUow.setPriority( priority );
+        return this;
+    }
+
+
+    @Override
+    public Priority priority() {
+        return priority;
     }
 
 
@@ -181,24 +198,26 @@ public class UnitOfWorkImpl
         if (cached != null) {
             LOG.debug( "entity(): CACHED: %s", id );
             cached = cached.status() != EntityStatus.REMOVED ? cached : null;
-            return Promise.completed( cached );
+            return Promise.completed( cached, priority );
         }
         else {
-            return storeUow.loadEntityState( id, entityClass ).map( state -> {
-                LOG.debug( "entity(): LOADED: %s", id );
-                if (state == null) {
-                    return null;
-                }
-                else {
-                    var entity = entityClass.cast( loaded.computeIfAbsent( id, __ -> { 
-                        var result = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
-                        lifecycle( singleton( result ), State.AFTER_LOADED );
-                        return result;
-                    }));
-                    Assert.that( entity.status() != EntityStatus.REMOVED );
-                    return entity;
-                }
-            });
+            return storeUow.loadEntityState( id, entityClass )
+                    .priority( priority )
+                    .map( state -> {
+                        LOG.debug( "entity(): LOADED: %s", id );
+                        if (state == null) {
+                            return null;
+                        }
+                        else {
+                            var entity = entityClass.cast( loaded.computeIfAbsent( id, __ -> { 
+                                var result = repo.buildEntity( state, entityClass, UnitOfWorkImpl.this );
+                                lifecycle( singleton( result ), State.AFTER_LOADED );
+                                return result;
+                            }));
+                            Assert.that( entity.status() != EntityStatus.REMOVED );
+                            return entity;
+                        }
+                    });
         }
     }
 
@@ -264,13 +283,14 @@ public class UnitOfWorkImpl
 
                 // query store
                 var queried = storeUow.executeQuery( this )
+                        .priority( priority )
                         // check/load Entity
                         .then( (CompositeStateReference ref) -> {
                             if (ref != null) {
                                 Assert.isNull( ref.get(), "Not yet implemented: CompositeStateReference with state." );
                                 return entity( entityClass, ref.id() );
                             } else {
-                                return Promise.completed( null );
+                                return Promise.completed( null, priority );
                             }
                         })
                         // filter modified
@@ -356,6 +376,7 @@ public class UnitOfWorkImpl
         lifecycle( modified.values(), State.BEFORE_SUBMIT );
         return storeUow
                 .submit( modified.values() )
+                .priority( priority )
                 .onSuccess( submitted -> {
                     // commit store
                     resetStatusLoaded();

@@ -30,6 +30,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.Timer;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
@@ -55,6 +56,8 @@ public class SimpleQueryTest {
 
     protected UnitOfWork         _uow; 
     
+    protected Priority          priority = Priority.BACKGROUND;
+
 
     protected Promise<UnitOfWork> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
@@ -64,7 +67,7 @@ public class SimpleQueryTest {
                 .then( newRepo -> {
                     LOG.debug( "Repo created." );    
                     _repo = newRepo;
-                    _uow = newRepo.newUnitOfWork();
+                    _uow = newRepo.newUnitOfWork().setPriority( priority );
                     return createEntities();
                 })
                 .map( __ -> _uow );
@@ -79,7 +82,7 @@ public class SimpleQueryTest {
     }
 
     protected Promise<?> createEntities() {
-        var uow = _repo.newUnitOfWork();
+        var uow = _repo.newUnitOfWork().setPriority( priority );
         uow.createEntity( Person.class, proto -> {
             proto.firstname.set( "Ulli" );
             proto.name.set( "Philipp" );
@@ -257,7 +260,7 @@ public class SimpleQueryTest {
         return initRepo( "queryIterate" )
                 // create data
                 .then( __ -> {
-                    var uow2 = _repo.newUnitOfWork();
+                    var uow2 = _repo.newUnitOfWork().setPriority( priority );
                     Sequence.ofInts( 0, 9 ).forEach( i -> {
                         uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );
                     });
@@ -265,14 +268,14 @@ public class SimpleQueryTest {
                 })
                 // query
                 .then( submitted -> {
-                    var uow = _repo.newUnitOfWork();
+                    var uow = _repo.newUnitOfWork().setPriority( priority );
                     return uow.query( Person.class ).execute();
                 })
                 // entity
                 .onSuccess( person -> {
                     person.ifPresent( p -> {
                         LOG.debug( "RS: " + count + ": " + p.id() + ", name=" + p.name.get() );
-                        _repo.newUnitOfWork()
+                        _repo.newUnitOfWork().setPriority( priority )
                                 .entity( Person.class, p.id() )
                                 .onSuccess( loaded -> {
                                     LOG.debug( "loaded: %s", Assert.notNull( loaded ) );

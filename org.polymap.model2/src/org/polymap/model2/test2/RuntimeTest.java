@@ -15,6 +15,7 @@
 package org.polymap.model2.test2;
 
 import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
+
 import java.util.Arrays;
 
 import org.polymap.model2.runtime.EntityRepository;
@@ -25,6 +26,7 @@ import org.polymap.model2.store.tidbstore.IDBStore;
 import areca.common.Assert;
 import areca.common.Platform;
 import areca.common.Promise;
+import areca.common.Scheduler.Priority;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -48,6 +50,8 @@ public class RuntimeTest {
 
     protected UnitOfWork         uow; 
     
+    protected Priority          priority = Priority.BACKGROUND;
+
 
     protected Promise<EntityRepository> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
@@ -57,7 +61,7 @@ public class RuntimeTest {
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
                     _repo = newRepo;
-                    uow = newRepo.newUnitOfWork();
+                    uow = newRepo.newUnitOfWork().setPriority( priority );
                 });
     }
 
@@ -103,7 +107,7 @@ public class RuntimeTest {
                             .then( __ -> uow.refresh() )
                             .onSuccess( __ -> Assert.isEqual( "modified", entity.name.get() ) );
                     
-                    var uow2 = _repo.newUnitOfWork();
+                    var uow2 = _repo.newUnitOfWork().setPriority( priority );
                     var submit = uow2.entity( entity )
                             .onSuccess( modified -> modified.name.set( "modified" ) )
                             .then( __ -> uow2.submit() );
