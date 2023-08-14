@@ -55,7 +55,7 @@ public class ComputedBidiAssocation<T extends Entity>
                     .where( anyOf( ((ManyAssociation)backAssoc), id( (Entity)composite ) ) )
                     .execute();
             assert results.size() <= 1;
-            return results.stream().findAny().orElse( null );
+            return results.stream().findAny().orNull();
         }
         else {
             throw new IllegalStateException( "Unknown backAssoc type: " + backAssoc.getClass().getSimpleName() );

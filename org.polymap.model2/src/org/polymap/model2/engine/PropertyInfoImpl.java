@@ -141,7 +141,7 @@ public class PropertyInfoImpl<T>
 
     @Override
     public <A extends Annotation> A getAnnotation( Class<A> type ) {
-        return field.annotation( type ).orElse( null );
+        return field.annotation( type ).orNull();
     }
 
     @Override

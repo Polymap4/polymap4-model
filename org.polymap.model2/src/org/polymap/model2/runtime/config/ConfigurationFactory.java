@@ -58,19 +58,19 @@ public class ConfigurationFactory {
                         if (value == null && f.annotation( Mandatory.class ).isPresent()) {
                             throw new ConfigurationException( "Configuration property is @Mandatory: " + f.name() );
                         }
-                        DefaultValue defaultValue = f.annotation( DefaultValue.class ).orElse( null );
+                        DefaultValue defaultValue = f.annotation( DefaultValue.class ).orNull();
                         if (value == null && defaultValue != null) {
                             return defaultValue.value();
                         }
-                        DefaultDouble defaultDouble = f.annotation( DefaultDouble.class ).orElse( null );
+                        DefaultDouble defaultDouble = f.annotation( DefaultDouble.class ).orNull();
                         if (value == null && defaultDouble != null) {
                             return defaultDouble.value();
                         }
-                        DefaultInt defaultInt = f.annotation( DefaultInt.class ).orElse( null );
+                        DefaultInt defaultInt = f.annotation( DefaultInt.class ).orNull();
                         if (value == null && defaultInt != null) {
                             return defaultInt.value();
                         }
-                        DefaultBoolean defaultBoolean = f.annotation( DefaultBoolean.class ).orElse( null );
+                        DefaultBoolean defaultBoolean = f.annotation( DefaultBoolean.class ).orNull();
                         if (value == null && defaultBoolean != null) {
                             return defaultBoolean.value();
                         }

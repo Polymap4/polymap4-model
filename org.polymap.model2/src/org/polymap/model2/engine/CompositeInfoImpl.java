@@ -80,7 +80,7 @@ public final class CompositeInfoImpl<T extends Composite>
     @Override
     public Optional<String> getDescription() {
         return Optional.ofNullable(
-                compositeClassInfo.annotation( Description.class ).transform( a -> a.value() ).orElse( null ) );
+                compositeClassInfo.annotation( Description.class ).transform( a -> a.value() ).orNull() );
     }
 
     @Override
