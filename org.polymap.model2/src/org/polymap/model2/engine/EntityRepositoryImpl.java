@@ -334,12 +334,14 @@ public class EntityRepositoryImpl
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <E extends Entity> E getEntity() {
             return (E)entity;
         }
 
 
         @Override
+        @SuppressWarnings("unchecked")
         public <T extends Composite> T getCompositePart( Class<T> type ) {
             if (type.isAssignableFrom( entity.getClass() )) {
                 return (T)entity;

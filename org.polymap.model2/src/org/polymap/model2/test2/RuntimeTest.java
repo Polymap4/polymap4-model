@@ -14,14 +14,10 @@
  */
 package org.polymap.model2.test2;
 
-import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
-
 import java.util.Arrays;
-
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.store.tidbstore.IDBStore;
 
 import areca.common.Assert;
 import areca.common.Platform;
@@ -45,10 +41,10 @@ public class RuntimeTest {
     private static final Log LOG = LogFactory.getLog( RuntimeTest.class );
 
     public static final ClassInfo<RuntimeTest> info = RuntimeTestClassInfo.instance();
+    
+    protected EntityRepository  _repo;
 
-    protected EntityRepository   _repo;
-
-    protected UnitOfWork         uow; 
+    protected UnitOfWork        uow; 
     
     protected Priority          priority = Priority.BACKGROUND;
 
@@ -56,15 +52,16 @@ public class RuntimeTest {
     protected Promise<EntityRepository> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "RuntimeTest-" + testName, nextDbVersion(), true ) )
+                .store.set( RepoSupplier.newStore( "RuntimeTest-" + testName ) )
                 .create()
                 .onSuccess( newRepo -> {
-                    LOG.debug( "Repo created." );    
+                    LOG.debug( "Repo created." );
                     _repo = newRepo;
                     uow = newRepo.newUnitOfWork().setPriority( priority );
-                });
+                } );
     }
 
+    
     @After
     protected void tearDown() throws Exception {
         if (_repo != null) {
@@ -78,7 +75,9 @@ public class RuntimeTest {
     public Promise<?> discardTest() {
         return initRepo( "discardTest" )
                 .then( repo  -> {
-                    var entity = uow.createEntity( Person.class, proto -> proto.name.set( "init" ) );
+                    var entity = uow.createEntity( Person.class, proto -> {
+                        proto.name.set( "init" );
+                    });
                     return uow.submit().map( __ -> entity );
                 })
                 .then( entity -> { 
@@ -97,13 +96,16 @@ public class RuntimeTest {
     public Promise<?> refreshTest() {
         return initRepo( "refreshTest" )
                 .then( repo  -> {
-                    var entity = uow.createEntity( Person.class, proto -> proto.name.set( "init" ) );
+                    var entity = uow.createEntity( Person.class, proto -> {
+                        proto.name.set( "init" );
+                    });
                     return uow.submit().map( __ -> entity );
                 })
                 .then( entity -> { 
                     Assert.isEqual( "init", entity.name.get() );
                     
-                    var check = Platform.schedule( 200, () -> Assert.isEqual( "init", entity.name.get() ) )
+                    var check = Platform
+                            .schedule( 200, () -> Assert.isEqual( "init", entity.name.get() ) )
                             .then( __ -> uow.refresh() )
                             .onSuccess( __ -> Assert.isEqual( "modified", entity.name.get() ) );
                     
@@ -123,7 +125,9 @@ public class RuntimeTest {
     public Promise<?> removeTest() {
         return initRepo( "removeTest" )
                 .then( repo -> {
-                    Sequence.ofInts( 0, 9 ).forEach( i -> uow.createEntity( Person.class, p -> p.name.set( "" + i ) ) );
+                    Sequence.ofInts( 0, 9 ).forEach( i -> uow.createEntity( Person.class, p -> { 
+                        p.name.set( "" + i );
+                    }));
                     return uow.submit();
                 })
                 .then( __ -> {

@@ -53,8 +53,12 @@ public abstract class Composite {
     public EntityRuntimeContext      context;
     
 
-    public Object state() {
-        return context.getState().getUnderlying();
+    /**
+     * The underlying object that represents this Composite in the store.
+     */
+    @SuppressWarnings("unchecked")
+    public <R> R state() {
+        return (R)context.getState().getUnderlying();
     }
     
     /**

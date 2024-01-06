@@ -87,10 +87,14 @@ public class AssociationsTest {
         var _uow = repo.newUnitOfWork().setPriority( priority );
         var company = _uow.createEntity( Company.class, c -> { 
             Sequence.ofInts( 0, 9 )
-                    .map( i -> _uow.createEntity( Person.class, p -> p.name.set( "" + i) ) ) 
+                    .map( i -> _uow.createEntity( Person.class, p -> { 
+                        p.name.set( "" + i );
+                    })) 
                     .forEach( p -> c.employees.add( p ) );
             Sequence.ofInts( 0, 9 )
-                    .forEach( i -> _uow.createEntity( Person.class, p -> p.name.set( "extra-" + i ) ) );
+                    .forEach( i -> _uow.createEntity( Person.class, p -> { 
+                        p.name.set( "extra-" + i );
+                    }));
         });
         return _uow.submit().then( submitted -> uow.entity( company ) );
     }
@@ -253,8 +257,12 @@ public class AssociationsTest {
     public Promise<?> oneTest() throws Exception {
         return initRepo( "oneTest" )
                 .then( __ -> {
-                    var first = uow.createEntity( Person.class, p -> p.name.set( "first" ) );
-                    var company = uow.createEntity( Company.class, c -> c.chief.set( first ) );
+                    var first = uow.createEntity( Person.class, p -> { 
+                        p.name.set( "first" );
+                    });
+                    var company = uow.createEntity( Company.class, c -> { 
+                        c.chief.set( first );
+                    });
                     return uow.submit().map( submitted -> company );
                 })
                 .then( created -> {

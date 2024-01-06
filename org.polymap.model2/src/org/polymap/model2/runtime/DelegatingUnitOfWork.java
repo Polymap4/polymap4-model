@@ -55,8 +55,8 @@ public abstract class DelegatingUnitOfWork
     }
 
     @Override
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer ) {
-        return delegate.createEntity( entityClass, id, initializer );
+    public <T extends Entity> T createEntity( Class<T> entityClass, ValueInitializer<T> initializer ) {
+        return delegate.createEntity( entityClass, initializer );
     }
 
 //    public <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {

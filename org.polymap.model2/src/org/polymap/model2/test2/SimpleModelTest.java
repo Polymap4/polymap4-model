@@ -14,15 +14,12 @@
  */
 package org.polymap.model2.test2;
 
-import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
 import java.util.Arrays;
 
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.ModelRuntimeException;
 import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.store.tidbstore.IDBStore;
-
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
@@ -54,7 +51,7 @@ public class SimpleModelTest {
     protected Promise<EntityRepository> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "SimpleModelTest-" + testName, nextDbVersion(), true ) )
+                .store.set( RepoSupplier.newStore( "SimpleModelTest-" + testName ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -95,10 +92,10 @@ public class SimpleModelTest {
                     LOG.debug( "Person: id=" + person.id() );
                     Assert.notNull( person.id() );
                     Assert.isNull( person.name.get() );
-                    Assert.isEqual( person.firstname.get(), "Ulli" );
+                    Assert.isEqual( "Ulli", person.firstname.get() );
 
                     person.name.set( "Philipp" );
-                    Assert.isEqual( person.name.get(), "Philipp" );
+                    Assert.isEqual( "Philipp", person.name.get() );
  
                     UnitOfWork uow2 = repo.newUnitOfWork().setPriority( priority );
                     uow2.entity( Person.class, person.id() ).onSuccess( p -> {

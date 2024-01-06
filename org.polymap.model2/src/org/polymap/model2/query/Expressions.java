@@ -55,18 +55,20 @@ import areca.common.reflect.ClassInfo;
  */
 public class Expressions {
 
+    /**
+     * Matches all Entities.
+     */
     public static final BooleanExpression TRUE = new BooleanExpression() {
-        @Override
-        public boolean evaluate( Composite target ) {
-            return true;
-        }
+        @Override public boolean evaluate( Composite target ) { return true; }
+        @Override public String toString() { return "TRUE"; }
     };
     
+    /**
+     * Matches no Entity.
+     */
     public static final BooleanExpression FALSE = new BooleanExpression() {
-        @Override
-        public boolean evaluate( Composite target ) {
-            return false;
-        }
+        @Override public boolean evaluate( Composite target ) { return false; }
+        @Override public String toString() { return "FALSE"; }
     };
     
     public static Conjunction and( BooleanExpression first, BooleanExpression second, BooleanExpression... more ) {

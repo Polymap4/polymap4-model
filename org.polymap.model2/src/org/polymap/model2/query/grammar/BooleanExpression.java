@@ -37,6 +37,10 @@ public abstract class BooleanExpression {
         this.children = children;
     }
     
+    public Sequence<BooleanExpression,RuntimeException> children() {
+        return Sequence.of( children );
+    }
+    
     /**
      * Evaluates the boolean expression agains a target object.
      *
@@ -79,7 +83,7 @@ public abstract class BooleanExpression {
     }
 
     protected Iterable<String> childrenToString() {
-        return  Sequence.of( children ).transform( BooleanExpression::toString ).asIterable();
+        return children().transform( BooleanExpression::toString ).asIterable();
     }
     
     /**

@@ -131,15 +131,15 @@ public class UnitOfWorkImpl
 
 
     @Override
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer ) {
+    public <T extends Entity> T createEntity( Class<T> entityClass, ValueInitializer<T> initializer ) {
         checkOpen();
         
         // build id; don't depend on store's ability to deliver id for newly created state
-        id = id != null ? id : entityClass.getSimpleName() + "." + idCount.getAndIncrement();
+        var id = entityClass.getSimpleName() + "." + idCount.getAndIncrement();
         LOG.debug( "id = " + id );
 
         CompositeState state = storeUow.newEntityState( id, entityClass );
-        Assert.that( id == null || state.id().equals( id ) );
+        id = Assert.notNull( (String)state.id() );  // store can veto the id
         
         T result = repo.buildEntity( state, entityClass, this );
         repo.contextOf( result ).raiseStatus( EntityStatus.CREATED );
@@ -287,9 +287,21 @@ public class UnitOfWorkImpl
                         // check/load Entity
                         .then( (CompositeStateReference ref) -> {
                             if (ref != null) {
-                                Assert.isNull( ref.get(), "Not yet implemented: CompositeStateReference with state." );
-                                return entity( entityClass, ref.id() );
-                            } else {
+                                if (ref.get() != null) {
+                                    // query has CompositeState already loaded
+                                    var entity = loaded.computeIfAbsent( ref.id(), __ -> { 
+                                        var result = repo.buildEntity( ref.get(), entityClass, UnitOfWorkImpl.this );
+                                        lifecycle( singleton( result ), State.AFTER_LOADED );
+                                        return result;
+                                    });
+                                    return Promise.completed( entityClass.cast( entity ), priority );
+                                }
+                                else {
+                                    // query just returned id
+                                    return entity( entityClass, ref.id() );
+                                }
+                            } 
+                            else {
                                 return Promise.completed( null, priority );
                             }
                         })

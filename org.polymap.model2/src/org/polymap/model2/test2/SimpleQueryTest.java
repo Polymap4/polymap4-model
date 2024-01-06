@@ -26,8 +26,6 @@ import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.store.tidbstore.IDBStore;
-
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
@@ -62,7 +60,7 @@ public class SimpleQueryTest {
     protected Promise<UnitOfWork> initRepo( String testName ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info ) )
-                .store.set( new IDBStore( "SimpleQueryTest-" + testName, IDBStore.nextDbVersion(), true ) )
+                .store.set( RepoSupplier.newStore( "SimpleQueryTest-" + testName ) )
                 .create()
                 .then( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -262,7 +260,9 @@ public class SimpleQueryTest {
                 .then( __ -> {
                     var uow2 = _repo.newUnitOfWork().setPriority( priority );
                     Sequence.ofInts( 0, 9 ).forEach( i -> {
-                        uow2.createEntity( Person.class, p -> p.name.set( "name-" + i ) );
+                        uow2.createEntity( Person.class, p -> { 
+                            p.name.set( "name-" + i );
+                        });
                     });
                     return uow2.submit();
                 })
@@ -293,7 +293,9 @@ public class SimpleQueryTest {
         return initRepo( "equalsAny" )
                 .then( __ -> {
                     var uow2 = _repo.newUnitOfWork();
-                    Sequence.ofInts( 0, 9 ).forEach( i -> uow2.createEntity( Person.class, p -> p.name.set( "" + i ) ) );
+                    Sequence.ofInts( 0, 9 ).forEach( i -> uow2.createEntity( Person.class, p -> { 
+                        p.name.set( "" + i );
+                    }));
                     return uow2.submit();
                 })
                 // query

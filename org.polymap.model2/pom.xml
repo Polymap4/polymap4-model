@@ -21,6 +21,20 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!-- Nitrite SNAPSHOT builds -->
+    <repositories>
+        <repository>
+            <id>sonatype-snapshot</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <!-- Dependencies -->
     <dependencies>
         <dependency>
@@ -32,18 +46,35 @@
             <groupId>areca</groupId>
             <artifactId>areca.rt.teavm</artifactId>  <!-- TIndexedDbStore -->
             <version>0.0.1-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.apache.commons</groupId> -->
-<!--             <artifactId>commons-lang3</artifactId> -->
-<!--             <version>3.3.2</version> -->
-<!--         </dependency> -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>9.9.1</version>
+            <optional>true</optional>
+        </dependency>        
+        <dependency>
+            <groupId>org.dizitart</groupId>
+            <artifactId>nitrite</artifactId>
+            <version>4.2.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dizitart</groupId>
+            <artifactId>nitrite-mvstore-adapter</artifactId>
+            <version>4.2.1-SNAPSHOT</version>
+        </dependency>
+        <!--dependency>
+            <groupId>io.objectbox</groupId>
+            <artifactId>objectbox-java</artifactId>
+            <version>3.7.1</version>
+        </dependency-->
     </dependencies>
 
     <!-- Build -->
     <build>
         <sourceDirectory>src/</sourceDirectory>
-<!--         <testSourceDirectory>src-test/</testSourceDirectory> -->
+        <!--testSourceDirectory>src-test/</testSourceDirectory-->
 
         <plugins>
             <!-- Java compiler -->
@@ -55,6 +86,7 @@
                     <target>${java.version}</target>
                 </configuration>
                 <executions>
+                    <!-- Default -->
                     <execution>
                         <id>default-compile</id>
                         <phase>compile</phase>
@@ -81,7 +113,7 @@
                                 <annotationProcessor>areca.common.reflect.ReflectAnnotationProcessor</annotationProcessor>
                             </annotationProcessors>
                         </configuration>
-                   </execution>
+                    </execution>
                 </executions>
             </plugin>
             

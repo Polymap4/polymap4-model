@@ -123,25 +123,20 @@ public interface UnitOfWork
      *        default value.
      * @return Newly created {@link Entity}.
      */
-    public <T extends Entity> T createEntity( Class<T> entityClass, Object id, ValueInitializer<T> initializer );
+    public <T extends Entity> T createEntity( Class<T> entityClass, ValueInitializer<T> initializer );
 
     
     public default <T extends Entity,E extends Exception> T createEntity( Class<T> entityClass, Consumer<T,E> initializer ) throws E {
         Assert.notNull( initializer, "Initializer must not be null." );
-        return createEntity( entityClass, null, proto -> {
+        return createEntity( entityClass, proto -> {
             initializer.accept( proto );
             return proto;
         });
     }
 
     
-//    public default <T extends Entity> T createEntity( Class<T> entityClass, Object id ) {
-//        return createEntity( entityClass, id, null );
-//    }
-
-    
     public default <T extends Entity> T createEntity( Class<T> entityClass ) {
-        return createEntity( entityClass, null, null );
+        return createEntity( entityClass, (ValueInitializer<T>)null );
     }
 
 
