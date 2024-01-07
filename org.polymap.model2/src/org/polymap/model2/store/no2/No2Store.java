@@ -90,9 +90,12 @@ public class No2Store
                 var coll = db.getCollection( entityInfo.getNameInStore() );
                 LOG.info( "    collection: %s (%s)", coll.getName(), coll.size() );
                 for (var prop : entityInfo.getProperties()) {
-                    coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), prop.getNameInStore() );
-                    LOG.info( "    index: %s", prop.getNameInStore() );
-                    Assert.that( coll.hasIndex( prop.getNameInStore() ) );
+                    var indexName = prop.getNameInStore();
+                    if (!coll.hasIndex( indexName )) {
+                        coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
+                        LOG.info( "    index: %s", prop.getNameInStore() );
+                        Assert.that( coll.hasIndex( prop.getNameInStore() ) );
+                    }
                 }
             }
             return null;
