@@ -33,7 +33,6 @@ import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.CompositeStateReference;
 import org.polymap.model2.store.StoreUnitOfWork;
 import areca.common.Assert;
-import areca.common.Platform;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
 import areca.common.base.Sequence;
@@ -74,7 +73,7 @@ public class No2UnitOfWork
     
     @Override
     public <T extends Entity> Promise<CompositeState> loadEntityState( Object id, Class<T> entityClass ) {
-        return store.async( () -> {
+        return store.async( __ -> {
             CompositeInfo<T> entityInfo = store.infoOf( entityClass );
             LOG.debug( "loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
             
@@ -95,7 +94,7 @@ public class No2UnitOfWork
     public <T extends Entity> Promise<CompositeStateReference> executeQuery( Query<T> query ) {
         var promise = new Promise.Completable<CompositeStateReference>();
         
-        store.async( () -> {
+        store.async( __ -> {
             Class<T> entityClass = query.resultType();
             var coll = collection( store.infoOf( entityClass ) );
             LOG.debug( "executeQuery(): %s - where: %s", entityClass.getSimpleName(), query.expression );
@@ -103,17 +102,18 @@ public class No2UnitOfWork
             var options = new FindOptions();
             options.skip( query.firstResult ).limit( query.maxResults );
             if (query.orderBy != null) {
-                var orderBy = query.orderBy;
-                options.thenOrderBy( orderBy.prop.info().getNameInStore(), orderBy.order == Query.Order.ASC ? Ascending : Descending );
+                options.thenOrderBy( query.orderBy.prop.info().getNameInStore(), 
+                        query.orderBy.order == Query.Order.ASC ? Ascending : Descending );
             }
             var cursor = coll.find( new FilterBuilder( query ).build(), options );
             for (var doc : cursor) {
-                Platform.async( () -> {
+                //Platform.async( () -> {
                     var state = new No2CompositeState( entityClass, doc );
                     promise.consumeResult( CompositeStateReference.create( doc.getId().getIdValue(), state ) );
-                });
+                //});
             }
-            Platform.async( () -> promise.complete( null ) );
+            //Platform.async( () -> promise.complete( null ) );
+            promise.complete( null );
             
             return null;
         });
@@ -124,7 +124,7 @@ public class No2UnitOfWork
     
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
-        return store.async( () -> {
+        return store.async( __ -> {
             var tx = store.session.beginTransaction();
             try {
                 var submitted = new Submitted();

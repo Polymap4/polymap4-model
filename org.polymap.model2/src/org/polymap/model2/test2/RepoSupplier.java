@@ -14,6 +14,7 @@
  */
 package org.polymap.model2.test2;
 
+import java.io.File;
 import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.no2.No2Store;
 import org.polymap.model2.store.tidbstore.IDBStore;
@@ -50,6 +51,18 @@ public abstract class RepoSupplier {
      */
     public static SPI no2() {
         return current = testName -> new No2Store();
+    };
+    
+    /**
+     * Activate {@link No2Store} for subsequent tests. 
+     */
+    public static SPI no2( File dir ) {
+        dir.mkdirs();
+        return current = testName -> {
+            var db = new File( dir, testName + ".db" );
+            db.delete();
+            return new No2Store( db );
+        };
     };
     
 }

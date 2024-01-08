@@ -16,8 +16,6 @@ package org.polymap.model2.store.no2;
 
 import static org.dizitart.no2.index.IndexOptions.indexOptions;
 
-import java.util.concurrent.Callable;
-
 import java.io.File;
 
 import org.dizitart.no2.Nitrite;
@@ -35,6 +33,8 @@ import org.polymap.model2.store.StoreUnitOfWork;
 import areca.common.Assert;
 import areca.common.Platform;
 import areca.common.Promise;
+import areca.common.Promise.Completable;
+import areca.common.base.Function;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -55,6 +55,8 @@ public class No2Store
     protected Session session;
 
     protected StoreRuntimeContext context;
+    
+   // private WorkerThread worker = new WorkerThread();
 
     /**
      * Creates a store with the given file backend. 
@@ -73,7 +75,7 @@ public class No2Store
     @Override
     public Promise<Void> init( @SuppressWarnings("hiding") StoreRuntimeContext context ) {
         this.context = Assert.notNull( context );
-        return async( () -> { 
+        return async( __ -> { 
             db = Nitrite.builder()
                     .loadModule( file != null
                             ? MVStoreModule.withConfig().filePath( file ).build()
@@ -86,14 +88,14 @@ public class No2Store
             EntityRepository repo = context.getRepository();
             for (var entityClassInfo : repo.getConfig().entities.get()) {
                 var entityInfo = repo.infoOf( entityClassInfo );
-                LOG.info( "Init: %s", entityClassInfo.name() );
+                LOG.debug( "Init: %s", entityClassInfo.name() );
                 var coll = db.getCollection( entityInfo.getNameInStore() );
-                LOG.info( "    collection: %s (%s)", coll.getName(), coll.size() );
+                LOG.debug( "    collection: %s (%s)", coll.getName(), coll.size() );
                 for (var prop : entityInfo.getProperties()) {
                     var indexName = prop.getNameInStore();
                     if (!coll.hasIndex( indexName )) {
                         coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
-                        LOG.info( "    index: %s", prop.getNameInStore() );
+                        LOG.debug( "    index: %s", prop.getNameInStore() );
                         Assert.that( coll.hasIndex( prop.getNameInStore() ) );
                     }
                 }
@@ -134,11 +136,83 @@ public class No2Store
     /**
      * Internal use: execute the given (database) task asynchronously. 
      */
-    <R> Promise<R> async( Callable<R> task ) {
-        return Platform.async( task );
-        
-        // wenn tatsächlich mal im Thread, dann müssen die Ergebnisse des Promise
-        // im EventLoop konsumiert werden
+    <R> Promise<R> async( Function<Completable<R>,R,Exception> task ) {
+        return Platform.async( () -> task.apply( null ) );
     }
-
+    
+    
+//    /**
+//     * Internal use: execute the given (database) task asynchronously. 
+//     */
+//    <R> Promise<R> async( Function<Completable<R>,R,Exception> task ) {
+//        //return Platform.async( task );
+//        
+//        // wenn tatsächlich mal im Thread, dann müssen die Ergebnisse des Promise
+//        // im EventLoop konsumiert werden
+//        var eventLoop = areca.common.Session.instanceOf( EventLoop.class );
+//        var promise = new Promise.Completable<R>() {
+//            @Override
+//            public void complete( R value ) {
+//                eventLoop.enqueue( "No2Store", () -> {
+//                    super.complete( value );
+//                }, 0 );                
+//            }
+//            @Override
+//            public void consumeResult( R value ) {
+//                // XXX Auto-generated method stub
+//                throw new RuntimeException( "not yet implemented." );
+//            }
+//            @Override
+//            public void completeWithError( Throwable e ) {
+//                // XXX Auto-generated method stub
+//                throw new RuntimeException( "not yet implemented." );
+//            }
+//        };
+//        try {
+//            worker.queue.offer( () -> {
+//                eventLoop.enqueue( "No2Store", () -> {
+//                    try {
+//                        var result = task.call();
+//                        if (result != null) {
+//                            promise.complete( task.call() );
+//                        }
+//                    }
+//                    catch (Exception e) {
+//                        promise.completeWithError( e );
+//                    }
+//                }, 0 );
+//            }, 10, TimeUnit.SECONDS );
+//        }
+//        catch (InterruptedException e) {
+//            throw new RuntimeException( e );
+//        }
+//        return promise;
+//    }
+//
+//    /**
+//     * 
+//     */
+//    private static class WorkerThread extends Thread {
+//
+//        boolean stop;
+//        
+//        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>( 10, true );
+//        
+//        public WorkerThread() {
+//            super( "No2Store WorkerThread" );
+//            start();
+//        }
+//
+//        @Override
+//        public void run() {
+//            while (!stop) {
+//                try {
+//                    var task = queue.take();
+//                    task.run();
+//                }
+//                catch (InterruptedException e) {
+//                }
+//            }
+//        }
+//    }
 }
