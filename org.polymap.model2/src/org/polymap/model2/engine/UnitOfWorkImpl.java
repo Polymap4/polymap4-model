@@ -446,7 +446,7 @@ public class UnitOfWorkImpl
                 .onSuccess( __ -> {
                     lifecycle( modified.values(), State.AFTER_DISCARD );
                     modified.clear();        
-                    commitLock.unlock( true );
+                    //commitLock.unlock( true );
                 });
     }
 

@@ -101,10 +101,13 @@ public class No2UnitOfWork
             
             var options = new FindOptions();
             options.skip( query.firstResult ).limit( query.maxResults );
+            
             if (query.orderBy != null) {
                 options.thenOrderBy( query.orderBy.prop.info().getNameInStore(), 
                         query.orderBy.order == Query.Order.ASC ? Ascending : Descending );
+                LOG.debug( "    oderBy: %s", options.orderBy() );
             }
+            
             var cursor = coll.find( new FilterBuilder( query ).build(), options );
             for (var doc : cursor) {
                 //Platform.async( () -> {
