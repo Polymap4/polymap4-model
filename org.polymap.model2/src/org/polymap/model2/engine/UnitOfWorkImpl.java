@@ -20,6 +20,7 @@ import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.LOADE
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.MODIFIED;
 import static org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus.REMOVED;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -392,10 +393,9 @@ public class UnitOfWorkImpl
                 .onSuccess( submitted -> {
                     // commit store
                     resetStatusLoaded();
-                    lifecycle( modified.values(), State.AFTER_SUBMIT );
-
-                    LOG.debug( "onSuccess: clearing modified" );
+                    var _modified = new ArrayList<>( modified.values() );
                     modified.clear();
+                    lifecycle( _modified, State.AFTER_SUBMIT );
                     //commitLock.unlock( true );
                 });
     }
