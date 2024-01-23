@@ -14,6 +14,7 @@
  */
 package org.polymap.model2.store.no2;
 
+import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.filters.Filter;
 import org.dizitart.no2.filters.FluentFilter;
 
@@ -23,6 +24,7 @@ import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.query.grammar.ComparisonPredicate;
 import org.polymap.model2.query.grammar.Conjunction;
 import org.polymap.model2.query.grammar.Disjunction;
+import org.polymap.model2.query.grammar.IdPredicate;
 import org.polymap.model2.query.grammar.Negation;
 import org.polymap.model2.query.grammar.PropertyEquals;
 import org.polymap.model2.query.grammar.PropertyEqualsAny;
@@ -72,7 +74,13 @@ public class FilterBuilder {
         else if (expr instanceof Negation) {
             return build( expr.children[0] ).not();
         }
-        // EQ
+        // id
+        else if (expr instanceof IdPredicate) {
+            Object[] ids = ((IdPredicate<?>)expr).ids;
+            Assert.isEqual( 1, ids.length, "Multiple IDs are not yet implemented" );
+            return Filter.byId( NitriteId.createId( (String)ids[0] ) );
+        }
+        // comparison
         else if (expr instanceof ComparisonPredicate) {
             var comparison = (ComparisonPredicate<?>)expr;
             var result = FluentFilter.where( comparison.prop.info().getNameInStore() );
@@ -88,6 +96,7 @@ public class FilterBuilder {
             else if (expr instanceof PropertyEqualsAny) {
                 return result.in( ((PropertyEqualsAny<?>)comparison).values.toArray( Comparable[]::new ) );
             }
+            // matches
             else if (expr instanceof PropertyMatches) {
                 var matches = (PropertyMatches<?>)expr;
                 Assert.that( matches.value instanceof String,
