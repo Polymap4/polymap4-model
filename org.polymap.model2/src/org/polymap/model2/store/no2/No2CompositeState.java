@@ -14,8 +14,11 @@
  */
 package org.polymap.model2.store.no2;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.common.Constants;
 
@@ -56,8 +59,9 @@ public class No2CompositeState
     }
     
     
-    public No2CompositeState( Class<? extends Composite> entityClass, Document state ) {
-        this.entityClass = Assert.notNull( entityClass );
+    @SuppressWarnings("unchecked")
+    public No2CompositeState( Class<?/* extends Composite*/> entityClass, Document state ) {
+        this.entityClass = Assert.notNull( (Class<? extends Composite>)entityClass );
         this.doc = Assert.notNull( state );
     }
 
@@ -119,10 +123,8 @@ public class No2CompositeState
             }
             else if (Composite.class.isAssignableFrom( info().getType() )
                     && !info().isAssociation()) { // XXX separate impl for Composite
-//                Class<? extends Composite> compositeType = info().getType();
-//                JSStateObject compositeState = jsvalue.cast();
-//                return new IDBCompositeState( compositeType, compositeState );
-                throw new RuntimeException( "not yet implemented." );
+                var compositeDoc = (Document)doc.get( fieldName, Document.class );
+                return new No2CompositeState( info().getType(), compositeDoc );
             }
             else {
                 return doc.get( fieldName, (Class<?>)info().getType() );
@@ -143,10 +145,9 @@ public class No2CompositeState
         @Override
         public Object createValue( Class actualType ) {
             if (Composite.class.isAssignableFrom( actualType )) {
-//                var compositeState = JSStateObject.create();
-//                state.set( info().getNameInStore(), compositeState );
-//                return new IDBCompositeState( actualType, compositeState );
-                throw new RuntimeException( "not yet implemented." );
+                var newdoc = Document.createDocument();
+                doc.put( fieldName, newdoc );
+                return new No2CompositeState( actualType, newdoc );
             }
             else {
                 throw new RuntimeException( "not yet implemented: " + actualType );
@@ -165,29 +166,64 @@ public class No2CompositeState
         
         @Override
         public int size() {
-            return doc.get( fieldName, List.class ).size();
+            var l = doc.get( fieldName, List.class );
+            return l != null ? l.size() : 0;
         }
 
         @Override
         public Iterator<Object> iterator() {
-            return doc.get( fieldName, List.class ).iterator();
+            var l = doc.get( fieldName, List.class );
+            if (l != null) {
+                return new Iterator<Object>() {
+                    Iterator<Object> it = l.iterator();
+                    @Override
+                    public boolean hasNext() {
+                        return it.hasNext();
+                    }
+                    @Override
+                    public Object next() {
+                        if (Composite.class.isAssignableFrom( info().getType() )
+                                && !info().isAssociation()) { // XXX separate impl for composite
+                            var compositeDoc = (Document)it.next();
+                            return new No2CompositeState( info().getType(), compositeDoc );
+                        }
+                        else {
+                            return it.next();
+                        }
+                    }
+                };
+            }
+            else {
+                return Collections.emptyIterator();
+            }
         }
 
         @Override
         public boolean add( Object elm ) {
+            var l = doc.get( fieldName, List.class );
+            if (l == null) {
+                doc.put( fieldName, l = new ArrayList<>() );
+            }
             return doc.get( fieldName, List.class ).add( elm );
         }
 
         @Override
         public boolean remove( Object elm ) {
-            return doc.get( fieldName, List.class ).remove( elm );
+            var l = doc.get( fieldName, List.class );
+            return l != null ? doc.get( fieldName, List.class ).remove( elm ) : false;
         }
 
         @Override
         public Object createValue( Class actualType ) {
             if (Composite.class.isAssignableFrom( actualType ) 
                     && !info().isAssociation()) { // XXX separate impl for Composite
-                throw new RuntimeException( "not yet implemented: " + actualType );
+                List<Object> l = doc.get( fieldName, List.class );
+                if (l == null) {
+                    doc.put( fieldName, l = new ArrayList<>() );
+                }
+                var newdoc = Document.createDocument();
+                l.add( newdoc );
+                return new No2CompositeState( actualType, newdoc );
             }
             else {
                 throw new RuntimeException( "not yet implemented: " + actualType );

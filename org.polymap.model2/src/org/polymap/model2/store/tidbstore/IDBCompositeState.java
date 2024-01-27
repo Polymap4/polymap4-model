@@ -282,7 +282,7 @@ public class IDBCompositeState
 
         @Override
         public Object createValue( Class actualType ) {
-            if (Composite.class.isAssignableFrom( actualType ) 
+            if (Composite.class.isAssignableFrom( actualType )
                     && !info().isAssociation()) { // XXX separate impl for Composite
                 var compositeState = JSStateObject.create();
                 ensureArray().push( compositeState );

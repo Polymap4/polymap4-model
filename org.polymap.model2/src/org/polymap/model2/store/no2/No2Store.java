@@ -91,9 +91,10 @@ public class No2Store
                 LOG.debug( "Init: %s", entityClassInfo.name() );
                 var coll = db.getCollection( entityInfo.getNameInStore() );
                 LOG.debug( "    collection: %s (%s)", coll.getName(), coll.size() );
+                
                 for (var prop : entityInfo.getProperties()) {
                     var indexName = prop.getNameInStore();
-                    if (!coll.hasIndex( indexName )) {
+                    if (prop.isQueryable() && !coll.hasIndex( indexName )) {
                         coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
                         LOG.debug( "    index: %s", prop.getNameInStore() );
                         Assert.that( coll.hasIndex( prop.getNameInStore() ) );
