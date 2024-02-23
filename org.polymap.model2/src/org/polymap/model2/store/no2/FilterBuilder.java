@@ -14,10 +14,14 @@
  */
 package org.polymap.model2.store.no2;
 
+import java.util.ArrayList;
+
 import org.dizitart.no2.collection.NitriteId;
+import org.dizitart.no2.common.Constants;
 import org.dizitart.no2.filters.Filter;
 import org.dizitart.no2.filters.FluentFilter;
 
+import org.polymap.model2.Entity;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.grammar.BooleanExpression;
@@ -25,13 +29,18 @@ import org.polymap.model2.query.grammar.ComparisonPredicate;
 import org.polymap.model2.query.grammar.Conjunction;
 import org.polymap.model2.query.grammar.Disjunction;
 import org.polymap.model2.query.grammar.IdPredicate;
+import org.polymap.model2.query.grammar.ManyAssociationQuantifier;
 import org.polymap.model2.query.grammar.Negation;
 import org.polymap.model2.query.grammar.PropertyEquals;
 import org.polymap.model2.query.grammar.PropertyEqualsAny;
 import org.polymap.model2.query.grammar.PropertyMatches;
 import org.polymap.model2.query.grammar.PropertyNotEquals;
+import org.polymap.model2.query.grammar.Quantifier.Type;
 
 import areca.common.Assert;
+import areca.common.Promise;
+import areca.common.base.Opt;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 
@@ -43,10 +52,13 @@ public class FilterBuilder {
 
     private static final Log LOG = LogFactory.getLog( FilterBuilder.class );
     
-    private Query<?> query;
+    private Query<?>        query;
+    
+    private No2UnitOfWork   uow;
 
-    public FilterBuilder( Query<?> query ) {
+    public FilterBuilder( Query<?> query, No2UnitOfWork uow ) {
         this.query = query;
+        this.uow = uow;
     }
 
     public Filter build() {
@@ -77,8 +89,13 @@ public class FilterBuilder {
         // id
         else if (expr instanceof IdPredicate) {
             Object[] ids = ((IdPredicate<?>)expr).ids;
-            Assert.isEqual( 1, ids.length, "Multiple IDs are not yet implemented" );
-            return Filter.byId( NitriteId.createId( (String)ids[0] ) );
+            if (ids.length == 1) {
+                return Filter.byId( NitriteId.createId( (String)ids[0] ) );
+            }
+            else {
+                var _ids = Sequence.of( ids ).map( id -> (String)id ).toArray( String[]::new );
+                return FluentFilter.where( Constants.DOC_ID ).in( _ids );
+            }
         }
         // comparison
         else if (expr instanceof ComparisonPredicate) {
@@ -116,10 +133,44 @@ public class FilterBuilder {
                 throw new RuntimeException( "Not yet implemented: " + expr );                
             }
         }
-        // not yet
+        // many: ANY
+        else if (expr instanceof ManyAssociationQuantifier) {
+            var quantifier = (ManyAssociationQuantifier<?>)expr;
+            Assert.that( quantifier.type == Type.ANY, "ALL quantifier is not yet supported" );
+            var subType = (Class<? extends Entity>)quantifier.prop.info().getType();
+            
+            var subQuery = new SubQuery<>( subType ).where( quantifier.subExp() );
+            var ids = uow.executeQuery( subQuery )
+                    .reduce( new ArrayList<String>( 128 ), (result,next) -> {
+                        if (next != null) {
+                            result.add( (String)next.id() );
+                        }
+                    })
+                    .waitForResult().get();
+
+            LOG.debug( "AnyOf: subQuery: %s -> %s", quantifier.subExp(), ids );
+            
+            return FluentFilter.where( quantifier.prop.info().getNameInStore() )
+                    .elemMatch( FluentFilter.$.in( ids.toArray( String[]::new ) ) );
+        }
+        // not yet...
         else {
             throw new RuntimeException( "Not yet implemented: " + expr );
         }
-        
     }
+    
+    /**
+     * 
+     */
+    protected static class SubQuery<T extends Entity>
+            extends Query<T> {
+        
+        public SubQuery( Class<T> resultType ) {
+            super( resultType );
+        }
+    
+        @Override public Promise<Opt<T>> execute() { throw new RuntimeException( "do not call" ); }
+    }
+    
+
 }

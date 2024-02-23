@@ -108,7 +108,7 @@ public class No2UnitOfWork
                 LOG.debug( "    oderBy: %s", options.orderBy() );
             }
             
-            var cursor = coll.find( new FilterBuilder( query ).build(), options );
+            var cursor = coll.find( new FilterBuilder( query, this ).build(), options );
             for (var doc : cursor) {
                 //Platform.async( () -> {
                     var state = new No2CompositeState( entityClass, doc );

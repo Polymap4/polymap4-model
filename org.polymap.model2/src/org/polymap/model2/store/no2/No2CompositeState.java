@@ -121,8 +121,10 @@ public class No2CompositeState
             if (!doc.containsKey( fieldName )) {
                 return null;
             }
-            else if (Composite.class.isAssignableFrom( info().getType() )
-                    && !info().isAssociation()) { // XXX separate impl for Composite
+            else if (info().isAssociation()) {
+                return doc.get( fieldName, String.class );
+            }
+            else if (Composite.class.isAssignableFrom( info().getType() )) {
                 var compositeDoc = (Document)doc.get( fieldName, Document.class );
                 return new No2CompositeState( info().getType(), compositeDoc );
             }

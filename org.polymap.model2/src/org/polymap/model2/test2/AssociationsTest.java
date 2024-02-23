@@ -14,11 +14,10 @@
  */
 package org.polymap.model2.test2;
 
+import static org.polymap.model2.query.Expressions.and;
 import static org.polymap.model2.query.Expressions.anyOf;
 import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.id;
-import static org.polymap.model2.store.tidbstore.IDBStore.nextDbVersion;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -27,8 +26,6 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
-import org.polymap.model2.store.tidbstore.IDBStore;
-
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
@@ -61,7 +58,7 @@ public class AssociationsTest {
     protected Promise<EntityRepository> initRepo( String name ) {
         return EntityRepository.newConfiguration()
                 .entities.set( Arrays.asList( Person.info, Company.info ) )
-                .store.set( new IDBStore( "AssociationsTest-" + name, nextDbVersion(), true ) )
+                .store.set( RepoSupplier.newStore( "AssociationsTest-" + name ) )
                 .create()
                 .onSuccess( newRepo -> {
                     LOG.debug( "Repo created." );    
@@ -89,6 +86,7 @@ public class AssociationsTest {
             Sequence.ofInts( 0, 9 )
                     .map( i -> _uow.createEntity( Person.class, p -> { 
                         p.name.set( "" + i );
+                        p.firstname.set( "f" + i );
                     })) 
                     .forEach( p -> c.employees.add( p ) );
             Sequence.ofInts( 0, 9 )
@@ -158,7 +156,7 @@ public class AssociationsTest {
 
     
     @Test
-    public Promise<?> manyQueryAnyOfIsTest() throws Exception {
+    public Promise<?> manyQueryAnyOfIdTest() throws Exception {
         return initRepo( "manyQueryIsTest" )
                 .then( __ -> createCompany() )
                 .then( created -> created.employees.fetchCollect() )
@@ -211,10 +209,12 @@ public class AssociationsTest {
     
     @Test
     public Promise<?> manyQueryAnyOfTest() throws Exception {
+        var subQuery = and( eq( Person.TYPE.name, "1" ), eq( Person.TYPE.firstname, "f1" ) );
+        
         return initRepo( "manyQueryIs2Test" )
                 .then( __ -> createCompany() )
                 .then( __ -> uow.query( Company.class )
-                        .where( anyOf( Company.TYPE.employees, eq( Person.TYPE.name, "1" ) ) )
+                        .where( anyOf( Company.TYPE.employees, subQuery ) )
                         .executeCollect() )
                 .onSuccess( rs -> {
                     LOG.info( "manyQueryTest: %s", rs );
@@ -254,6 +254,7 @@ public class AssociationsTest {
 
     
     @Test
+//    @Skip
     public Promise<?> oneTest() throws Exception {
         return initRepo( "oneTest" )
                 .then( __ -> {

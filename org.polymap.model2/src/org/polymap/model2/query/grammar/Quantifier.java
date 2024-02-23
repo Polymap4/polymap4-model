@@ -60,5 +60,16 @@ public abstract class Quantifier<P extends PropertyBase<T>, T>
     public BooleanExpression subExp() {
         return children[0];
     }
+
+
+    @Override
+    protected String opName() {
+        return type.toString();
+    }
+    
+    public String toString() {
+        return  opName() + "(" + prop.info().getName() + " -> " + String.join( ", ", childrenToString() ) + ")";
+    }
+
     
 }
