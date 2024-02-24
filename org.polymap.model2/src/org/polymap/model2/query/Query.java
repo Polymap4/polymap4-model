@@ -82,6 +82,7 @@ public abstract class Query<T extends Entity> {
      */
     public abstract Promise<Opt<T>> execute();
     
+    
     /**
      * {@link #execute() Executes} the query and collects results.
      * 
@@ -92,7 +93,27 @@ public abstract class Query<T extends Entity> {
         return execute().reduce( new ArrayList<T>( 128 ), (result,next) -> next.ifPresent( entity -> result.add( entity ) ) );
     }
     
-    
+    /**
+     * Expects exactly one result.
+     * 
+     * @throws IllegalStateException If more than 1 result is in the result set.
+     * @throws IllegalStateException If result set is empty.
+     */
+    public Promise<T> singleResult() {
+        return executeCollect().map( rs -> {
+            if (rs.isEmpty()) {
+                throw new IllegalStateException( "singleResult(): result set is empty" );
+            }
+            else if (rs.size() > 1) {
+                throw new IllegalStateException( "singleResult(): more than one result in result set" );
+            }
+            else {
+                return rs.get( 0 );
+            }
+        });
+    }
+
+
     /**
      * Set the filter expression. Use the {@link Expressions} static factory to build
      * a {@link BooleanExpression}.
