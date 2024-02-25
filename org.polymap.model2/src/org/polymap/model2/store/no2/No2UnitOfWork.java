@@ -79,7 +79,7 @@ public class No2UnitOfWork
             
             var coll = collection( entityInfo );
             var doc = coll.getById( NitriteId.createId( (String)id ) );
-            return doc != null ? new No2CompositeState( entityClass, doc ) : null;
+            return doc != null ? new No2CompositeState( entityClass, doc.clone() ) : null;
         });
     }
 

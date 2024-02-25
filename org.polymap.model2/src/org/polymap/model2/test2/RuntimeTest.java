@@ -86,9 +86,15 @@ public class RuntimeTest {
                     Assert.isEqual( "modified", entity.name.get() );
                     return uow.discard().map( __ -> entity );
                 })
-                .onSuccess( entity -> {
+                .then( entity -> {
                     Assert.isEqual( "init", entity.name.get() );
-                }); 
+                    
+                    var uow2 = _repo.newUnitOfWork();
+                    return uow2.query( Person.class ).singleResult();
+                })
+                .onSuccess( queried -> {
+                    Assert.isEqual( "init", queried.name.get() );                        
+                });
     }
 
     
