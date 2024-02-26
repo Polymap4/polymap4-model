@@ -24,6 +24,7 @@ import org.dizitart.no2.common.Constants;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.PropertyInfo;
+import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreCollectionProperty;
 import org.polymap.model2.store.StoreProperty;
@@ -69,6 +70,17 @@ public class No2CompositeState
     /**
      * Deep copy the given {@link Document}. {@link Document#clone()} does not work
      * correctly, child {@link Document}s are not cloned properly.
+     * <p>
+     * Nitrite seems to cache and re-use {@link Document}s for subsequent get()s for
+     * the same collection. So, different {@link UnitOfWork}s would share, and maybe
+     * modify, the same documents. {@link No2UnitOfWork} clones documents when
+     * reading from backend to prevents this. Each {@link No2CompositeState} can
+     * modify its copy.
+     * <p>
+     * Maybe this is also good for reading if the document is updated in the
+     * datastore. I'm not sure (as with many things regarding Nitrite) if this would
+     * also update/modify the shared instance of the document. In this case one copy
+     * per {@link No2CompositeState} would be good.
      */
     public static Document clone( Document d ) {
         return doClone( d, "" );

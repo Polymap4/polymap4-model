@@ -123,7 +123,8 @@ public class No2Store
                 LOG.debug( "    index: %s", indexName );
                 Assert.that( coll.hasIndex( indexName ) );
             }
-            if (Composite.class.isAssignableFrom( prop.getType() )) {
+            if (Composite.class.isAssignableFrom( prop.getType() )
+                    && !prop.isAssociation() && !prop.isComputed()) {
                 @SuppressWarnings( "unchecked" )
                 var type = (Class<Composite>)prop.getType();
                 checkCompositeIndexes( infoOf( type ), coll, fieldNameBase + prop.getNameInStore() + "." );
