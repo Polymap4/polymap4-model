@@ -60,8 +60,8 @@ public class No2UnitOfWork
     }
 
 
-    protected NitriteCollection collection( CompositeInfo<?> entityInfo ) {
-        return store.db.getCollection( entityInfo.getNameInStore() );
+    protected NitriteCollection collection( CompositeInfo<? extends Entity> entityInfo ) {
+        return store.collection( entityInfo );
     }
     
     
@@ -79,7 +79,7 @@ public class No2UnitOfWork
             
             var coll = collection( entityInfo );
             var doc = coll.getById( NitriteId.createId( (String)id ) );
-            return doc != null ? new No2CompositeState( entityClass, doc.clone() ) : null;
+            return doc != null ? new No2CompositeState( entityClass, No2CompositeState.clone( doc ) ) : null;
         });
     }
 
@@ -111,8 +111,9 @@ public class No2UnitOfWork
             var cursor = coll.find( new FilterBuilder( query, this ).build(), options );
             for (var doc : cursor) {
                 //Platform.async( () -> {
-                    var state = new No2CompositeState( entityClass, doc );
-                    promise.consumeResult( CompositeStateReference.create( doc.getId().getIdValue(), state ) );
+                    var clone = No2CompositeState.clone( doc );
+                    var state = new No2CompositeState( entityClass, clone );
+                    promise.consumeResult( CompositeStateReference.create( clone.getId().getIdValue(), state ) );
                 //});
             }
             //Platform.async( () -> promise.complete( null ) );
@@ -130,27 +131,28 @@ public class No2UnitOfWork
         return store.async( __ -> {
             var tx = store.session.beginTransaction();
             try {
-                var submitted = new Submitted();
+                var result = new Submitted();
                 for (Entity entity : modified) {
                     LOG.debug( "submit(): %s", entity );
+                    // don't close, otherwise "primary" coll gets closed too
                     var coll = tx.getCollection( entity.info().getNameInStore() );
                     switch (entity.status()) {
                         case CREATED: {
                             var affected = coll.insert( new Document[] { entity.state() } ).getAffectedCount();
                             Assert.isEqual( 1, affected );
-                            submitted.createdIds.add( entity.id() );
+                            result.createdIds.add( entity.id() );
                             break;
                         }
                         case MODIFIED: {
                             var affected = coll.update( entity.state(), false ).getAffectedCount();
                             Assert.isEqual( 1, affected );
-                            submitted.modifiedIds.add( entity.id() );
+                            result.modifiedIds.add( entity.id() );
                             break;
                         }
                         case REMOVED: {
                             var affected = coll.remove( (Document)entity.state() ).getAffectedCount();
                             Assert.isEqual( 1, affected );
-                            submitted.removedIds.add( entity.id() );
+                            result.removedIds.add( entity.id() );
                             break;
                         }
                         default: 
@@ -158,7 +160,7 @@ public class No2UnitOfWork
                     }
                 }
                 tx.commit();
-                return submitted;
+                return result;
             }
             catch (Exception e) {
                 tx.rollback();

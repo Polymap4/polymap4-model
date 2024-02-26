@@ -36,6 +36,7 @@ import org.polymap.model2.query.grammar.PropertyEqualsAny;
 import org.polymap.model2.query.grammar.PropertyMatches;
 import org.polymap.model2.query.grammar.PropertyNotEquals;
 import org.polymap.model2.query.grammar.Quantifier.Type;
+import org.polymap.model2.query.grammar.TheCompositeQuantifier;
 
 import areca.common.Assert;
 import areca.common.Promise;
@@ -62,10 +63,10 @@ public class FilterBuilder {
     }
 
     public Filter build() {
-        return build( query.expression );
+        return build( query.expression, "" );
     }
 
-    protected Filter build( BooleanExpression expr ) {
+    protected Filter build( BooleanExpression expr, String fieldNameBase ) {
         if (expr == Expressions.TRUE) {
             return Filter.ALL;
         }
@@ -74,17 +75,17 @@ public class FilterBuilder {
         }
         // AND
         else if (expr instanceof Conjunction) {
-            var children = expr.children().map( child -> build( child ) ).toArray( Filter[]::new );
+            var children = expr.children().map( child -> build( child, fieldNameBase ) ).toArray( Filter[]::new );
             return Filter.and( children );
         }
         // OR
         else if (expr instanceof Disjunction) {
-            var children = expr.children().map( child -> build( child ) ).toArray( Filter[]::new );
+            var children = expr.children().map( child -> build( child, fieldNameBase ) ).toArray( Filter[]::new );
             return Filter.or( children );
         }
         // NOT
         else if (expr instanceof Negation) {
-            return build( expr.children[0] ).not();
+            return build( expr.children[0], fieldNameBase ).not();
         }
         // id
         else if (expr instanceof IdPredicate) {
@@ -100,7 +101,8 @@ public class FilterBuilder {
         // comparison
         else if (expr instanceof ComparisonPredicate) {
             var comparison = (ComparisonPredicate<?>)expr;
-            var result = FluentFilter.where( comparison.prop.info().getNameInStore() );
+            var result = FluentFilter.where( fieldNameBase + comparison.prop.info().getNameInStore() );
+            Assert.that( comparison.prop.info().isQueryable(), "Property is not @Queryable: " + comparison.prop );
             // eq
             if (expr instanceof PropertyEquals) {
                 return result.eq( comparison.value );
@@ -150,8 +152,15 @@ public class FilterBuilder {
 
             LOG.debug( "AnyOf: subQuery: %s -> %s", quantifier.subExp(), ids );
             
-            return FluentFilter.where( quantifier.prop.info().getNameInStore() )
+            return FluentFilter.where( fieldNameBase + quantifier.prop.info().getNameInStore() )
                     .elemMatch( FluentFilter.$.in( ids.toArray( String[]::new ) ) );
+        }
+        // Composite
+        else if (expr instanceof TheCompositeQuantifier) {
+            var quantifier = (TheCompositeQuantifier<?>)expr;
+            var fieldName = fieldNameBase + quantifier.prop.info().getNameInStore() + ".";
+            LOG.debug( "The_Only: subQuery: %s (%s)", quantifier.subExp(), fieldName );
+            return build( quantifier.subExp(), fieldName );
         }
         // not yet...
         else {

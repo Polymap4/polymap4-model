@@ -16,14 +16,20 @@ package org.polymap.model2.store.no2;
 
 import static org.dizitart.no2.index.IndexOptions.indexOptions;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import java.io.File;
 
 import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.index.IndexType;
 import org.dizitart.no2.mvstore.MVStoreModule;
 import org.dizitart.no2.store.memory.InMemoryStoreModule;
 import org.dizitart.no2.transaction.Session;
+
 import org.polymap.model2.Composite;
+import org.polymap.model2.Entity;
 import org.polymap.model2.runtime.CompositeInfo;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.store.StoreRuntimeContext;
@@ -50,9 +56,11 @@ public class No2Store
     
     private File file;
 
-    protected Nitrite db;
+    private Nitrite db;
     
     protected Session session;
+    
+    protected Map<String, NitriteCollection> collections;
 
     protected StoreRuntimeContext context;
     
@@ -72,6 +80,11 @@ public class No2Store
     }
 
     
+    protected NitriteCollection collection( CompositeInfo<? extends Entity> entityInfo ) {
+        return collections.get( entityInfo.getNameInStore() );    
+    }
+    
+    
     @Override
     public Promise<Void> init( @SuppressWarnings("hiding") StoreRuntimeContext context ) {
         this.context = Assert.notNull( context );
@@ -86,28 +99,44 @@ public class No2Store
 
             // check/init collections + indices
             EntityRepository repo = context.getRepository();
+            collections = new HashMap<>();
             for (var entityClassInfo : repo.getConfig().entities.get()) {
                 var entityInfo = repo.infoOf( entityClassInfo );
                 LOG.debug( "Init: %s", entityClassInfo.name() );
                 var coll = db.getCollection( entityInfo.getNameInStore() );
                 LOG.debug( "    collection: %s (%s)", coll.getName(), coll.size() );
-                
-                for (var prop : entityInfo.getProperties()) {
-                    var indexName = prop.getNameInStore();
-                    if (prop.isQueryable() && !coll.hasIndex( indexName )) {
-                        coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
-                        LOG.debug( "    index: %s", prop.getNameInStore() );
-                        Assert.that( coll.hasIndex( prop.getNameInStore() ) );
-                    }
-                }
+
+                checkCompositeIndexes( entityInfo, coll, "" );
+
+                collections.put( entityInfo.getNameInStore(), coll );
             }
             return null;
         });
     }
 
     
+    protected void checkCompositeIndexes( CompositeInfo<?> info, NitriteCollection coll, String fieldNameBase ) {
+        for (var prop : info.getProperties()) {
+            var indexName = fieldNameBase + prop.getNameInStore();
+            if (prop.isQueryable() && !coll.hasIndex( indexName )) {
+                coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
+                LOG.debug( "    index: %s", indexName );
+                Assert.that( coll.hasIndex( indexName ) );
+            }
+            if (Composite.class.isAssignableFrom( prop.getType() )) {
+                @SuppressWarnings( "unchecked" )
+                var type = (Class<Composite>)prop.getType();
+                checkCompositeIndexes( infoOf( type ), coll, fieldNameBase + prop.getNameInStore() + "." );
+            }
+        }        
+    }
+    
+            
     @Override
     public void close() {
+        collections.values().forEach( coll -> coll.close() );
+        collections.clear();
+        session.close();
         db.close();
     }
 

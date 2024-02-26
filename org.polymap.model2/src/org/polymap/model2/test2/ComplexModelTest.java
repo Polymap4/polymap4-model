@@ -77,6 +77,7 @@ public class ComplexModelTest {
                 .then( repo -> {
                     var _uow = repo.newUnitOfWork().setPriority( priority );
                     var contact = _uow.createEntity( Contact.class );
+                    contact.name.set( "test" );
                     contact.address.createValue( proto -> {
                         proto.street.set( "street1" );
                         proto.number.set( 100 );
@@ -86,10 +87,10 @@ public class ComplexModelTest {
                     return _uow.submit();
                 })
                 .then( __ -> {
-                    return uow.query( Contact.class ).executeCollect();
+                    return uow.query( Contact.class ).singleResult();
                 })
-                .map( rs -> {
-                    var contact = rs.get( 0 );
+                .map( contact -> {
+                    Assert.isEqual( "test", contact.name.get() );
                     Assert.isEqual( "street1", contact.address.get().street.get() );
                     Assert.isEqual( 100, contact.address.get().number.get() );
                     return null;
@@ -97,7 +98,6 @@ public class ComplexModelTest {
     }
 
     @Test
-    @Skip
     public Promise<?> compositeValueTest() throws Exception {
         return initRepo( "address" )
                 .then( repo -> {
@@ -119,10 +119,9 @@ public class ComplexModelTest {
                 .then( __ -> {
                     return uow.query( Contact.class )
                             .where( the( Contact.TYPE.address, eq( Address.TYPE.street, "street1" ) ))
-                            .executeCollect();
+                            .singleResult();
                 })
-                .map( rs -> {
-                    var contact = rs.get( 0 );
+                .map( contact -> {
                     Assert.isEqual( "street1", contact.address.get().street.get() );
                     Assert.isEqual( 100, contact.address.get().number.get() );
                     return null;

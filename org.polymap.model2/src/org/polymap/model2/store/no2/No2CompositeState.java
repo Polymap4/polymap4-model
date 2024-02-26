@@ -15,10 +15,10 @@
 package org.polymap.model2.store.no2;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.common.Constants;
 
@@ -62,9 +62,48 @@ public class No2CompositeState
     @SuppressWarnings("unchecked")
     public No2CompositeState( Class<?/* extends Composite*/> entityClass, Document state ) {
         this.entityClass = Assert.notNull( (Class<? extends Composite>)entityClass );
-        this.doc = Assert.notNull( state );
+        this.doc = state; // no copy-on-write currently
     }
 
+    
+    /**
+     * Deep copy the given {@link Document}. {@link Document#clone()} does not work
+     * correctly, child {@link Document}s are not cloned properly.
+     */
+    public static Document clone( Document d ) {
+        return doClone( d, "" );
+    }
+    
+    protected static Document doClone( Document d, String prefix ) {
+        //LOG.debug( "%sclone: %s [id=%s]", prefix, d, System.identityHashCode( d ) );
+        var clone = Document.createDocument( Constants.DOC_ID, d.getId().getIdValue() );
+
+        for (var kv : d) {
+            //LOG.debug( "%s  %s = %s", prefix, kv.getFirst(), kv.getSecond() );
+            // default
+            clone.put( kv.getFirst(), kv.getSecond() );
+            // Document
+            if (kv.getSecond() instanceof Document) {
+                var src = (Document)kv.getSecond();
+                clone.put( kv.getFirst(), doClone( src, prefix + "    " ) );
+            }
+            // Collection
+            else if (kv.getSecond() instanceof Collection) {
+                var src = (Collection<?>)kv.getSecond();
+                var target = new ArrayList<Object>( src.size() );
+                for (Object v : src) {
+                    Assert.that( !(v instanceof Collection) );
+                    target.add( v instanceof Document ? doClone( (Document)v, "    " ) : v );
+                }
+                clone.put( kv.getFirst(), target );
+            }
+        }
+        //LOG.debug( "cloned: %s %s", System.identityHashCode( clone ), clone );
+        Assert.isEqual( d.getId().getIdValue(), clone.getId().getIdValue() );
+        Assert.isEqual( d, clone );
+        return clone;
+    }
+    
     @Override
     public Object id() {
         return doc.getId().getIdValue();
