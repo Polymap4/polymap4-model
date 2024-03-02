@@ -118,9 +118,15 @@ public class No2Store
     protected void checkCompositeIndexes( CompositeInfo<?> info, NitriteCollection coll, String fieldNameBase ) {
         for (var prop : info.getProperties()) {
             var indexName = fieldNameBase + prop.getNameInStore();
-            if (prop.isQueryable() && !coll.hasIndex( indexName )) {
-                coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
-                LOG.debug( "    index: %s", indexName );
+            if (prop.isQueryable() && !coll.hasIndex( indexName )) {                
+                if (prop.getAnnotation( Fulltext.class ) != null) {
+                    coll.createIndex( indexOptions( IndexType.FULL_TEXT ), indexName );
+                    LOG.debug( "    fulltext: %s", indexName );
+                }
+                else {
+                    coll.createIndex( indexOptions( IndexType.NON_UNIQUE ), indexName );
+                    LOG.debug( "    index: %s", indexName );
+                }
                 Assert.that( coll.hasIndex( indexName ) );
             }
             if (Composite.class.isAssignableFrom( prop.getType() )

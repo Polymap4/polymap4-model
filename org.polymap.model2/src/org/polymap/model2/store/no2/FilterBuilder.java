@@ -121,15 +121,22 @@ public class FilterBuilder {
                 Assert.that( matches.value instanceof String,
                         "Only String values are supported for PropertyMatches: " + matches.prop );
                 
-                var value = (String)matches.value;
-                Assert.that( value.endsWith( String.valueOf( matches.multiWildcard ) ),
-                        "Only 'starts-with' is supported for PropertyMatches: " + matches.prop );
-                Assert.that( !value.contains( String.valueOf( matches.singleWildcard ) ),
-                        "Single wildcard is not supported for PropertyMatches: " + matches.prop );
-                
-                var base = value.substring( 0, value.length()-1 );
-                LOG.debug( "MATCHES: %s", base );
-                return result.between( base, base + '\uffff', true, false );
+                // fulltext
+                if (matches.prop.info().getAnnotation( Fulltext.class ) != null) {
+                    return result.text( (String)matches.value );
+                }
+                // other: between
+                else {
+                    var value = (String)matches.value;
+                    Assert.that( value.endsWith( String.valueOf( matches.multiWildcard ) ),
+                            "Only 'starts-with' is supported for PropertyMatches: " + matches.prop );
+                    Assert.that( !value.contains( String.valueOf( matches.singleWildcard ) ),
+                            "Single wildcard is not supported for PropertyMatches: " + matches.prop );
+
+                    var base = value.substring( 0, value.length()-1 );
+                    LOG.debug( "MATCHES: %s", base );
+                    return result.between( base, base + '\uffff', true, false );
+                }
             }
             else {
                 throw new RuntimeException( "Not yet implemented: " + expr );                

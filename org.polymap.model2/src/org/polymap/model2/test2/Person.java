@@ -25,7 +25,6 @@ import org.polymap.model2.Nullable;
 import org.polymap.model2.Property;
 import org.polymap.model2.Queryable;
 import org.polymap.model2.query.Expressions;
-
 import areca.common.Promise;
 
 /**
