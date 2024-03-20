@@ -518,6 +518,8 @@ public class UnitOfWorkImpl
             commitLock.unlock( false );
             storeUow.close();
             repo = null;
+            
+            //
             loaded.clear();
             loaded = null;
             modified.clear();

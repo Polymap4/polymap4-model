@@ -15,6 +15,7 @@
 package org.polymap.model2.test2;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.runtime.EntityRepository;
@@ -70,6 +71,33 @@ public class PerformanceTest {
         }
     }
 
+    @Test
+    public Promise<?> uowTest() {
+        var count = 1000;
+        var t = Timer.start();
+        var complete = new AtomicBoolean();
+        var result = initRepo( "uowTest" )
+                // create
+                .then( repo -> {
+                    uow.createEntity( Person.class, p -> { } );
+                    return uow.submit().onSuccess( __ -> 
+                            LOG.warn( "Create: %s", t.elapsedHumanReadable() ) );
+                })
+                // query
+                .map( submitted -> {
+                    t.restart();
+                    for (int i = 0; i < count; i++) {
+                        var uow2 = _repo.newUnitOfWork();
+                        uow2.query( Person.class ).singleResult().waitForResult().get();
+                        uow2.close();
+                    }
+                    LOG.warn( "Sessions: %s in %s", count, t.elapsedHumanReadable() );
+                    complete.set( true );
+                    return null;
+                });
+        //Assert.that( complete.get() );
+        return result;
+    }
     
     @Test
     public Promise<?> createTest() {

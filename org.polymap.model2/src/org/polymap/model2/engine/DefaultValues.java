@@ -47,7 +47,8 @@ public class DefaultValues {
      * @return The default value for the given field, or null if no default value was
      *         defined via {@link DefaultValue} annotation
      */
-    public static Object valueOf( PropertyInfoImpl propInfo ) {
+    @SuppressWarnings( "unchecked" )
+    public static Object valueOf( PropertyInfoImpl<?> propInfo ) {
         Class<?> type = propInfo.getType();
         
         // @DefaultValue
@@ -69,6 +70,7 @@ public class DefaultValues {
                 return Boolean.parseBoolean( defaultValue.value() );
             }
             else if (Enum.class.isAssignableFrom( type )) {
+                @SuppressWarnings( {"rawtypes"} )
                 Class<Enum> enumType = (Class<Enum>)type;
                 Enum.valueOf( enumType, defaultValue.value() );
             }
