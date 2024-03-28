@@ -16,14 +16,17 @@ package org.polymap.model2.test2;
 
 import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.the;
+
 import java.util.Arrays;
 
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
+
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
+import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
 import areca.common.reflect.ClassInfo;
@@ -199,5 +202,91 @@ public class ComplexModelTest {
                     return null;
                 });
     }
-    
+
+    @Test
+    public Promise<?> compositeCollectionDiscardTest() throws Exception {
+        return initRepo( "others" )
+                .then( repo -> {
+                    var _uow = repo.newUnitOfWork().setPriority( priority );
+                    _uow.createEntity( Contact.class );
+                    return _uow.submit();
+                })
+                .then( __ -> { 
+                    return uow.query( Contact.class ).singleResult();
+                })
+                .then( contact -> {
+                    contact.others.createElement( proto -> {} );
+                    return uow.discard().map( __ -> contact );
+                })
+                .map( contact -> {
+                    Assert.isEqual( 0, contact.others.size() );
+                    Assert.isEqual( 0, Sequence.of( contact.others ).count() );
+                    return null;
+                });
+    }
+
+    @Test
+    public Promise<?> compositeCollectionRemoveDiscardTest() throws Exception {
+        return initRepo( "others" )
+                .then( repo -> {
+                    var contact = uow.createEntity( Contact.class );
+                    contact.others.createElement( proto -> {} );
+                    return uow.submit().map( __ -> contact );
+                })
+                .then( contact -> {
+                    Assert.isEqual( 1, contact.others.size() );
+                    Assert.isEqual( 1, contact.others.seq().count() );
+                    
+                    var a = contact.others.seq().first().get();
+                    contact.others.remove( a );
+                    Assert.isEqual( 0, contact.others.size() );
+                    Assert.isEqual( 0, contact.others.seq().count() );
+
+                    return uow.discard().map( __ -> contact );
+                })
+                .map( contact -> {
+                    Assert.isEqual( 1, contact.others.size() );
+                    Assert.isEqual( 1, contact.others.seq().count() );
+                    return null;
+                });
+    }
+
+    @Test
+    public Promise<?> compositeValueDiscardTest() throws Exception {
+        return initRepo( "others" )
+                .then( repo -> {
+                    var contact = uow.createEntity( Contact.class );
+                    return uow.submit().map( __ -> contact );
+                })
+                .then( contact -> {
+                    contact.address.createValue( proto -> { proto.city.set( "LE" ); } );
+                    Assert.that( contact.address.opt().isPresent() );
+                    return uow.discard().map( __ -> contact );
+                })
+                .map( contact -> {
+                    Assert.that( !contact.address.opt().isPresent() );
+                    return null;
+                });
+    }
+
+    @Test
+    public Promise<?> compositeValueRemoveDiscardTest() throws Exception {
+        return initRepo( "others" )
+                .then( repo -> {
+                    var contact = uow.createEntity( Contact.class );
+                    contact.address.createValue( proto -> { proto.city.set( "LE" ); } );
+                    return uow.submit().map( __ -> contact );
+                })
+                .then( contact -> {
+                    Assert.that( contact.address.opt().isPresent() );
+                    contact.address.set( null );
+                    Assert.that( !contact.address.opt().isPresent() );
+                    return uow.discard().map( __ -> contact );
+                })
+                .map( contact -> {
+                    Assert.that( contact.address.opt().isPresent() );
+                    return null;
+                });
+    }
+
 }

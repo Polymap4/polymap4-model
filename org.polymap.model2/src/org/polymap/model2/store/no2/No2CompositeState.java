@@ -15,16 +15,15 @@
 package org.polymap.model2.store.no2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.common.Constants;
 
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.PropertyInfo;
-import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreCollectionProperty;
 import org.polymap.model2.store.StoreProperty;
@@ -59,61 +58,10 @@ public class No2CompositeState
         //this.doc.put( FIELD_ID, NitriteId.newId().getIdValue() );
     }
     
-    
     @SuppressWarnings("unchecked")
     public No2CompositeState( Class<?/* extends Composite*/> entityClass, Document state ) {
         this.entityClass = Assert.notNull( (Class<? extends Composite>)entityClass );
         this.doc = state; // no copy-on-write currently
-    }
-
-    
-    /**
-     * Deep copy the given {@link Document}. {@link Document#clone()} does not work
-     * correctly, child {@link Document}s are not cloned properly.
-     * <p>
-     * Nitrite seems to cache and re-use {@link Document}s for subsequent get()s for
-     * the same collection. So, different {@link UnitOfWork}s would share, and maybe
-     * modify, the same documents. {@link No2UnitOfWork} clones documents when
-     * reading from backend to prevents this. Each {@link No2CompositeState} can
-     * modify its copy.
-     * <p>
-     * Maybe this is also good for reading if the document is updated in the
-     * datastore. I'm not sure (as with many things regarding Nitrite) if this would
-     * also update/modify the shared instance of the document. In this case one copy
-     * per {@link No2CompositeState} would be good.
-     */
-    public static Document clone( Document d ) {
-        return doClone( d, "" );
-    }
-    
-    protected static Document doClone( Document d, String prefix ) {
-        //LOG.debug( "%sclone: %s [id=%s]", prefix, d, System.identityHashCode( d ) );
-        var clone = Document.createDocument( Constants.DOC_ID, d.getId().getIdValue() );
-
-        for (var kv : d) {
-            //LOG.debug( "%s  %s = %s", prefix, kv.getFirst(), kv.getSecond() );
-            // default
-            clone.put( kv.getFirst(), kv.getSecond() );
-            // Document
-            if (kv.getSecond() instanceof Document) {
-                var src = (Document)kv.getSecond();
-                clone.put( kv.getFirst(), doClone( src, prefix + "    " ) );
-            }
-            // Collection
-            else if (kv.getSecond() instanceof Collection) {
-                var src = (Collection<?>)kv.getSecond();
-                var target = new ArrayList<Object>( src.size() );
-                for (Object v : src) {
-                    Assert.that( !(v instanceof Collection) );
-                    target.add( v instanceof Document ? doClone( (Document)v, "    " ) : v );
-                }
-                clone.put( kv.getFirst(), target );
-            }
-        }
-        //LOG.debug( "cloned: %s %s", System.identityHashCode( clone ), clone );
-        Assert.isEqual( d.getId().getIdValue(), clone.getId().getIdValue() );
-        Assert.isEqual( d, clone );
-        return clone;
     }
     
     @Override
@@ -253,17 +201,29 @@ public class No2CompositeState
 
         @Override
         public boolean add( Object elm ) {
-            var l = doc.get( fieldName, List.class );
+            List<Object> l = doc.get( fieldName, List.class );
             if (l == null) {
                 doc.put( fieldName, l = new ArrayList<>() );
             }
-            return doc.get( fieldName, List.class ).add( elm );
+            return l.add( elm );
         }
 
         @Override
         public boolean remove( Object elm ) {
             var l = doc.get( fieldName, List.class );
-            return l != null ? doc.get( fieldName, List.class ).remove( elm ) : false;
+            if (l == null) {
+                return false;
+            }
+            if (elm instanceof Composite) {
+                throw new RuntimeException( "remove(): not supported yet: Composite" );
+//                var state = (No2CompositeState)((Composite)elm).context.getState();
+//                LOG.warn( "remove(): state.doc: %s", state.doc );
+//                l.forEach( e -> LOG.warn( "remove(): l: %s", e ) );
+//                return l.remove( state.doc );
+            }
+            else {
+                return l.remove( elm );
+            }
         }
 
         @Override

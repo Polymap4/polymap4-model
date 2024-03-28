@@ -79,7 +79,7 @@ public class No2UnitOfWork
             
             var coll = collection( entityInfo );
             var doc = coll.getById( NitriteId.createId( (String)id ) );
-            return doc != null ? new No2CompositeState( entityClass, No2CompositeState.clone( doc ) ) : null;
+            return doc != null ? new No2CompositeState( entityClass, Documents.clone( doc ) ) : null;
         });
     }
 
@@ -111,7 +111,7 @@ public class No2UnitOfWork
             var cursor = coll.find( new FilterBuilder( query, this ).build(), options );
             for (var doc : cursor) {
                 //Platform.async( () -> {
-                    var clone = No2CompositeState.clone( doc );
+                    var clone = Documents.clone( doc );
                     var state = new No2CompositeState( entityClass, clone );
                     promise.consumeResult( CompositeStateReference.create( clone.getId().getIdValue(), state ) );
                 //});
@@ -202,6 +202,7 @@ public class No2UnitOfWork
             }
             else {
                 submitted.modifiedIds.add( loaded.left.id() );
+                //Documents.copy( loaded.right.getUnderlying(), loaded.left.getUnderlying() );
                 loaded.left.setUnderlying( loaded.right.getUnderlying() );
                 LOG.debug( "ROLLED BACK: " + loaded.left.id() );
             }
@@ -213,6 +214,6 @@ public class No2UnitOfWork
     
     @Override
     public void setPriority( Priority priority ) {
-        LOG.warn( "No setPriority()");
+        LOG.info( "No setPriority()");
     }
 }

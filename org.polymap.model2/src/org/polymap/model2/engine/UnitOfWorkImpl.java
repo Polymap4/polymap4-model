@@ -424,11 +424,6 @@ public class UnitOfWorkImpl
         checkOpen();
         lifecycle( modified.values(), State.BEFORE_DISCARD );
 
-        // reset Entity internal caches
-        for (Entity entity : modified.values()) {
-            new ResetCachesVisitor().process( entity );            
-        }
-        
         // reset status of modified entities
         for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
             if (entry.getValue().status() == CREATED) {
@@ -445,6 +440,12 @@ public class UnitOfWorkImpl
         return storeUow.rollback( notCreated )
                 .onSuccess( __ -> {
                     lifecycle( modified.values(), State.AFTER_DISCARD );
+
+                    // reset Entity internal caches
+                    for (Entity entity : modified.values()) {
+                        new ResetCachesVisitor().process( entity );            
+                    }
+                    
                     modified.clear();        
                     //commitLock.unlock( true );
                 });
