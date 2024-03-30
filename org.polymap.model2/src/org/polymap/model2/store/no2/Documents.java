@@ -99,8 +99,13 @@ class Documents {
             if (kv.getSecond() instanceof Document) {
                 var srcDoc = (Document)kv.getSecond();
                 var targetDoc = target.get( kv.getFirst(), Document.class );
-                Assert.notNull( targetDoc, "Discarding removed Composite is not supported yet." );
-                doCopy( srcDoc, targetDoc, prefix + "    " );
+                //Assert.notNull( targetDoc, "Discarding removed Composite is not supported yet." );
+                if (targetDoc == null) {
+                    target.put( kv.getFirst(), srcDoc );
+                }
+                else {
+                    doCopy( srcDoc, targetDoc, prefix + "    " );
+                }
             }
             // Collection
             else if (kv.getSecond() instanceof Collection) {

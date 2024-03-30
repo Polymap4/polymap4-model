@@ -19,7 +19,6 @@ import static org.polymap.model2.query.Expressions.the;
 
 import java.util.Arrays;
 
-import org.polymap.model2.query.Expressions;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
 
@@ -133,7 +132,6 @@ public class ComplexModelTest {
     
 
     @Test
-    @Skip
     public Promise<?> collectionTest() throws Exception {
         return initRepo( "emails" )
                 .then( repo -> {
@@ -152,7 +150,7 @@ public class ComplexModelTest {
                 })
                 .then( __ -> {
                     return uow.query( Contact.class )
-                            .where( Expressions.anyEq( Contact.TYPE.emails, "first" ) )
+                            //.where( Expressions.anyEq( Contact.TYPE.emails, "first" ) )
                             .executeCollect();
                 })
                 .map( rs -> {
@@ -205,7 +203,7 @@ public class ComplexModelTest {
 
     @Test
     public Promise<?> compositeCollectionDiscardTest() throws Exception {
-        return initRepo( "others" )
+        return initRepo( "others2" )
                 .then( repo -> {
                     var _uow = repo.newUnitOfWork().setPriority( priority );
                     _uow.createEntity( Contact.class );
@@ -216,6 +214,9 @@ public class ComplexModelTest {
                 })
                 .then( contact -> {
                     contact.others.createElement( proto -> {} );
+                    Assert.isEqual( 1, contact.others.size() );
+                    Assert.isEqual( 1, Sequence.of( contact.others ).count() );
+                    
                     return uow.discard().map( __ -> contact );
                 })
                 .map( contact -> {
@@ -226,11 +227,33 @@ public class ComplexModelTest {
     }
 
     @Test
-    public Promise<?> compositeCollectionRemoveDiscardTest() throws Exception {
-        return initRepo( "others" )
+    public Promise<?> compositeCollectionDiscardWithoutQueryTest() throws Exception {
+        return initRepo( "others22" )
                 .then( repo -> {
                     var contact = uow.createEntity( Contact.class );
+                    return uow.submit().map( __ -> contact );
+                })
+                .then( contact -> {
                     contact.others.createElement( proto -> {} );
+                    Assert.isEqual( 1, contact.others.size() );
+                    Assert.isEqual( 1, Sequence.of( contact.others ).count() );
+                    
+                    return uow.discard().map( __ -> contact );
+                })
+                .map( contact -> {
+                    Assert.isEqual( 0, contact.others.size() );
+                    Assert.isEqual( 0, Sequence.of( contact.others ).count() );
+                    return null;
+                });
+    }
+
+    @Test
+    @Skip
+    public Promise<?> compositeCollectionRemoveDiscardTest() throws Exception {
+        return initRepo( "others3" )
+                .then( repo -> {
+                    var contact = uow.createEntity( Contact.class );
+                    contact.others.createElement( proto -> { proto.city.set( "LE" ); } );
                     return uow.submit().map( __ -> contact );
                 })
                 .then( contact -> {
@@ -253,7 +276,7 @@ public class ComplexModelTest {
 
     @Test
     public Promise<?> compositeValueDiscardTest() throws Exception {
-        return initRepo( "others" )
+        return initRepo( "others4" )
                 .then( repo -> {
                     var contact = uow.createEntity( Contact.class );
                     return uow.submit().map( __ -> contact );

@@ -53,13 +53,13 @@ public class ResetCachesVisitor
     @Override
     protected boolean visitCompositeCollectionProperty( CollectionProperty prop ) {
         resetCache( prop );
-        return true;
+        return false;
     }
 
     @Override
     protected boolean visitCompositeProperty( Property prop ) {
         resetCache( prop );
-        return true;
+        return false;
     }
 
     protected void resetCache( PropertyBase prop ) {

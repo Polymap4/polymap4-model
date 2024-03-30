@@ -204,7 +204,7 @@ public class No2UnitOfWork
                 submitted.modifiedIds.add( loaded.left.id() );
                 //Documents.copy( loaded.right.getUnderlying(), loaded.left.getUnderlying() );
                 loaded.left.setUnderlying( loaded.right.getUnderlying() );
-                LOG.debug( "ROLLED BACK: " + loaded.left.id() );
+                LOG.debug( "ROLLED BACK: %s", loaded.left.id() );
             }
             return loaded;
         })

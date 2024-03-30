@@ -166,7 +166,7 @@ public class LuceneCompositeState
         }
 
         @Override
-        public boolean remove( Object elm ) {
+        public void remove( int index ) {
             throw new RuntimeException( "not yet implemented" );
         }
 

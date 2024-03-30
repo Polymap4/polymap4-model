@@ -262,22 +262,14 @@ public class IDBCompositeState
         }
 
         @Override
-        public boolean remove( Object elm ) {
+        public void remove( int index ) {
             @SuppressWarnings("unchecked")
             JSArray<JSObject> array = (JSArray<JSObject>)state.get( info().getNameInStore() );
             if (JSObjects.isUndefined( array )) {
-                return false;
+                throw new IndexOutOfBoundsException( "CollectionProperty is empty" );
             }
-            Assert.that( !Composite.class.isInstance( elm ), "Composite value is not yet supported." );
-            var jsValue = jsValueOf( elm );
-            for (int i = 0; i < array.getLength(); i++) {
-                if (array.get( i ) == jsValue) {
-                    LOG.info( "Collection: remove index=" + i );
-                    array.splice( i, 1 );
-                    return true;
-                }
-            }
-            return false;
+            LOG.info( "Collection: remove index=" + index );
+            array.splice( index, 1 );
         }
 
         @Override

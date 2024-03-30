@@ -42,7 +42,13 @@ public interface StoreCollectionProperty<T>
 
     public boolean add( T elm );
     
-    public boolean remove( T elm );
+    /**
+     * 
+     *
+     * @param index
+     * @throws IndexOutOfBoundsException
+     */
+    public void remove( int index );
 
     /**
      * Creates a new value for this property. For simple properties usually this is

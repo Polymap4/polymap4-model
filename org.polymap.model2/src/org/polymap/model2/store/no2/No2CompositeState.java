@@ -86,7 +86,7 @@ public class No2CompositeState
     @Override
     public StoreProperty loadProperty( PropertyInfo info ) {
         if (info.getMaxOccurs() > 1) { // Many, Collection, CompositeCollection
-            return new StoreCollectionPropertyImpl() {
+            return new No2StoreCollectionProperty() {
                 { fieldName = fieldName( this ); }
                 @Override public PropertyInfo info() { return info; }
                 @Override public Object get() { throw new RuntimeException( "..." ); }
@@ -94,7 +94,7 @@ public class No2CompositeState
             };             
         }
         else {
-            return new StorePropertyImpl() {
+            return new No2StoreProperty() {
                 { fieldName = fieldName( this ); }
                 @Override public PropertyInfo info() { return info; }
             };
@@ -110,7 +110,7 @@ public class No2CompositeState
     /**
      * 
      */
-    protected abstract class StorePropertyImpl
+    protected abstract class No2StoreProperty
             implements StoreProperty<Object> {
         
         protected String fieldName;
@@ -160,7 +160,7 @@ public class No2CompositeState
     /**
      * 
      */
-    protected abstract class StoreCollectionPropertyImpl
+    protected abstract class No2StoreCollectionProperty
             implements StoreCollectionProperty<Object>, StoreProperty<Object> {
 
         protected String fieldName;
@@ -209,20 +209,13 @@ public class No2CompositeState
         }
 
         @Override
-        public boolean remove( Object elm ) {
+        public void remove( int index ) {
             var l = doc.get( fieldName, List.class );
             if (l == null) {
-                return false;
-            }
-            if (elm instanceof Composite) {
-                throw new RuntimeException( "remove(): not supported yet: Composite" );
-//                var state = (No2CompositeState)((Composite)elm).context.getState();
-//                LOG.warn( "remove(): state.doc: %s", state.doc );
-//                l.forEach( e -> LOG.warn( "remove(): l: %s", e ) );
-//                return l.remove( state.doc );
+                throw new IndexOutOfBoundsException( "CollectenProperty is empty" );
             }
             else {
-                return l.remove( elm );
+                l.remove( index );
             }
         }
 

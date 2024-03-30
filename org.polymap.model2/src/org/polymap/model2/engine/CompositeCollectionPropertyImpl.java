@@ -22,9 +22,13 @@ import java.util.List;
 import org.polymap.model2.Composite;
 import org.polymap.model2.runtime.EntityRuntimeContext;
 import org.polymap.model2.runtime.ModelRuntimeException;
+import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreCollectionProperty;
+
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 
@@ -35,11 +39,13 @@ class CompositeCollectionPropertyImpl<T extends Composite>
         extends CollectionPropertyImpl<T>
         implements CachingProperty {
 
+    private static final Log LOG = LogFactory.getLog( CompositeCollectionPropertyImpl.class );
+
     /**
      * Cache of the Composite value. As building the Composite is an expensive
      * operation the Composite and the corresponding {@link CompositeState} is cached
      * here (in contrast to primitive values). This mimics the cache behaviour of the
-     * UnitOfWork.
+     * {@link UnitOfWork}.
      */
     // XXX make it a Cache?
     private List<T>                 cache;
@@ -95,6 +101,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
                 T instance = (T)builder.newComposite( state, state.compositeInstanceType( info().getType() ) );
                 cache.add( instance );
             }
+            LOG.warn( "checkInitCache(): %s [%s]", info().getName(), cache.size() );
         }
         return cache;
     }
@@ -105,6 +112,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
         // XXX client code may reference the old instances; so this produces
         // new Composite instances while another instance for the same state may already exists!
         cache = null;
+        LOG.warn( "clearCache(): %s", info().getName() );
     }
     
     
@@ -153,18 +161,15 @@ class CompositeCollectionPropertyImpl<T extends Composite>
 
 
     @Override
-    public boolean remove( Object o ) {
-        throw new UnsupportedOperationException( "Not yet implemented." );
-        
-//        for (Iterator<T> it=iterator(); it.hasNext(); ) {
-//            EntityRepositoryImpl repo = (EntityRepositoryImpl)entityContext.getRepository();
-//            repo.contextOfEntity( o );
-//            if (o == it.next()) {
-//                it.remove();
-//                return true;
-//            }
-//        }
-//        return false;
+    public boolean remove( Object elm ) {
+        for (int i = 0; i < cache.size(); i++) {
+            if (cache.get( i ) == elm) {
+                storeProp.remove( i );
+                cache.remove( i );
+                return true;
+            }
+        }
+        return false;
     }
 
 

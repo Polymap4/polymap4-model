@@ -23,6 +23,9 @@ import org.polymap.model2.runtime.ValueInitializer;
 import org.polymap.model2.store.CompositeState;
 import org.polymap.model2.store.StoreProperty;
 
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
+
 /**
  *
  *
@@ -31,6 +34,8 @@ import org.polymap.model2.store.StoreProperty;
 class CompositePropertyImpl<T extends Composite>
         implements Property<T>, CachingProperty {
 
+    private static final Log LOG = LogFactory.getLog( CompositeCollectionPropertyImpl.class );
+    
     public static final Object              NULL_VALUE = new Object();
     
     private EntityRuntimeContext            entityContext;
@@ -58,10 +63,12 @@ class CompositePropertyImpl<T extends Composite>
         // XXX client code may reference the old instrance; so this produces
         // a new Composite instance while another instance for the same state may already exists!
         value = null;
+        LOG.debug( "clearCache(): %s", info() );
     }
 
 
     @Override
+    @SuppressWarnings( "unchecked" )
     public T get() {
         // no synchronization, concurrent init is ok
         if (value == null) {
@@ -69,6 +76,7 @@ class CompositePropertyImpl<T extends Composite>
             if (state != null) {
                 InstanceBuilder builder = new InstanceBuilder( entityContext );
                 value = builder.newComposite( state, state.compositeInstanceType( info().getType() ) );
+                LOG.debug( "get(): initialized: %s", info() );
             }
             else {
                 value = NULL_VALUE;

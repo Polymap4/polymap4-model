@@ -98,7 +98,15 @@ class ManyAssociationImpl<T extends Entity>
     
     @Override
     public boolean remove( T elm ) {
-        return storeProp.remove( elm.id() );
+        int index = 0;
+        for (var id : storeProp) {
+            if (id.equals( elm.id() )) {
+                storeProp.remove( index );
+                return true;
+            }
+            index ++;
+        }
+        return false;
     }
 
     

@@ -70,6 +70,11 @@ class CollectionPropertyImpl<T>
     }
     
     @Override
+    public boolean remove( Object o ) {
+        throw new RuntimeException( "not yet implemented." );
+    }
+
+    @Override
     public void clear() {
         storeProp.clear();
     }
