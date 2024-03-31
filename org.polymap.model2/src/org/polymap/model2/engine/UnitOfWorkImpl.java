@@ -436,7 +436,7 @@ public class UnitOfWorkImpl
         }
         
         // give entities a new state
-        var notCreated = Sequence.of( loaded.values() ).filter( e -> e.status() != CREATED ).asIterable();
+        var notCreated = Sequence.of( modified.values() ).filter( e -> e.status() != CREATED ).asIterable();
         return storeUow.rollback( notCreated )
                 .onSuccess( __ -> {
                     lifecycle( modified.values(), State.AFTER_DISCARD );
