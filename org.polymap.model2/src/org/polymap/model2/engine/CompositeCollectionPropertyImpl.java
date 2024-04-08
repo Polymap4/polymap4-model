@@ -101,7 +101,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
                 T instance = (T)builder.newComposite( state, state.compositeInstanceType( info().getType() ) );
                 cache.add( instance );
             }
-            LOG.warn( "checkInitCache(): %s [%s]", info().getName(), cache.size() );
+            LOG.debug( "checkInitCache(): %s [%s]", info().getName(), cache.size() );
         }
         return cache;
     }
@@ -112,7 +112,7 @@ class CompositeCollectionPropertyImpl<T extends Composite>
         // XXX client code may reference the old instances; so this produces
         // new Composite instances while another instance for the same state may already exists!
         cache = null;
-        LOG.warn( "clearCache(): %s", info().getName() );
+        LOG.debug( "clearCache(): %s", info().getName() );
     }
     
     
