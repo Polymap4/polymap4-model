@@ -317,29 +317,6 @@ public class SimpleQueryTest {
     }
 
     
-
-    //    @Test
-    //    @Skip
-    //    public void testQueryPerformance() {
-    //        var uow2 = repo.newUnitOfWork();
-    //        for (int i=0; i<100; i++) {
-    //            var p = uow2.createEntity( Person.class, null );
-    //            p.name.set( "name-" + i );
-    //        }
-    //        uow2.submit().waitForResult();
-    //        
-    //        for (int i=0; i<20; i++) {
-    //            uow2 = repo.newUnitOfWork();
-    //            MutableInt count = new MutableInt();
-    //            uow2.query( Person.class ).execute()
-    //                    .onSuccess( p -> count.increment() )
-    //                    .waitForResult();
-    //            uow2.close();
-    //        }
-    //    }
-        
-        
-
     
 //        Employee wanted = Expressions.template( Employee.class, repo );
 //        

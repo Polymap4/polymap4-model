@@ -40,6 +40,7 @@ import org.polymap.model2.store.StoreSPI;
 import org.polymap.model2.store.StoreUnitOfWork;
 
 import areca.common.Assert;
+import areca.common.AssertionException;
 import areca.common.Platform;
 import areca.common.Platform.PollingCommand;
 import areca.common.Promise;
@@ -152,12 +153,29 @@ public class No2Store
             
     @Override
     public void close() {
-        worker.ifInitialized( self -> self.stop = true );
-        collections.values().forEach( coll -> coll.close() );
-        collections.clear();
-        session.close();
-        db.close();
-        closed = true;
+        Supplier<Void,Exception> doClose = () -> {
+            worker.ifInitialized( self -> self.stop = true );
+            collections.values().forEach( coll -> coll.close() );
+            collections.clear();
+            session.close();
+            db.close();
+            closed = true;
+            return null;
+        };
+        try {
+            // async in order to close *after* all previously enqueued tasks are done
+            async( "close()", doClose );
+        }
+        catch (AssertionException e) {
+            // XXX ArecaUIServer calls this on servlet destroy() with no Session
+            LOG.warn( "close(): No Session!");
+            try {
+                doClose.supply();
+            }
+            catch (Exception e1) {
+                throw new RuntimeException( e );
+            }
+        }
     }
 
     
@@ -202,15 +220,14 @@ public class No2Store
     <R> Promise<R> async( String label, Supplier<R,Exception> task ) {
         return async( label, promise -> promise.complete( task.supply() ) );
     }
-
     
     /**
      * Execute the given (database) task asynchronously. 
      */
     <R> Promise<R> async( String label, Consumer<Completable<R>,Exception> task ) {
-        return asyncEnqueue( label, task );
+        //return asyncEnqueue( label, task );
         //return asyncDirect( label, task );
-        //return asyncWorker( label, task );
+        return asyncWorker( label, task );
     }
     
     
@@ -237,26 +254,36 @@ public class No2Store
     
     private <R> Promise<R> asyncWorker( String label, Consumer<Completable<R>,Exception> task ) {
         Platform.polling( PollingCommand.START );
+        // Completable that ...
         var promise = new Promise.Completable<R>() {
+            areca.common.Session callerSession = areca.common.Session.current();
+            ThreadBoundSessionScoper threadScope = ThreadBoundSessionScoper.instance();
             @Override
             public void complete( R value ) {
-                Platform.enqueue( "No2Store." + label, 0, __ -> { 
-                    super.complete( value );
-                    Platform.polling( PollingCommand.STOP );
+                threadScope.bind( callerSession, __ -> {
+                    Platform.enqueue( "No2Store." + label, 0, ___ -> { 
+                        Platform.polling( PollingCommand.STOP );
+                        super.complete( value );
+                    });
                 });
             }
             @Override
             public void consumeResult( R value ) {
-                Platform.enqueue( "No2Store." + label, 0, __ -> super.consumeResult( value ) );
+                threadScope.bind( callerSession, __ -> {
+                    Platform.enqueue( "No2Store." + label, 0, ___ -> super.consumeResult( value ) );
+                });
             }
             @Override
             public void completeWithError( Throwable e ) {
-                Platform.enqueue( "No2Store." + label, 0, __ -> { 
-                    super.completeWithError( e );
-                    Platform.polling( PollingCommand.STOP );
+                threadScope.bind( callerSession, __ -> {
+                    Platform.enqueue( "No2Store." + label, 0, ___ -> { 
+                        Platform.polling( PollingCommand.STOP );
+                        super.completeWithError( e );
+                    });
                 });
             }
         };
+        // send to WorkerThread
         try {
             worker.$().queue.offer( () -> {
                 try {
@@ -274,15 +301,13 @@ public class No2Store
     }
 
     /**
-     * Jus one thread to ensure that there is just serial, no multi-threaded access
-     * to Nitrite.
+     * Just one thread per store to ensure that there is just serial, no
+     * multi-threaded access to Nitrite.
      */
     private static class WorkerThread
             extends Thread {
 
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>( 25, true );
-        
-        areca.common.Session session = areca.common.Session.current();
         
         boolean stop;
         
@@ -296,10 +321,9 @@ public class No2Store
 
         @Override
         public void run() {
-            ThreadBoundSessionScoper.instance().bind( session );
             while (!stop /*|| !queue.isEmpty()*/) {
                 try {
-                    var task = queue.poll( 10, TimeUnit.SECONDS );
+                    var task = queue.poll( 5, TimeUnit.SECONDS );
                     if (task != null) {
                         var t = Timer.start();
                         task.run();
@@ -309,7 +333,6 @@ public class No2Store
                 catch (InterruptedException e) {
                 }
             }
-            ThreadBoundSessionScoper.instance().unbind( session );
             LOG.info( "%s: stopped", getName() );
         }
     }
