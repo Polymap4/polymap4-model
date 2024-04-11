@@ -146,20 +146,20 @@ public class FilterBuilder {
         else if (expr instanceof ManyAssociationQuantifier) {
             var quantifier = (ManyAssociationQuantifier<?>)expr;
             Assert.that( quantifier.type == Type.ANY, "ALL quantifier is not yet supported" );
-            var subType = (Class<? extends Entity>)quantifier.prop.info().getType();
             
-            var subQuery = new SubQuery<>( subType ).where( quantifier.subExp() );
-            var ids = uow.executeQuery( subQuery )
-                    .reduce( new ArrayList<String>( 128 ), (result,next) -> {
-                        if (next != null) {
-                            result.add( (String)next.id() );
-                        }
-                    })
-                    .waitForResult().get();
-
+            var subFilter = build( quantifier.subExp(), "" );
+            var subType = (Class<? extends Entity>)quantifier.prop.info().getType();
+            var coll = uow.collection( subType );
+            
+            var ids = new ArrayList<String>( 128 );
+            var cursor = coll.find( subFilter );
+            for (var doc : cursor) {
+                ids.add( doc.getId().getIdValue() );
+            }
             LOG.debug( "AnyOf: subQuery: %s -> %s", quantifier.subExp(), ids );
             
-            return FluentFilter.where( fieldNameBase + quantifier.prop.info().getNameInStore() )
+            return FluentFilter
+                    .where( fieldNameBase + quantifier.prop.info().getNameInStore() )
                     .elemMatch( FluentFilter.$.in( ids.toArray( String[]::new ) ) );
         }
         // Composite

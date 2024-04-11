@@ -71,6 +71,7 @@ public class PerformanceTest {
         }
     }
 
+    
     @Test
     public Promise<?> uowTest() {
         var count = 1000;
@@ -99,6 +100,7 @@ public class PerformanceTest {
         return result;
     }
     
+    
     @Test
     public Promise<?> createTest() {
         var count = 1000;
@@ -126,7 +128,7 @@ public class PerformanceTest {
                     t.restart();
                     return _repo.newUnitOfWork().query( Person.class ).executeCollect().onSuccess( rs -> {
                         Assert.isEqual( count, rs.size() );
-                        LOG.info( "Iterate (new UoW): %s", t.elapsedHumanReadable() );
+                        LOG.info( "Iterate (new UoW): %s", t );
                     });
                 })
                 // query single

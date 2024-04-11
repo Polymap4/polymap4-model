@@ -18,7 +18,6 @@ import static org.dizitart.no2.common.SortOrder.Ascending;
 import static org.dizitart.no2.common.SortOrder.Descending;
 
 import java.util.Collection;
-
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.FindOptions;
 import org.dizitart.no2.collection.NitriteCollection;
@@ -60,6 +59,10 @@ public class No2UnitOfWork
     }
 
 
+    protected NitriteCollection collection( Class<? extends Entity> type ) {
+        return store.collection( store.infoOf( type ) );
+    }
+    
     protected NitriteCollection collection( CompositeInfo<? extends Entity> entityInfo ) {
         return store.collection( entityInfo );
     }
@@ -73,7 +76,7 @@ public class No2UnitOfWork
     
     @Override
     public <T extends Entity> Promise<CompositeState> loadEntityState( Object id, Class<T> entityClass ) {
-        return store.async( __ -> {
+        return store.async( "loadEntityState()", () -> {
             CompositeInfo<T> entityInfo = store.infoOf( entityClass );
             LOG.debug( "loadEntityState(): " + entityInfo.getNameInStore() + " / " + id );
             
@@ -92,9 +95,7 @@ public class No2UnitOfWork
     
     @Override
     public <T extends Entity> Promise<CompositeStateReference> executeQuery( Query<T> query ) {
-        var promise = new Promise.Completable<CompositeStateReference>();
-        
-        store.async( __ -> {
+        return store.async( "executeQuery()", promise -> {
             Class<T> entityClass = query.resultType();
             var coll = collection( store.infoOf( entityClass ) );
             LOG.debug( "executeQuery(): %s - where: %s", entityClass.getSimpleName(), query.expression );
@@ -107,28 +108,23 @@ public class No2UnitOfWork
                         query.orderBy.order == Query.Order.ASC ? Ascending : Descending );
                 LOG.debug( "    oderBy: %s", options.orderBy() );
             }
-            
+                                
             var cursor = coll.find( new FilterBuilder( query, this ).build(), options );
             for (var doc : cursor) {
-                //Platform.async( () -> {
-                    var clone = Documents.clone( doc );
-                    var state = new No2CompositeState( entityClass, clone );
-                    promise.consumeResult( CompositeStateReference.create( clone.getId().getIdValue(), state ) );
-                //});
+                var clone = Documents.clone( doc );
+                var state = new No2CompositeState( entityClass, clone );
+                LOG.debug( "    : %s", clone.getId().getIdValue() );
+                promise.consumeResult( CompositeStateReference.create( clone.getId().getIdValue(), state ) );
             }
-            //Platform.async( () -> promise.complete( null ) );
             promise.complete( null );
-            
-            return null;
+            LOG.debug( "    : null" );
         });
-
-        return promise;
     }
 
     
     @Override
     public Promise<Submitted> submit( Collection<Entity> modified ) {
-        return store.async( __ -> {
+        return store.async( "submit()", () -> {
             var tx = store.session.beginTransaction();
             try {
                 var result = new Submitted();
@@ -214,6 +210,6 @@ public class No2UnitOfWork
     
     @Override
     public void setPriority( Priority priority ) {
-        LOG.info( "No setPriority()");
+        //LOG.info( "No setPriority()");
     }
 }
