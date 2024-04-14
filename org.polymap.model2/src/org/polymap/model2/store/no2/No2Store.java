@@ -254,7 +254,7 @@ public class No2Store
     
     private <R> Promise<R> asyncWorker( String label, Consumer<Completable<R>,Exception> task ) {
         Platform.polling( PollingCommand.START );
-        // Completable that ...
+        // Completable that enqueues task in EventLoop when complete
         var promise = new Promise.Completable<R>() {
             areca.common.Session callerSession = areca.common.Session.current();
             ThreadBoundSessionScoper threadScope = ThreadBoundSessionScoper.instance();
