@@ -425,24 +425,27 @@ public class UnitOfWorkImpl
         lifecycle( modified.values(), State.BEFORE_DISCARD );
 
         // reset status of modified entities
+        var notCreated = new ArrayList<Entity>( modified.size() ); 
         for (Map.Entry<Object,Entity> entry : modified.entrySet()) {
-            if (entry.getValue().status() == CREATED) {
-                InstanceBuilder.contextOf( entry.getValue() ).detach();
-                loaded.remove( entry.getKey() );
+            var entity = entry.getValue();
+            if (entity.status() == CREATED) {
+                InstanceBuilder.contextOf( entity ).detach();
+                var removed = loaded.remove( entry.getKey() );
+                Assert.isSame( removed, entity);
             }
             else {
-                repo.contextOf( entry.getValue() ).resetStatus( LOADED );
+                repo.contextOf( entity ).resetStatus( LOADED );
+                notCreated.add( entity );
             }
         }
         
         // give entities a new state
-        var notCreated = Sequence.of( modified.values() ).filter( e -> e.status() != CREATED ).asIterable();
         return storeUow.rollback( notCreated )
                 .onSuccess( __ -> {
                     lifecycle( modified.values(), State.AFTER_DISCARD );
 
                     // reset Entity internal caches
-                    for (Entity entity : modified.values()) {
+                    for (Entity entity : notCreated) {
                         new ResetCachesVisitor().process( entity );            
                     }
                     
