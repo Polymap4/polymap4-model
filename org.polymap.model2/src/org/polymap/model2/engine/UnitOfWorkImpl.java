@@ -33,6 +33,7 @@ import org.polymap.model2.Entity;
 import org.polymap.model2.engine.EntityRepositoryImpl.EntityRuntimeContextImpl;
 import org.polymap.model2.query.Query;
 import org.polymap.model2.query.grammar.BooleanExpression;
+import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.EntityRuntimeContext.EntityStatus;
 import org.polymap.model2.runtime.Lifecycle;
 import org.polymap.model2.runtime.Lifecycle.State;
@@ -363,6 +364,12 @@ public class UnitOfWorkImpl
     @Override
     public Optional<UnitOfWork> parent() {
         return Optional.empty();
+    }
+
+
+    @Override
+    public EntityRepository repo() {
+        return repo;
     }
 
 

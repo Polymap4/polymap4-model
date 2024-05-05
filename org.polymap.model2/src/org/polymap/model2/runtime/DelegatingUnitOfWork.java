@@ -98,6 +98,10 @@ public abstract class DelegatingUnitOfWork
     public Optional<UnitOfWork> parent() {
         return delegate.parent();
     }
-    
+
+    @Override
+    public EntityRepository repo() {
+        return delegate.repo();
+    }
     
 }

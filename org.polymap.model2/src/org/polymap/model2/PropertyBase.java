@@ -23,6 +23,6 @@ import org.polymap.model2.runtime.PropertyInfo;
  */
 public abstract interface PropertyBase<T> {
 
-    public PropertyInfo info();
+    public PropertyInfo<T> info();
     
 }

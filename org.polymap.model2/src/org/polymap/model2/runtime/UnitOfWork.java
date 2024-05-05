@@ -293,6 +293,9 @@ public interface UnitOfWork
      * {@link #newUnitOfWork()}.
      */
     public Optional<UnitOfWork> parent();
+    
+    
+    public EntityRepository repo();
 
 
     public default <E extends Exception> UnitOfWork submitAndClose( Consumer<UnitOfWork,E> task ) throws E {
