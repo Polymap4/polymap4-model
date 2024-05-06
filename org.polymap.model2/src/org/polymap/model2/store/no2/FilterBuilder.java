@@ -154,7 +154,12 @@ public class FilterBuilder {
             var ids = new ArrayList<String>( 128 );
             var cursor = coll.find( subFilter );
             for (var doc : cursor) {
-                ids.add( doc.getId().getIdValue() );
+                if (doc != null) {
+                    ids.add( doc.getId().getIdValue() );
+                }
+                else {
+                    LOG.warn( "doc is null");
+                }
             }
             LOG.debug( "AnyOf: subQuery: %s -> %s", quantifier.subExp(), ids );
             
