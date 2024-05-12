@@ -15,7 +15,6 @@
 package org.polymap.model2.store.no2;
 
 import java.util.ArrayList;
-
 import org.dizitart.no2.collection.NitriteId;
 import org.dizitart.no2.common.Constants;
 import org.dizitart.no2.filters.Filter;
@@ -24,6 +23,7 @@ import org.dizitart.no2.filters.FluentFilter;
 import org.polymap.model2.Entity;
 import org.polymap.model2.query.Expressions;
 import org.polymap.model2.query.Query;
+import org.polymap.model2.query.grammar.AssociationEquals;
 import org.polymap.model2.query.grammar.BooleanExpression;
 import org.polymap.model2.query.grammar.ComparisonPredicate;
 import org.polymap.model2.query.grammar.Conjunction;
@@ -166,6 +166,19 @@ public class FilterBuilder {
             return FluentFilter
                     .where( fieldNameBase + quantifier.prop.info().getNameInStore() )
                     .elemMatch( FluentFilter.$.in( ids.toArray( String[]::new ) ) );
+        }
+        // one: is
+        else if (expr instanceof AssociationEquals) {
+            var ae = (AssociationEquals<?>)expr;
+            if (ae.subExp() instanceof IdPredicate) {
+                var ids = (IdPredicate<?>)ae.subExp();
+                var _ids = Sequence.of( ids.ids ).map( id -> (String)id ).toArray( String[]::new );
+                //var _ids = Arrays.copyOf( ids.ids, ids.ids.length, String[].class );
+                return FluentFilter.where( fieldNameBase + ae.assoc.info().getNameInStore() ).in( _ids );
+            }
+            else {
+                throw new RuntimeException( "AssociationEquals: subType = " + ae.subExp() );                
+            }
         }
         // Composite
         else if (expr instanceof TheCompositeQuantifier) {

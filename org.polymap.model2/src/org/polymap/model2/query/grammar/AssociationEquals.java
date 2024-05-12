@@ -36,6 +36,17 @@ public class AssociationEquals<T extends Entity>
         this.assoc = assoc;
     }
 
+    
+    @Override
+    protected String opName() {
+        return assoc.info().getName() + " is ";
+    }
+
+
+    public BooleanExpression subExp() {
+        return children[0];
+    }
+
     @Override
     public boolean evaluate( Composite target ) {
         throw new RuntimeException( "not compiling after API changes!" );

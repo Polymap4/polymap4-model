@@ -113,11 +113,11 @@ public class No2UnitOfWork
             for (var doc : cursor) {
                 var clone = Documents.clone( doc );
                 var state = new No2CompositeState( entityClass, clone );
-                LOG.debug( "    : %s", clone.getId().getIdValue() );
+                //LOG.debug( "    : %s", clone.getId().getIdValue() );
                 promise.consumeResult( CompositeStateReference.create( clone.getId().getIdValue(), state ) );
             }
             promise.complete( null );
-            LOG.debug( "    : null" );
+            //LOG.debug( "    : null" );
         });
     }
 
