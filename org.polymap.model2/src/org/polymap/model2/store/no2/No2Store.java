@@ -46,7 +46,6 @@ import areca.common.Platform.PollingCommand;
 import areca.common.Promise;
 import areca.common.Promise.Completable;
 import areca.common.SessionScoper.ThreadBoundSessionScoper;
-import areca.common.Timer;
 import areca.common.base.Consumer;
 import areca.common.base.Lazy.RLazy;
 import areca.common.base.Supplier;
@@ -325,9 +324,9 @@ public class No2Store
                 try {
                     var task = queue.poll( 5, TimeUnit.SECONDS );
                     if (task != null) {
-                        var t = Timer.start();
+                        //var t = Timer.start();
                         task.run();
-                        LOG.info( "%s: queue=%s [%s]", getName(), queue.size(), t );
+                        //LOG.debug( "%s: queue=%s [%s]", getName(), queue.size(), t );
                     }
                 }
                 catch (InterruptedException e) {

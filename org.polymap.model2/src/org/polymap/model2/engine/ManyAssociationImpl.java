@@ -71,7 +71,7 @@ class ManyAssociationImpl<T extends Entity>
         
         var ids = storeProp.iterator();
         return ids.hasNext() 
-                ? Promise.joined( size(), i -> uow.entity( entityType, ids.next() ) ).map( entity -> Opt.of( entity ) )
+                ? Promise.serial( size(), i -> uow.entity( entityType, ids.next() ) ).map( entity -> Opt.of( entity ) )
                 : Promise.absent( context.getUnitOfWork().priority() );
     }
 

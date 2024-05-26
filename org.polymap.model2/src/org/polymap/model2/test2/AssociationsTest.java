@@ -18,17 +18,19 @@ import static org.polymap.model2.query.Expressions.and;
 import static org.polymap.model2.query.Expressions.anyOf;
 import static org.polymap.model2.query.Expressions.eq;
 import static org.polymap.model2.query.Expressions.id;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-
 import org.apache.commons.lang3.mutable.MutableObject;
 
 import org.polymap.model2.query.Query.Order;
 import org.polymap.model2.runtime.EntityRepository;
 import org.polymap.model2.runtime.UnitOfWork;
+
 import areca.common.Assert;
 import areca.common.Promise;
 import areca.common.Scheduler.Priority;
+import areca.common.TypeMap;
 import areca.common.base.Sequence;
 import areca.common.log.LogFactory;
 import areca.common.log.LogFactory.Log;
@@ -112,6 +114,45 @@ public class AssociationsTest {
                 });
     }
     
+    
+    @Test
+    public Promise<?> manyReadModifiedTest() throws Exception {
+        var map = new TypeMap();
+        return initRepo( "manyReadModifiedTest" )
+                .map( __ -> { 
+                    return map.put( uow.createEntity( Company.class ) );
+                })
+                .then( company -> { 
+                    return company.employees.fetchCollect();
+                })
+                .then( rs -> {
+                    Assert.isEqual( 0, rs.size() );
+                    var company = map.get( Company.class );
+                    company.employees.add( uow.createEntity( Person.class ) );
+                    return company.employees.fetchCollect();
+                })
+                .map( rs -> {
+                    Assert.isEqual( 1, rs.size() );
+                    Assert.that( rs.get( 0 ) instanceof Person );
+                    return null;
+                });
+    }
+
+    
+    @Test
+    public Promise<?> manyDiscardAddedTest() throws Exception {
+        return initRepo( "manyTest" )
+                .then( __ -> createCompany() )
+                .then( company -> {
+                    company.employees.add( uow.createEntity( Person.class ) );
+                    uow.discard();
+                    return company.employees.fetchCollect();
+                })
+                .onSuccess( rs -> {
+                    Assert.isEqual( 10, rs.size() );
+                });
+    }
+
     
     @Test
     public Promise<?> manyFetchCollectTest() throws Exception {
