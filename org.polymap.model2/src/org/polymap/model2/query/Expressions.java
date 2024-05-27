@@ -91,6 +91,14 @@ public class Expressions {
         return TemplateProperty.class.cast( prop );
     }
     
+    public static <T> PropertyEquals<T> isNull( Property<T> prop ) {
+        return eq( prop, null );
+    }
+
+    public static <T> Negation notNull( Property<T> prop ) {
+        return not( eq( prop, null ) );
+    }
+
     public static <T> PropertyEquals<T> eq( Property<T> prop, T value ) {
         return new PropertyEquals<T>( template( prop ), value );
     }

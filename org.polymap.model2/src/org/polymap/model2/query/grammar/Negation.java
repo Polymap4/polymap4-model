@@ -35,7 +35,8 @@ public class Negation
         return !children[0].evaluate( target );
     }
     
-    protected String name() {
+    @Override
+    protected String opName() {
         return "NOT";
     }
 
