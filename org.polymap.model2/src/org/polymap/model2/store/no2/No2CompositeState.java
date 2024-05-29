@@ -123,7 +123,7 @@ public class No2CompositeState
             else if (info().isAssociation()) {
                 return doc.get( fieldName, String.class );
             }
-            else if (Composite.class.isAssignableFrom( info().getType() )) {
+            else if (info().isOfType( Composite.class )) {
                 var compositeDoc = (Document)doc.get( fieldName, Document.class );
                 return new No2CompositeState( info().getType(), compositeDoc );
             }
@@ -135,11 +135,16 @@ public class No2CompositeState
         @Override
         public void set( Object value ) {
             Assert.that( !Composite.class.isInstance( value ), "Composite value is not yet supported." );
-            if (value != null) {
-                doc.put( fieldName, value );
+            
+            if (value == null) {
+                // XXX ich hab keine Ahnung warum das notwendig ist (oder richtig);
+                // wenn man bei Composite set(null) macht, dann kommt das nicht in der DB an;
+                // und wenn man bei primitive remove() macht... auch nicht :(
+                doc.remove( fieldName );
+                doc.put( fieldName, null );                
             }
             else {
-                doc.remove( fieldName );
+                doc.put( fieldName, value );                
             }
         }
         

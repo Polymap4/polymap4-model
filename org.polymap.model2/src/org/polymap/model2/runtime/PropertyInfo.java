@@ -66,6 +66,14 @@ public interface PropertyInfo<T> {
     public Class<T> getType();
 
     /**
+     * Checks if the {@link #getType()} of this property is either the same as, or is
+     * a superclass of, the given type.
+     */
+    public default boolean isOfType( Class<T> type ) {
+        return type.isAssignableFrom( getType() );
+    }
+    
+    /**
      * In case of a {@link Composite} property this returns the {@link ParameterizedType}
      * of it. This allows to access the type parameters of the Composite type.
      */
