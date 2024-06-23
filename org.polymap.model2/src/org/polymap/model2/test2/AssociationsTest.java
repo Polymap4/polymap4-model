@@ -153,6 +153,22 @@ public class AssociationsTest {
                 });
     }
 
+
+    @Test
+    public Promise<?> manyMultiAddTest() throws Exception {
+        return initRepo( "manyTest" )
+                .then( __ -> createCompany() )
+                .then( company -> {
+                    var p = uow.createEntity( Person.class );
+                    Assert.that( company.employees.add( p ) );
+                    Assert.that( !company.employees.add( p ) );
+                    return company.employees.fetchCollect();
+                })
+                .onSuccess( rs -> {
+                    Assert.isEqual( 11, rs.size() );
+                });
+    }
+
     
     @Test
     public Promise<?> manyFetchCollectTest() throws Exception {

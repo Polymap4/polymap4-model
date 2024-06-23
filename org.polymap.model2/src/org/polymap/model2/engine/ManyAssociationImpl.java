@@ -52,7 +52,7 @@ class ManyAssociationImpl<T extends Entity>
 //    }
 
     @Override
-    public PropertyInfo info() {
+    public PropertyInfo<T> info() {
         return storeProp.info();
     }
 
@@ -68,12 +68,43 @@ class ManyAssociationImpl<T extends Entity>
     public Promise<Opt<T>> fetch() {
         UnitOfWork uow = context.getUnitOfWork();
         Class<T> entityType = info().getType();
-        
+
         var ids = storeProp.iterator();
-        return ids.hasNext() 
-                ? Promise.serial( size(), i -> uow.entity( entityType, ids.next() ) ).map( entity -> Opt.of( entity ) )
-                : Promise.absent( context.getUnitOfWork().priority() );
+        if (ids.hasNext()) { 
+            return Promise
+                    .joined( storeProp.size(), __ -> uow.entity( entityType, ids.next() ) )
+                    .map( entity -> Opt.of( entity ) );
+            
+            // FIXME should send Opt.absent() after last element
+        }
+        else {
+            return Promise.absent( context.getUnitOfWork().priority() );
+        }
     }
+
+
+//    @Override
+//    public Promise<Opt<T>> fetch() {
+//        UnitOfWork uow = context.getUnitOfWork();
+//        Class<T> entityType = info().getType();
+//        
+//        // HACK: earlier versions of add() did not check duplicates
+//        // Rike: Streitsackgasse und Trennungsbegleitung
+//        var unique = new LinkedHashSet<Object>();
+//        storeProp.forEach( id -> unique.add( id ) );
+//        
+//        if (!unique.isEmpty()) { 
+//            var ids = unique.iterator();
+//            return Promise
+//                    .joined( unique.size(), __ -> uow.entity( entityType, ids.next() ) )
+//                    .map( entity -> Opt.of( entity ) );
+//            
+//            // FIXME should send Opt.absent() after last element
+//        }
+//        else {
+//            return Promise.absent( context.getUnitOfWork().priority() );
+//        }
+//    }
 
 
     @Override
@@ -92,6 +123,11 @@ class ManyAssociationImpl<T extends Entity>
         // on BidiAssociationConcern and/or maybe elsewhere that depends on Entity.equals()
 //        assert elm == context.getUnitOfWork().entity( elm ) : "Entity does no belong to this UnitOfWork.";
         
+        for (var id : storeProp) {
+            if (id.equals( elm.id() )) {
+                return false;
+            }
+        }
         return storeProp.add( elm.id() );
     }
 

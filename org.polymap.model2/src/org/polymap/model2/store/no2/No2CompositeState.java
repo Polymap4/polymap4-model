@@ -217,7 +217,7 @@ public class No2CompositeState
         public void remove( int index ) {
             var l = doc.get( fieldName, List.class );
             if (l == null) {
-                throw new IndexOutOfBoundsException( "CollectenProperty is empty" );
+                throw new IndexOutOfBoundsException( "CollectionProperty is empty" );
             }
             else {
                 l.remove( index );
