@@ -83,30 +83,6 @@ class ManyAssociationImpl<T extends Entity>
     }
 
 
-//    @Override
-//    public Promise<Opt<T>> fetch() {
-//        UnitOfWork uow = context.getUnitOfWork();
-//        Class<T> entityType = info().getType();
-//        
-//        // HACK: earlier versions of add() did not check duplicates
-//        // Rike: Streitsackgasse und Trennungsbegleitung
-//        var unique = new LinkedHashSet<Object>();
-//        storeProp.forEach( id -> unique.add( id ) );
-//        
-//        if (!unique.isEmpty()) { 
-//            var ids = unique.iterator();
-//            return Promise
-//                    .joined( unique.size(), __ -> uow.entity( entityType, ids.next() ) )
-//                    .map( entity -> Opt.of( entity ) );
-//            
-//            // FIXME should send Opt.absent() after last element
-//        }
-//        else {
-//            return Promise.absent( context.getUnitOfWork().priority() );
-//        }
-//    }
-
-
     @Override
     public Query<T> query() {
         Class<T> entityType = info().getType();
