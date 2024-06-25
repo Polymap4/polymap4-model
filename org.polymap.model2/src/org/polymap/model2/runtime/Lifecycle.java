@@ -44,7 +44,7 @@ public interface Lifecycle {
         AFTER_MODIFIED,
         /**
          * Fired when the {@link Entity#status()} switches from
-         * {@link EntityStatus#MODIFIED}.
+         * {@link EntityStatus#REMOVED}.
          */
         AFTER_REMOVED
     }
