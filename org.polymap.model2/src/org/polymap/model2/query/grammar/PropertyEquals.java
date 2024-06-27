@@ -35,7 +35,7 @@ public class PropertyEquals<T>
     @Override
     public boolean evaluate( Composite target ) {
         Property<T> targetProp = targetProp( target, prop );
-        return Objects.equals( value, targetProp.get() );
+        return Objects.equals( value, targetProp.opt().orElse( null ) );
     }
 
     

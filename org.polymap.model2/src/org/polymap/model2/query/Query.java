@@ -115,6 +115,21 @@ public abstract class Query<T extends Entity> {
 
 
     /**
+     * Expects one or no result.
+     * 
+     * @throws IllegalStateException If more than 1 result is in the result set.
+     */
+    public Promise<Opt<T>> optResult() {
+        return executeCollect().map( rs -> {
+            if (rs.size() > 1) {
+                throw new IllegalStateException( "singleResult(): more than one result in result set" );
+            }
+            return rs.isEmpty() ? Opt.absent() : Opt.of( rs.get( 0 ) );
+        });
+    }
+
+
+    /**
      * Set the filter expression. Use the {@link Expressions} static factory to build
      * a {@link BooleanExpression}.
      * <p/>
