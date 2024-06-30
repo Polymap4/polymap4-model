@@ -109,10 +109,10 @@ public class UnitOfWorkImpl
         if (entity.status() == MODIFIED || entity.status() == REMOVED) {
             modified.putIfAbsent( entity.id(), entity );
         }
-        if (old.status < MODIFIED.status || entity.status() == MODIFIED) {
+        if (old.status < MODIFIED.status && entity.status() == MODIFIED) {
             lifecycle( singleton( entity ), State.AFTER_MODIFIED );
         }
-        if (old.status < REMOVED.status || entity.status() == REMOVED) {
+        if (old.status < REMOVED.status && entity.status() == REMOVED) {
             lifecycle( singleton( entity ), State.AFTER_REMOVED );
         }
     }
@@ -319,7 +319,10 @@ public class UnitOfWorkImpl
 
                 // unsubmitted changes
                 LOG.debug( "query(): modified: %s (%s)", _modified.size(), modified.size() );
-                Assert.that( orderBy == null || _modified.isEmpty(), "OrderBy for modified results is not yet supported." );
+                //Assert.that( orderBy == null || _modified.isEmpty(), "OrderBy for modified results is not yet supported." );
+                if (orderBy != null && !_modified.isEmpty()) {
+                    LOG.warn( "orderBy() is is probably wrong for modified/created Entities!" );
+                }
                 var unsubmitted = Promise.joined( _modified.size(), null, i -> {
                     var check = _modified.get( i );                    
                     Assert.that( check.status().status > LOADED.status );
