@@ -14,32 +14,38 @@
  */
 package org.polymap.model2.query.grammar;
 
+import org.polymap.model2.Association;
 import org.polymap.model2.Composite;
 import org.polymap.model2.Entity;
 import org.polymap.model2.engine.TemplateProperty;
+import areca.common.Promise;
+import areca.common.log.LogFactory;
+import areca.common.log.LogFactory.Log;
 
 /**
  * 
- *
+ * XXX not a {@link Quantifier}?
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
 public class AssociationEquals<T extends Entity>
         extends Predicate {
 
-    public TemplateProperty<T>      assoc;
+    private static final Log LOG = LogFactory.getLog( AssociationEquals.class );
+
+    public TemplateProperty<T>      prop;
     
 
     public AssociationEquals( TemplateProperty<T> assoc, BooleanExpression sub ) {
         super( sub );
         assert children.length == 1;
         assert children[0] != null;
-        this.assoc = assoc;
+        this.prop = assoc;
     }
 
     
     @Override
     protected String opName() {
-        return assoc.info().getName() + " is ";
+        return prop.info().getName() + " is ";
     }
 
 
@@ -47,12 +53,24 @@ public class AssociationEquals<T extends Entity>
         return children[0];
     }
 
+    
     @Override
     public boolean evaluate( Composite target ) {
-        throw new RuntimeException( "not compiling after API changes!" );
-//        Association<T> targetProp = targetProp( target, assoc );
-//        Entity entity = targetProp.get();
-//        return entity != null && children[0].evaluate( entity );
+        throw new RuntimeException( "must not be called" );
     }
-    
+
+
+    @Override
+    @SuppressWarnings({"unchecked"})
+    public Promise<Boolean> evaluate2( Composite target ) {
+        var propName = prop.info().getName();
+        var propInfo = target.info().getProperty( propName );
+        var assoc = (Association<T>)propInfo.get( target );
+        LOG.debug( "%s : %s", assoc.info().getName(), subExp() );
+
+        return assoc.fetch().map( associated -> {
+            return subExp().evaluate( associated );
+        });
+    }
+
 }

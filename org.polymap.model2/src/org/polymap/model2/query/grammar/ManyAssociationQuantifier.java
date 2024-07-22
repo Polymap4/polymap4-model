@@ -50,10 +50,10 @@ public class ManyAssociationQuantifier<T extends Entity>
         String propName = prop.info().getName();
         PropertyInfo propInfo = target.info().getProperty( propName );
         ManyAssociation<T> association = (ManyAssociation<T>)propInfo.get( target );
-        LOG.info( "%s : %s", association.info().getName(), subExp() );
+        LOG.debug( "%s : %s", association.info().getName(), subExp() );
         
         return association.fetchCollect().map( associateds -> {
-            LOG.info( "Fetched: %s", associateds.size() );
+            LOG.debug( "Fetched: %s", associateds.size() );
             for (T associated : associateds) {
                 boolean subResult = subExp().evaluate( associated );
                 if (type == Type.ANY && subResult) {
@@ -64,7 +64,7 @@ public class ManyAssociationQuantifier<T extends Entity>
                 }
             }
             return type == Type.ANY ? false : true;
-        }).onSuccess( result -> LOG.info( "Result: %s", result ) );
+        }).onSuccess( result -> LOG.debug( "Result: %s", result ) );
     }
 
 }

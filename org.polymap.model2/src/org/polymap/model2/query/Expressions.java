@@ -133,12 +133,14 @@ public class Expressions {
 //        return new PropertyEqualsAny( (TemplateProperty)prop, a );
 //    }
     
+    @SuppressWarnings( "unchecked" )
     public static <T extends Entity> AssociationEquals<T> is( Association<T> assoc, T entity ) {
-        return new AssociationEquals<T>( (TemplateProperty)assoc, id( entity ) );
+        return new AssociationEquals<T>( (TemplateProperty<T>)assoc, id( entity ) );
     }
 
+    @SuppressWarnings( "unchecked" )
     public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, T... entities ) {
-        return new AssociationEquals<T>( (TemplateProperty)assoc, id( entities ) );
+        return new AssociationEquals<T>( (TemplateProperty<T>)assoc, id( entities ) );
     }
 
 //    public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, Iterable<T> entities ) {

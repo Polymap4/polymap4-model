@@ -174,7 +174,7 @@ public class FilterBuilder {
                 var ids = (IdPredicate<?>)ae.subExp();
                 var _ids = Sequence.of( ids.ids ).map( id -> (String)id ).toArray( String[]::new );
                 //var _ids = Arrays.copyOf( ids.ids, ids.ids.length, String[].class );
-                return FluentFilter.where( fieldNameBase + ae.assoc.info().getNameInStore() ).in( _ids );
+                return FluentFilter.where( fieldNameBase + ae.prop.info().getNameInStore() ).in( _ids );
             }
             else {
                 throw new RuntimeException( "AssociationEquals: subType = " + ae.subExp() );                
