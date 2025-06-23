@@ -68,8 +68,15 @@ public class AssociationEquals<T extends Entity>
         var assoc = (Association<T>)propInfo.get( target );
         LOG.debug( "%s : %s", assoc.info().getName(), subExp() );
 
-        return assoc.fetch().map( associated -> {
-            return subExp().evaluate( associated );
+        return assoc.fetch().then( associated -> {
+            if (associated != null) {
+                return subExp().evaluate2( associated );
+            }
+            else {
+                // XXX if the association is 'null' then no expression can be true;
+                // *except for an isNull(Assiciation), which is not yet there
+                return Promise.completed( Boolean.FALSE, null );
+            }
         });
     }
 

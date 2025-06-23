@@ -135,6 +135,7 @@ public class Expressions {
     
     @SuppressWarnings( "unchecked" )
     public static <T extends Entity> AssociationEquals<T> is( Association<T> assoc, T entity ) {
+        Assert.notNull( entity, "Association isNnull check is not yet supported." );
         return new AssociationEquals<T>( (TemplateProperty<T>)assoc, id( entity ) );
     }
 
@@ -142,6 +143,12 @@ public class Expressions {
     public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, T... entities ) {
         return new AssociationEquals<T>( (TemplateProperty<T>)assoc, id( entities ) );
     }
+
+//    @SuppressWarnings( "unchecked" )
+//    public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, Collection<T> entities ) {
+//        ArrayUtils.toArray( )
+//        return new AssociationEquals<T>( (TemplateProperty<T>)assoc, id( entities.toArray( TopicEntity[]::new ) ) );
+//    }
 
 //    public static <T extends Entity> AssociationEquals<T> isAnyOf( Association<T> assoc, Iterable<T> entities ) {
 //        ArrayList<T> l = Lists.newArrayList( entities );
@@ -161,6 +168,7 @@ public class Expressions {
      * True if {@link Entity#id()} of the target Entity of the {@link Query} equals
      * an id of one of the given Entities.
      */
+    @SafeVarargs
     public static <T extends Entity> IdPredicate<T> id( T... entities ) {
         Object[] ids = new Object[entities.length];
         for (int i=0; i<entities.length; i++) {

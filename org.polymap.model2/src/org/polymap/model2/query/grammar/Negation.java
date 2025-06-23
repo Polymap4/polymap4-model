@@ -16,6 +16,8 @@ package org.polymap.model2.query.grammar;
 
 import org.polymap.model2.Composite;
 
+import areca.common.Promise;
+
 /**
  * 
  *
@@ -35,6 +37,11 @@ public class Negation
         return !children[0].evaluate( target );
     }
     
+    @Override
+    public Promise<Boolean> evaluate2( Composite target ) {
+        return children[0].evaluate2( target ).map( result -> !result );
+    }
+
     @Override
     protected String opName() {
         return "NOT";

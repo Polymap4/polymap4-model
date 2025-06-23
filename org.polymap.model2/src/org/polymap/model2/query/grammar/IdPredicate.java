@@ -43,7 +43,7 @@ public class IdPredicate<T extends Entity>
     @Override
     public boolean evaluate( Composite target ) {
         for (Object id : ids) {
-            if (((Entity)target).id().equals( id )) {
+            if (id.equals( ((Entity)target).id() )) {
                 return true;
             }
         }
